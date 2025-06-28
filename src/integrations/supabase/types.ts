@@ -9,7 +9,191 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      item_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_reactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          created_at: string
+          description: string | null
+          estimated_delivery_days: number | null
+          id: string
+          images: string[] | null
+          price: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          created_at?: string
+          description?: string | null
+          estimated_delivery_days?: number | null
+          id?: string
+          images?: string[] | null
+          price: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          created_at?: string
+          description?: string | null
+          estimated_delivery_days?: number | null
+          id?: string
+          images?: string[] | null
+          price?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          order_id: string
+          price_at_time: number
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          order_id: string
+          price_at_time: number
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          order_id?: string
+          price_at_time?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address_line1: string
+          address_line2: string | null
+          city: string
+          country: string
+          created_at: string
+          delivery_instructions: string | null
+          email: string | null
+          full_name: string
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          postal_code: string
+          session_id: string
+          state: string
+          status: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          address_line1: string
+          address_line2?: string | null
+          city: string
+          country?: string
+          created_at?: string
+          delivery_instructions?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          postal_code: string
+          session_id: string
+          state: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          address_line1?: string
+          address_line2?: string | null
+          city?: string
+          country?: string
+          created_at?: string
+          delivery_instructions?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          postal_code?: string
+          session_id?: string
+          state?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +202,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      item_category: "Fashion" | "Animals" | "Tools" | "Vehicles" | "Books"
+      order_status:
+        | "pending"
+        | "processing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+      payment_method:
+        | "cryptocurrency"
+        | "bank_transfer"
+        | "credit_card"
+        | "paypal"
+        | "gift_card"
+        | "cash_app"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +330,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      item_category: ["Fashion", "Animals", "Tools", "Vehicles", "Books"],
+      order_status: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      payment_method: [
+        "cryptocurrency",
+        "bank_transfer",
+        "credit_card",
+        "paypal",
+        "gift_card",
+        "cash_app",
+      ],
+    },
   },
 } as const
