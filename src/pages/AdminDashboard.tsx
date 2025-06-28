@@ -17,21 +17,45 @@ const AdminDashboard = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        console.log('Checking admin dashboard auth...');
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
-        if (!user) {
+        if (userError) {
+          console.error('User fetch error:', userError);
           navigate('/admin');
           return;
         }
 
-        // Check if user is admin
-        const { data: adminUser } = await supabase
+        if (!user) {
+          console.log('No user found, redirecting to admin login');
+          navigate('/admin');
+          return;
+        }
+
+        console.log('User found:', user.email, 'ID:', user.id);
+
+        // Check if user is admin with detailed logging
+        const { data: adminUser, error: adminError } = await supabase
           .from('admin_users')
-          .select('is_admin')
+          .select('is_admin, user_id')
           .eq('user_id', user.id)
           .single();
 
+        console.log('Admin check result:', { adminUser, adminError });
+
+        if (adminError) {
+          console.error('Admin user fetch error:', adminError);
+          toast({
+            title: "Access denied",
+            description: "Unable to verify admin privileges. Please try logging in again.",
+            variant: "destructive",
+          });
+          navigate('/admin');
+          return;
+        }
+
         if (!adminUser?.is_admin) {
+          console.log('User is not admin:', adminUser);
           toast({
             title: "Access denied",
             description: "You don't have admin privileges.",
@@ -41,9 +65,15 @@ const AdminDashboard = () => {
           return;
         }
 
+        console.log('Admin access verified successfully');
         setUser(user);
       } catch (error) {
         console.error('Auth check error:', error);
+        toast({
+          title: "Error",
+          description: "An error occurred while checking authentication.",
+          variant: "destructive",
+        });
         navigate('/admin');
       } finally {
         setLoading(false);
@@ -65,7 +95,10 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div>Loading...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div>Verifying admin access...</div>
+        </div>
       </div>
     );
   }
