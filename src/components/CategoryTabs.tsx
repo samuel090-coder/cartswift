@@ -23,7 +23,11 @@ const CategoryTabs = ({ selectedCategory, onCategoryChange }: CategoryTabsProps)
           key={category.id}
           variant={selectedCategory === category.id ? "default" : "outline"}
           onClick={() => onCategoryChange(category.id)}
-          className="px-6 py-2"
+          className={`px-6 py-2 transition-all duration-200 ${
+            selectedCategory === category.id 
+              ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg" 
+              : "bg-white/80 backdrop-blur-sm hover:bg-white/90 hover:shadow-md"
+          }`}
         >
           {category.label}
         </Button>

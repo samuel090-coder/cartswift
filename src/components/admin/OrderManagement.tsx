@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
 type Order = Database['public']['Tables']['orders']['Row'];
-type OrderItem = Database['public']['Tables']['order_items']['Row'] & {
-  items: { title: string } | null;
-};
+type OrderStatus = Database['public']['Enums']['order_status'];
 
 const OrderManagement = () => {
   const queryClient = useQueryClient();
@@ -26,20 +25,27 @@ const OrderManagement = () => {
           *,
           order_items (
             *,
-            items (title)
+            items (title, price)
           )
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as (Order & {
+        order_items: Array<{
+          id: string;
+          quantity: number;
+          price_at_time: number;
+          items: { title: string; price: number };
+        }>;
+      })[];
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       const { error } = await supabase
         .from('orders')
-        .update({ status })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq('id', orderId);
       if (error) throw error;
     },
@@ -59,7 +65,7 @@ const OrderManagement = () => {
     },
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'processing': return 'bg-blue-100 text-blue-800';
@@ -91,45 +97,35 @@ const OrderManagement = () => {
                   <TableHead>Customer</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order: any) => (
+                {orders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell className="font-mono text-sm">
                       {order.id.slice(0, 8)}...
                     </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{order.full_name}</div>
-                        {order.email && (
-                          <div className="text-sm text-gray-500">{order.email}</div>
-                        )}
+                        <div className="text-sm text-gray-500">{order.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {order.order_items?.map((item: OrderItem, index: number) => (
-                          <div key={index}>
-                            {item.items?.title} x{item.quantity}
-                          </div>
-                        ))}
-                      </div>
+                      {order.order_items.length} item(s)
                     </TableCell>
-                    <TableCell className="font-medium">
-                      ${Number(order.total_amount).toFixed(2)}
+                    <TableCell>${Number(order.total_amount).toFixed(2)}</TableCell>
+                    <TableCell className="capitalize">
+                      {order.payment_method.replace('_', ' ')}
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(order.status)}>
                         {order.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {order.payment_method.replace('_', ' ')}
                     </TableCell>
                     <TableCell>
                       {new Date(order.created_at).toLocaleDateString()}
@@ -137,10 +133,9 @@ const OrderManagement = () => {
                     <TableCell>
                       <Select
                         value={order.status}
-                        onValueChange={(value) => updateStatusMutation.mutate({
-                          orderId: order.id,
-                          status: value
-                        })}
+                        onValueChange={(value: OrderStatus) =>
+                          updateStatusMutation.mutate({ orderId: order.id, status: value })
+                        }
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
