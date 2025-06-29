@@ -17,7 +17,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('Checking admin dashboard auth...');
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
@@ -27,21 +26,16 @@ const AdminDashboard = () => {
         }
 
         if (!user) {
-          console.log('No user found, redirecting to admin login');
           navigate('/admin');
           return;
         }
 
-        console.log('User found:', user.email, 'ID:', user.id);
-
-        // Check if user is admin with detailed logging
+        // Check if user is admin
         const { data: adminUser, error: adminError } = await supabase
           .from('admin_users')
           .select('is_admin, user_id')
           .eq('user_id', user.id)
           .single();
-
-        console.log('Admin check result:', { adminUser, adminError });
 
         if (adminError) {
           console.error('Admin user fetch error:', adminError);
@@ -55,7 +49,6 @@ const AdminDashboard = () => {
         }
 
         if (!adminUser?.is_admin) {
-          console.log('User is not admin:', adminUser);
           toast({
             title: "Access denied",
             description: "You don't have admin privileges.",
@@ -65,7 +58,6 @@ const AdminDashboard = () => {
           return;
         }
 
-        console.log('Admin access verified successfully');
         setUser(user);
       } catch (error) {
         console.error('Auth check error:', error);

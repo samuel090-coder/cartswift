@@ -199,7 +199,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin_user: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       item_category: "Fashion" | "Animals" | "Tools" | "Vehicles" | "Books"
