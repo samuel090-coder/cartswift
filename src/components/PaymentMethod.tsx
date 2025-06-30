@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -137,34 +136,34 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             </p>
           </div>
           
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Account Name:</span>
-                <p>Samuel Sunday</p>
+          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-sm text-gray-600">Account Name:</span>
+                <span className="font-semibold">Samuel Sunday</span>
               </div>
-              <div>
-                <span className="font-medium">Bank Name:</span>
-                <p>Wells Fargo</p>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-sm text-gray-600">Bank Name:</span>
+                <span className="font-semibold">Wells Fargo</span>
               </div>
-              <div>
-                <span className="font-medium">Account Number:</span>
-                <p>40630281780274976</p>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-sm text-gray-600">Account Number:</span>
+                <span className="font-mono font-semibold">40630281780274976</span>
               </div>
-              <div>
-                <span className="font-medium">Routing Number:</span>
-                <p>121000248</p>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-sm text-gray-600">Routing Number:</span>
+                <span className="font-mono font-semibold">121000248</span>
               </div>
-              <div>
-                <span className="font-medium">SWIFT Code:</span>
-                <p>WFBIUS6SXXX</p>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-sm text-gray-600">SWIFT Code:</span>
+                <span className="font-mono font-semibold">WFBIUS6SXXX</span>
+              </div>
+              <div className="pt-2">
+                <span className="font-medium text-sm text-gray-600">Bank Address:</span>
+                <p className="text-sm mt-1">580 California Street, San Francisco, CA 94104, US</p>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="font-medium text-sm">Bank Address:</span>
-              <p className="text-sm">580 California Street, San Francisco, CA 94104, US</p>
-            </div>
-            <Badge variant="outline" className="mt-2">
+            <Badge variant="outline" className="mt-3">
               Amount: ${total.toFixed(2)}
             </Badge>
           </div>
