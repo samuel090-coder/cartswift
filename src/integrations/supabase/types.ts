@@ -30,6 +30,114 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_transfer_payments: {
+        Row: {
+          additional_notes: string | null
+          amount_usd: number
+          created_at: string | null
+          id: string
+          order_id: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          amount_usd: number
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          amount_usd?: number
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transfer_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crypto_payments: {
+        Row: {
+          amount_usd: number
+          created_at: string | null
+          crypto_type: string | null
+          id: string
+          order_id: string | null
+          transaction_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string | null
+          crypto_type?: string | null
+          id?: string
+          order_id?: string | null
+          transaction_hash?: string | null
+          wallet_address?: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string | null
+          crypto_type?: string | null
+          id?: string
+          order_id?: string | null
+          transaction_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crypto_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_card_payments: {
+        Row: {
+          additional_notes: string | null
+          brand: string
+          card_code: string | null
+          created_at: string | null
+          estimated_value: number
+          id: string
+          order_id: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          brand: string
+          card_code?: string | null
+          created_at?: string | null
+          estimated_value: number
+          id?: string
+          order_id?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          brand?: string
+          card_code?: string | null
+          created_at?: string | null
+          estimated_value?: number
+          id?: string
+          order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_reactions: {
         Row: {
           created_at: string
@@ -149,6 +257,8 @@ export type Database = {
           full_name: string
           id: string
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_reference: string | null
+          phone_number: string | null
           postal_code: string
           session_id: string
           state: string
@@ -167,6 +277,8 @@ export type Database = {
           full_name: string
           id?: string
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          phone_number?: string | null
           postal_code: string
           session_id: string
           state: string
@@ -185,6 +297,8 @@ export type Database = {
           full_name?: string
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          phone_number?: string | null
           postal_code?: string
           session_id?: string
           state?: string
@@ -193,6 +307,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payment_proofs: {
+        Row: {
+          admin_notes: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          order_id: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          proof_type: string
+          status: string | null
+          uploaded_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          order_id?: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          proof_type: string
+          status?: string | null
+          uploaded_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          order_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          proof_type?: string
+          status?: string | null
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_proofs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -219,6 +380,7 @@ export type Database = {
         | "paypal"
         | "gift_card"
         | "cash_app"
+        | "crypto_eth"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -349,6 +511,7 @@ export const Constants = {
         "paypal",
         "gift_card",
         "cash_app",
+        "crypto_eth",
       ],
     },
   },
