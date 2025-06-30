@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -371,9 +372,9 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             
             <div className="mt-4 flex items-center justify-center">
               <img 
-                src="/placeholder.svg" 
-                alt="ETH QR Code" 
-                className="w-32 h-32 border rounded"
+                src="/lovable-uploads/315e5ecd-90aa-409f-a151-038a2736a829.png" 
+                alt="ETH QR Code for 0xE0520ED79515cA41a28C1Dc8c09C218C940F7a6e" 
+                className="w-48 h-48 border rounded shadow-sm"
               />
             </div>
 

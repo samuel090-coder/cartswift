@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
-import { Eye, Download, Check, X, Clock, ExternalLink } from 'lucide-react';
+import { Eye, Download, Check, X, Clock, ExternalLink, ZoomIn } from 'lucide-react';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderStatus = Database['public']['Enums']['order_status'];
@@ -38,6 +37,7 @@ const OrderManagement = () => {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['admin-orders'],
@@ -148,15 +148,34 @@ const OrderManagement = () => {
         <img 
           src={fileUrl} 
           alt={fileName}
-          className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
-          onClick={() => window.open(fileUrl, '_blank')}
+          className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => setSelectedImage(fileUrl)}
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-          <ExternalLink className="h-4 w-4 text-white" />
+          <ZoomIn className="h-4 w-4 text-white" />
         </div>
       </div>
     );
   };
+
+  const FullSizeImageDialog = () => (
+    <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Payment Proof Image</DialogTitle>
+        </DialogHeader>
+        {selectedImage && (
+          <div className="flex justify-center">
+            <img 
+              src={selectedImage} 
+              alt="Payment proof full size"
+              className="max-w-full max-h-[70vh] object-contain rounded"
+            />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   const OrderDetailsDialog = ({ order }: { order: OrderWithDetails }) => (
     <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -337,26 +356,53 @@ const OrderManagement = () => {
                       </div>
                     </div>
                     
-                    {/* File Preview */}
-                    <div className="flex items-center gap-4">
-                      <ImagePreview fileUrl={proof.file_url} fileName={proof.file_name || 'unknown'} />
+                    {/* Enhanced File Preview with Larger Images */}
+                    <div className="flex items-start gap-4">
+                      {isImageFile(proof.file_name || 'unknown') ? (
+                        <div className="relative">
+                          <img 
+                            src={proof.file_url} 
+                            alt={proof.file_name || 'Payment proof'}
+                            className="w-32 h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                            onClick={() => setSelectedImage(proof.file_url)}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 rounded flex items-center justify-center opacity-0 hover:opacity-100 transition-all cursor-pointer">
+                            <ZoomIn className="h-6 w-6 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center border">
+                          <span className="text-sm text-gray-500">FILE</span>
+                        </div>
+                      )}
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{proof.file_name || 'Unknown file'}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="font-medium">{proof.file_name || 'Unknown file'}</p>
+                        <p className="text-sm text-gray-500">
                           Size: {proof.file_size ? `${(proof.file_size / 1024).toFixed(1)} KB` : 'Unknown'}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-500">
                           Uploaded: {new Date(proof.uploaded_at || '').toLocaleString()}
                         </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => window.open(proof.file_url, '_blank')}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Full Size
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(proof.file_url, '_blank')}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Full Size
+                          </Button>
+                          {isImageFile(proof.file_name || 'unknown') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedImage(proof.file_url)}
+                            >
+                              <ZoomIn className="h-4 w-4 mr-1" />
+                              Zoom
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -451,11 +497,12 @@ const OrderManagement = () => {
                                 {proof.proof_type.replace('_', ' ')}
                               </Badge>
                               {proof.file_name && isImageFile(proof.file_name) && (
-                                <div className="w-6 h-6">
+                                <div className="w-8 h-8">
                                   <img 
                                     src={proof.file_url} 
                                     alt="proof"
-                                    className="w-full h-full object-cover rounded"
+                                    className="w-full h-full object-cover rounded cursor-pointer hover:opacity-80"
+                                    onClick={() => setSelectedImage(proof.file_url)}
                                   />
                                 </div>
                               )}
@@ -511,6 +558,8 @@ const OrderManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      <FullSizeImageDialog />
     </div>
   );
 };
