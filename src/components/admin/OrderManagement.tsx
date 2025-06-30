@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
-import { Eye, Download, Check, X, Clock } from 'lucide-react';
+import { Eye, Download, Check, X, Clock, ExternalLink } from 'lucide-react';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderStatus = Database['public']['Enums']['order_status'];
@@ -127,6 +127,35 @@ const OrderManagement = () => {
       case 'under_review': return 'bg-blue-100 text-blue-800';
       default: return 'bg-yellow-100 text-yellow-800';
     }
+  };
+
+  const isImageFile = (fileName: string) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    return imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
+
+  const ImagePreview = ({ fileUrl, fileName }: { fileUrl: string; fileName: string }) => {
+    if (!isImageFile(fileName)) {
+      return (
+        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+          <span className="text-xs text-gray-500">FILE</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative group">
+        <img 
+          src={fileUrl} 
+          alt={fileName}
+          className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
+          onClick={() => window.open(fileUrl, '_blank')}
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+          <ExternalLink className="h-4 w-4 text-white" />
+        </div>
+      </div>
+    );
   };
 
   const OrderDetailsDialog = ({ order }: { order: OrderWithDetails }) => (
@@ -278,22 +307,15 @@ const OrderManagement = () => {
             <CardContent>
               <div className="space-y-4">
                 {order.payment_proofs.map((proof) => (
-                  <div key={proof.id} className="border p-3 rounded space-y-2">
+                  <div key={proof.id} className="border p-4 rounded space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Badge className={getProofStatusColor(proof.status || 'pending')}>
                           {proof.status || 'pending'}
                         </Badge>
-                        <span className="text-sm font-medium">{proof.proof_type}</span>
+                        <span className="text-sm font-medium capitalize">{proof.proof_type.replace('_', ' ')}</span>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(proof.file_url, '_blank')}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Select
                           value={proof.status || 'pending'}
                           onValueChange={(value) => updateProofStatusMutation.mutate({
@@ -315,13 +337,34 @@ const OrderManagement = () => {
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-600">
-                      <p>File: {proof.file_name || 'Unknown'}</p>
-                      <p>Uploaded: {new Date(proof.uploaded_at || '').toLocaleString()}</p>
-                      {proof.admin_notes && (
-                        <p><strong>Admin Notes:</strong> {proof.admin_notes}</p>
-                      )}
+                    {/* File Preview */}
+                    <div className="flex items-center gap-4">
+                      <ImagePreview fileUrl={proof.file_url} fileName={proof.file_name || 'unknown'} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{proof.file_name || 'Unknown file'}</p>
+                        <p className="text-xs text-gray-500">
+                          Size: {proof.file_size ? `${(proof.file_size / 1024).toFixed(1)} KB` : 'Unknown'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Uploaded: {new Date(proof.uploaded_at || '').toLocaleString()}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => window.open(proof.file_url, '_blank')}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Full Size
+                        </Button>
+                      </div>
                     </div>
+                    
+                    {proof.admin_notes && (
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-sm"><strong>Admin Notes:</strong> {proof.admin_notes}</p>
+                      </div>
+                    )}
                     
                     <div>
                       <Label htmlFor={`notes-${proof.id}`}>Admin Notes</Label>
@@ -400,13 +443,23 @@ const OrderManagement = () => {
                       {order.payment_proofs.length > 0 ? (
                         <div className="flex flex-col gap-1">
                           {order.payment_proofs.map((proof) => (
-                            <Badge 
-                              key={proof.id} 
-                              className={getProofStatusColor(proof.status || 'pending')}
-                              variant="outline"
-                            >
-                              {proof.proof_type}
-                            </Badge>
+                            <div key={proof.id} className="flex items-center gap-2">
+                              <Badge 
+                                className={getProofStatusColor(proof.status || 'pending')}
+                                variant="outline"
+                              >
+                                {proof.proof_type.replace('_', ' ')}
+                              </Badge>
+                              {proof.file_name && isImageFile(proof.file_name) && (
+                                <div className="w-6 h-6">
+                                  <img 
+                                    src={proof.file_url} 
+                                    alt="proof"
+                                    className="w-full h-full object-cover rounded"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       ) : (

@@ -138,13 +138,40 @@ const Checkout = () => {
   });
 
   const handleFileUpload = async (file: File, type: string): Promise<string> => {
-    // Create a simple file URL for demo purposes
-    // In production, you'd upload to Supabase Storage
-    const fileUrl = URL.createObjectURL(file);
-    
-    // You would implement actual file upload to Supabase Storage here
-    // For now, we'll just return the blob URL
-    return fileUrl;
+    try {
+      // Generate a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `payment-proofs/${fileName}`;
+
+      // Upload to Supabase Storage (for now, we'll use a simple blob URL)
+      // In production, you should upload to Supabase Storage
+      const fileUrl = URL.createObjectURL(file);
+      
+      // Get the current order ID from localStorage or session
+      const sessionId = getSessionId();
+      
+      // Store payment proof information
+      const { error: proofError } = await supabase
+        .from('payment_proofs')
+        .insert({
+          order_id: null, // Will be updated after order creation
+          payment_method: formData.paymentMethod as any,
+          proof_type: type,
+          file_url: fileUrl,
+          file_name: file.name,
+          file_size: file.size,
+        });
+
+      if (proofError) {
+        console.error('Payment proof error:', proofError);
+      }
+      
+      return fileUrl;
+    } catch (error) {
+      console.error('File upload error:', error);
+      throw error;
+    }
   };
 
   const handleDetailsSubmit = (e: React.FormEvent) => {

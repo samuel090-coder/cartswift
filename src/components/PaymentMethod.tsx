@@ -28,12 +28,19 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
   const [cryptoNotes, setCryptoNotes] = useState('');
   const [bankNotes, setBankNotes] = useState('');
 
+  // USD to NGN conversion rate (you can make this dynamic by calling a currency API)
+  const USD_TO_NGN_RATE = 1500; // 1 USD = 1500 NGN (update this rate as needed)
+
   const handlePaystackPayment = () => {
+    // Convert USD to NGN
+    const amountInNGN = total * USD_TO_NGN_RATE;
+    const amountInKobo = Math.round(amountInNGN * 100); // Convert to kobo
+
     const handler = (window as any).PaystackPop.setup({
       key: 'pk_live_0e0f5f39decd0ac1abe180cddf4b41fe5b45d10b',
       email: 'customer@cartswift.com',
-      amount: Math.round(total * 100), // Convert to kobo
-      currency: 'USD',
+      amount: amountInKobo, // Amount in kobo (NGN)
+      currency: 'NGN',
       callback: function(response: any) {
         onPaymentSuccess(response.reference);
         toast({
@@ -92,6 +99,8 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
   };
 
   if (method === 'credit_card') {
+    const amountInNGN = total * USD_TO_NGN_RATE;
+    
     return (
       <Card>
         <CardHeader>
@@ -105,14 +114,21 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             <p className="text-sm text-blue-800 mb-2">
               Secure payment powered by Paystack
             </p>
-            <p className="text-2xl font-bold text-blue-900">${total.toFixed(2)}</p>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold text-blue-900">
+                ₦{amountInNGN.toLocaleString()}
+              </p>
+              <p className="text-sm text-blue-700">
+                (~${total.toFixed(2)} USD)
+              </p>
+            </div>
           </div>
           <Button 
             onClick={handlePaystackPayment}
             className="w-full"
             size="lg"
           >
-            Pay with Card
+            Pay ₦{amountInNGN.toLocaleString()}
           </Button>
         </CardContent>
       </Card>
