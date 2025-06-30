@@ -158,6 +158,45 @@ const OrderManagement = () => {
     );
   };
 
+  const ProofThumbnails = ({ proofs }: { proofs: PaymentProof[] }) => {
+    if (proofs.length === 0) {
+      return <span className="text-gray-400">None</span>;
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1 max-w-[120px]">
+        {proofs.slice(0, 3).map((proof) => (
+          <div key={proof.id} className="relative">
+            {proof.file_url && isImageFile(proof.file_name || 'unknown') ? (
+              <img 
+                src={proof.file_url} 
+                alt={proof.file_name || 'Payment proof'}
+                className="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity border"
+                onClick={() => setSelectedImage(proof.file_url)}
+                title={`${proof.proof_type.replace('_', ' ')} - ${proof.file_name}`}
+              />
+            ) : (
+              <div 
+                className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border cursor-pointer hover:bg-gray-200"
+                onClick={() => window.open(proof.file_url, '_blank')}
+                title={`${proof.proof_type.replace('_', ' ')} - ${proof.file_name}`}
+              >
+                <span className="text-xs text-gray-500">FILE</span>
+              </div>
+            )}
+            <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border ${getProofStatusColor(proof.status || 'pending')}`}>
+            </div>
+          </div>
+        ))}
+        {proofs.length > 3 && (
+          <div className="w-10 h-10 bg-gray-50 rounded flex items-center justify-center border text-xs text-gray-500">
+            +{proofs.length - 3}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const FullSizeImageDialog = () => (
     <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
       <DialogContent className="max-w-4xl">
@@ -486,32 +525,7 @@ const OrderManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {order.payment_proofs.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {order.payment_proofs.map((proof) => (
-                            <div key={proof.id} className="flex items-center gap-2">
-                              <Badge 
-                                className={getProofStatusColor(proof.status || 'pending')}
-                                variant="outline"
-                              >
-                                {proof.proof_type.replace('_', ' ')}
-                              </Badge>
-                              {proof.file_name && isImageFile(proof.file_name) && (
-                                <div className="w-8 h-8">
-                                  <img 
-                                    src={proof.file_url} 
-                                    alt="proof"
-                                    className="w-full h-full object-cover rounded cursor-pointer hover:opacity-80"
-                                    onClick={() => setSelectedImage(proof.file_url)}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">None</span>
-                      )}
+                      <ProofThumbnails proofs={order.payment_proofs} />
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(order.status)}>
