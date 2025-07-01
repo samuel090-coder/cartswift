@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Heart, Plus, ChevronLeft, ChevronRight, Truck } from 'lucide-react';
+import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '@/contexts/CartContext';
@@ -8,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
+import ExpandableDescription from './ExpandableDescription';
 
 type Item = Database['public']['Tables']['items']['Row'];
 
@@ -97,8 +97,8 @@ const ItemCard = ({ item }: ItemCardProps) => {
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow duration-200 bg-white">
-      <CardContent className="p-3">
+    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-2 hover:border-blue-200">
+      <CardContent className="p-4 space-y-3">
         {/* Image Slider */}
         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-gray-100">
           <img
@@ -157,34 +157,20 @@ const ItemCard = ({ item }: ItemCardProps) => {
 
         {/* Item Info */}
         <div className="space-y-2">
-          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight">
+          <h3 className="font-semibold text-lg leading-tight group-hover:text-blue-600 transition-colors">
             {item.title}
           </h3>
           
-          {item.description && (
-            <p className="text-xs text-gray-600 line-clamp-1">
-              {item.description}
-            </p>
-          )}
+          <ExpandableDescription description={item.description || ''} maxLines={2} />
           
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-2xl font-bold text-green-600">
               ${Number(item.price).toFixed(2)}
             </span>
-            <Button
-              size="sm"
-              onClick={handleAddToCart}
-              className="h-7 px-2"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add
-            </Button>
-          </div>
-          
-          {/* Delivery Info */}
-          <div className="flex items-center text-xs text-gray-500">
-            <Truck className="h-3 w-3 mr-1" />
-            {item.estimated_delivery_days} day delivery
+            <div className="flex items-center space-x-1 text-sm text-gray-500">
+              <Clock className="h-4 w-4" />
+              <span>{item.estimated_delivery_days || 7} days</span>
+            </div>
           </div>
         </div>
       </CardContent>
