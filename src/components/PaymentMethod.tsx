@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Copy, Upload, CreditCard, Building2, Gift, Coins } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentMethodProps {
   method: string;
   total: number;
   onPaymentSuccess: (reference?: string) => void;
-  onFileUpload: (file: File, type: string) => Promise<string>;
+  onFileUpload: (file: File, type: string, orderId?: string) => Promise<string>;
 }
 
 const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: PaymentMethodProps) => {
@@ -83,6 +84,49 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
     } catch (error) {
       toast({
         title: "Upload failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGiftCardSubmit = async () => {
+    if (!giftCardData.brand || !giftCardData.estimatedValue) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get the current session ID
+      const sessionId = localStorage.getItem('cartswift-session') || 'unknown';
+      
+      // Store gift card payment data
+      const { error: giftCardError } = await supabase
+        .from('gift_card_payments')
+        .insert({
+          brand: giftCardData.brand === 'other' ? giftCardData.customBrand : giftCardData.brand,
+          estimated_value: parseFloat(giftCardData.estimatedValue),
+          card_code: giftCardData.cardCode || null,
+          additional_notes: giftCardData.notes || null,
+        });
+
+      if (giftCardError) {
+        console.error('Gift card payment error:', giftCardError);
+      }
+
+      onPaymentSuccess();
+    } catch (error) {
+      console.error('Gift card submission error:', error);
+      toast({
+        title: "Submission failed",
         description: "Please try again",
         variant: "destructive",
       });
@@ -325,7 +369,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             </div>
 
             <Button 
-              onClick={() => onPaymentSuccess()}
+              onClick={handleGiftCardSubmit}
               disabled={loading || !giftCardData.brand || !giftCardData.estimatedValue}
               className="w-full"
               size="lg"

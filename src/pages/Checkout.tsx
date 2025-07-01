@@ -137,25 +137,38 @@ const Checkout = () => {
     },
   });
 
-  const handleFileUpload = async (file: File, type: string): Promise<string> => {
+  const handleFileUpload = async (file: File, type: string, orderId?: string): Promise<string> => {
     try {
       // Generate a unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `payment-proofs/${fileName}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `${type}/${fileName}`;
 
-      // Upload to Supabase Storage (for now, we'll use a simple blob URL)
-      // In production, you should upload to Supabase Storage
-      const fileUrl = URL.createObjectURL(file);
+      console.log('Uploading file to payment-proofs bucket:', filePath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(filePath);
+
+      const fileUrl = urlData.publicUrl;
+      console.log('File uploaded successfully, URL:', fileUrl);
       
-      // Get the current order ID from localStorage or session
-      const sessionId = getSessionId();
-      
-      // Store payment proof information
+      // Store payment proof information with the order ID if available
       const { error: proofError } = await supabase
         .from('payment_proofs')
         .insert({
-          order_id: null, // Will be updated after order creation
+          order_id: orderId || null,
           payment_method: formData.paymentMethod as any,
           proof_type: type,
           file_url: fileUrl,
