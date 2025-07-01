@@ -4,17 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { TrendingUp, Users, Eye, DollarSign, Globe } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { TrendingUp, Users, Eye, DollarSign } from 'lucide-react';
 
 const AnalyticsManagement = () => {
-  const [visitorStats, setVisitorStats] = useState({
-    todayVisitors: 0,
-    yesterdayVisitors: 0,
-    totalVisitors: 0,
-    recentIPs: [] as Array<{ ip: string; country: string; visits: number; lastVisit: string }>
-  });
-
   const { data: orderStats } = useQuery({
     queryKey: ['order-analytics'],
     queryFn: async () => {
@@ -79,36 +71,6 @@ const AnalyticsManagement = () => {
     },
   });
 
-  // Simulate visitor data (in a real app, you'd track this server-side)
-  useEffect(() => {
-    const generateMockVisitorData = () => {
-      const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'BR'];
-      const mockIPs = Array.from({ length: 15 }, (_, i) => ({
-        ip: `192.168.1.${100 + i}`,
-        country: countries[Math.floor(Math.random() * countries.length)],
-        visits: Math.floor(Math.random() * 10) + 1,
-        lastVisit: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString()
-      }));
-      
-      setVisitorStats({
-        todayVisitors: Math.floor(Math.random() * 500) + 100,
-        yesterdayVisitors: Math.floor(Math.random() * 400) + 80,
-        totalVisitors: Math.floor(Math.random() * 5000) + 1000,
-        recentIPs: mockIPs
-      });
-    };
-    
-    generateMockVisitorData();
-  }, []);
-
-  const getFlagEmoji = (countryCode: string) => {
-    const flags: { [key: string]: string } = {
-      'US': '🇺🇸', 'UK': '🇬🇧', 'CA': '🇨🇦', 'AU': '🇦🇺',
-      'DE': '🇩🇪', 'FR': '🇫🇷', 'JP': '🇯🇵', 'BR': '🇧🇷'
-    };
-    return flags[countryCode] || '🌍';
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -122,19 +84,6 @@ const AnalyticsManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Visitors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{visitorStats.todayVisitors}</div>
-            <p className="text-xs text-muted-foreground">
-              vs {visitorStats.yesterdayVisitors} yesterday
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -143,6 +92,17 @@ const AnalyticsManagement = () => {
             <p className="text-xs text-muted-foreground">
               vs {orderStats?.yesterdayOrders || 0} yesterday
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{orderStats?.totalOrders || 0}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
 
@@ -161,56 +121,17 @@ const AnalyticsManagement = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
-            <Globe className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Product Views</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{visitorStats.totalVisitors}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <div className="text-2xl font-bold">{itemViews?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Tracked products</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Recent Visitors */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Recent Visitors by IP
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>Visits</TableHead>
-                  <TableHead>Last Visit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visitorStats.recentIPs.slice(0, 10).map((visitor, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-mono">{visitor.ip}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{getFlagEmoji(visitor.country)}</span>
-                        <span>{visitor.country}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{visitor.visits}</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(visitor.lastVisit).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
+      <div className="grid md:grid-cols-1 gap-6">
         {/* Most Viewed Products */}
         <Card>
           <CardHeader>
@@ -228,14 +149,16 @@ const AnalyticsManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itemViews?.map((item: any, index: number) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.views}</Badge>
-                    </TableCell>
-                  </TableRow>
-                )) || (
+                {itemViews && itemViews.length > 0 ? (
+                  itemViews.map((item: any) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{item.views}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={2} className="text-center text-gray-500">
                       No view data available
@@ -247,6 +170,19 @@ const AnalyticsManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Note about Analytics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            Real visitor tracking (IP addresses, country flags, etc.) requires server-side implementation 
+            with proper analytics tools like Google Analytics, server logs, or custom tracking systems. 
+            The current setup only tracks product interactions and order data from the database.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
