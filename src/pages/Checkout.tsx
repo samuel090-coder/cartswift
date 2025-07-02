@@ -23,7 +23,6 @@ const Checkout = () => {
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
-  const [showProcessingPopup, setShowProcessingPopup] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -192,15 +191,48 @@ const Checkout = () => {
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.paymentMethod) {
+    console.log('Form submission started, validating form data...');
+    
+    // Comprehensive form validation
+    const requiredFields = {
+      fullName: 'Full Name',
+      phoneNumber: 'Phone Number', 
+      addressLine1: 'Address Line 1',
+      city: 'City',
+      state: 'State',
+      postalCode: 'Postal Code',
+      paymentMethod: 'Payment Method'
+    };
+
+    // Check for missing required fields
+    const missingFields = [];
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field as keyof typeof formData]?.trim()) {
+        missingFields.push(label);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      console.error('Form validation failed - missing fields:', missingFields);
       toast({
-        title: "Payment method required",
-        description: "Please select a payment method.",
+        title: "Missing Required Information",
+        description: `Please fill in: ${missingFields.join(', ')}`,
         variant: "destructive",
       });
       return;
     }
-    setShowProcessingPopup(true);
+
+    console.log('Form validation passed, showing payment popup...');
+    try {
+      setShowPaymentPopup(true);
+    } catch (error) {
+      console.error('Error showing payment popup:', error);
+      toast({
+        title: "Checkout Error",
+        description: "Something went wrong during checkout. Please try again or contact support.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePaymentSuccess = (paymentReference?: string) => {
