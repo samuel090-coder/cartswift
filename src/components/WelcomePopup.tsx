@@ -12,7 +12,7 @@ const categories = [
   { id: 'Fashion', name: 'Fashion', icon: '👗', image: 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=300' },
   { id: 'Tools', name: 'Tools', icon: '🔧', image: 'https://images.unsplash.com/photo-1473091534298-04dcbce3278c?w=300' },
   { id: 'Vehicles', name: 'Vehicles', icon: '🚗', image: 'https://images.unsplash.com/photo-1487887235947-a955ef187fcc?w=300' },
-  { id: 'Gadgets', name: 'Gadgets', icon: '📱', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300' }
+  { id: 'Books', name: 'Books', icon: '📚', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300' }
 ];
 
 const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
@@ -54,7 +54,7 @@ const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
             transition={{ delay: 0.2, duration: 0.3 }}
           >
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              🎉 Thank you for visiting our store!
+              Welcome to Cartswift!
             </h2>
             <p className="text-gray-600 mb-6">
               What would you like to explore today?

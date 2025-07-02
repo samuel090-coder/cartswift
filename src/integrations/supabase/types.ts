@@ -172,10 +172,12 @@ export type Database = {
           category: Database["public"]["Enums"]["item_category"]
           created_at: string
           description: string | null
+          discount_percentage: number | null
           estimated_delivery_days: number | null
           id: string
           images: string[] | null
           price: number
+          star_rating: number | null
           title: string
           updated_at: string
         }
@@ -183,10 +185,12 @@ export type Database = {
           category: Database["public"]["Enums"]["item_category"]
           created_at?: string
           description?: string | null
+          discount_percentage?: number | null
           estimated_delivery_days?: number | null
           id?: string
           images?: string[] | null
           price: number
+          star_rating?: number | null
           title: string
           updated_at?: string
         }
@@ -194,10 +198,12 @@ export type Database = {
           category?: Database["public"]["Enums"]["item_category"]
           created_at?: string
           description?: string | null
+          discount_percentage?: number | null
           estimated_delivery_days?: number | null
           id?: string
           images?: string[] | null
           price?: number
+          star_rating?: number | null
           title?: string
           updated_at?: string
         }

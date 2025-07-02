@@ -26,6 +26,8 @@ const ItemManagement = () => {
     price: '',
     category: '',
     estimated_delivery_days: '',
+    star_rating: '',
+    discount_percentage: '',
     images: [] as string[],
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
@@ -75,6 +77,8 @@ const ItemManagement = () => {
         price: parseFloat(data.price),
         category: data.category,
         estimated_delivery_days: parseInt(data.estimated_delivery_days),
+        star_rating: data.star_rating ? parseFloat(data.star_rating) : null,
+        discount_percentage: data.discount_percentage ? parseInt(data.discount_percentage) : null,
         images: imageUrls,
       };
 
@@ -140,6 +144,8 @@ const ItemManagement = () => {
       price: '',
       category: '',
       estimated_delivery_days: '',
+      star_rating: '',
+      discount_percentage: '',
       images: [],
     });
     setEditingItem(null);
@@ -154,6 +160,8 @@ const ItemManagement = () => {
       price: item.price.toString(),
       category: item.category,
       estimated_delivery_days: item.estimated_delivery_days?.toString() || '',
+      star_rating: item.star_rating?.toString() || '',
+      discount_percentage: item.discount_percentage?.toString() || '',
       images: item.images || [],
     });
     setIsDialogOpen(true);
@@ -238,6 +246,32 @@ const ItemManagement = () => {
                     type="number"
                     value={formData.estimated_delivery_days}
                     onChange={(e) => setFormData(prev => ({ ...prev, estimated_delivery_days: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="star_rating">Star Rating (1-5)</Label>
+                  <Input
+                    id="star_rating"
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    value={formData.star_rating}
+                    onChange={(e) => setFormData(prev => ({ ...prev, star_rating: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="discount">Discount Percentage</Label>
+                  <Input
+                    id="discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.discount_percentage}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: e.target.value }))}
                   />
                 </div>
               </div>

@@ -13,7 +13,10 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-TY0R7ZQTFS');
+      gtag('config', 'G-TY0R7ZQTFS', {
+        'transport_type': 'beacon',
+        'anonymize_ip': false
+      });
     </script>
     
     <script src="https://js.paystack.co/v1/inline.js"></script>

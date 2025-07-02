@@ -28,6 +28,43 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
     notes: '',
     currency: 'USD'
   });
+
+  const giftCardBrands = [
+    { id: 'steam', name: 'Steam', logo: '🎮' },
+    { id: 'walmart', name: 'Walmart MoneyCard', logo: '🏪' },
+    { id: 'razer', name: 'Razer', logo: '⚡' },
+    { id: 'xbox', name: 'Xbox', logo: '🎮' },
+    { id: 'macys', name: "Macy's", logo: '🛍️' },
+    { id: 'apple', name: 'Apple/iTunes', logo: '🍎' },
+    { id: 'sephora', name: 'Sephora', logo: '💄' },
+    { id: 'footlocker', name: 'Foot Locker', logo: '👟' },
+    { id: 'nike', name: 'Nike', logo: '✓' },
+    { id: 'google', name: 'Google', logo: '🔍' },
+    { id: 'amazon', name: 'Amazon', logo: '📦' },
+    { id: 'nordstrom', name: 'Nordstrom', logo: '👗' },
+    { id: 'roblox', name: 'Roblox', logo: '🎮' },
+    { id: 'amex', name: 'AMEX', logo: '💳' },
+    { id: 'vanilla', name: 'Vanilla', logo: '🍦' },
+  ];
+
+  const currencies = [
+    { code: 'USD', name: 'US Dollar', flag: '🇺🇸' },
+    { code: 'CAD', name: 'Canadian Dollar', flag: '🇨🇦' },
+    { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺' },
+    { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷' },
+    { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿' },
+    { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰' },
+    { code: 'TWD', name: 'Taiwan Dollar', flag: '🇹🇼' },
+    { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽' },
+    { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬' },
+    { code: 'EUR', name: 'Euro (Netherlands)', flag: '🇳🇱' },
+    { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾' },
+    { code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩' },
+    { code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷' },
+    { code: 'THB', name: 'Thai Baht', flag: '🇹🇭' },
+    { code: 'PHP', name: 'Philippine Peso', flag: '🇵🇭' },
+    { code: 'COP', name: 'Colombian Peso', flag: '🇨🇴' },
+  ];
   const [cryptoNotes, setCryptoNotes] = useState('');
   const [bankNotes, setBankNotes] = useState('');
 

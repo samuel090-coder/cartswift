@@ -23,6 +23,7 @@ const Checkout = () => {
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [showProcessingPopup, setShowProcessingPopup] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -199,7 +200,7 @@ const Checkout = () => {
       });
       return;
     }
-    setShowPaymentPopup(true);
+    setShowProcessingPopup(true);
   };
 
   const handlePaymentSuccess = (paymentReference?: string) => {
@@ -416,7 +417,7 @@ const Checkout = () => {
                       </div>
                       
                       <Button type="submit" className="w-full" size="lg">
-                        Continue to Payment
+                        Checkout
                       </Button>
                     </CardContent>
                   </Card>
