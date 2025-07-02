@@ -115,7 +115,14 @@ const Cart = () => {
                     </div>
                   </div>
                   <Link to="/checkout" className="block">
-                    <Button className="w-full" size="lg">
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={() => {
+                        console.log('Checkout button clicked, cart items:', items);
+                        console.log('Total amount:', total);
+                      }}
+                    >
                       Proceed to Checkout
                     </Button>
                   </Link>

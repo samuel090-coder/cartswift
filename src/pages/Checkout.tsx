@@ -212,9 +212,12 @@ const Checkout = () => {
   };
 
   if (items.length === 0) {
+    console.log('Checkout page: No items in cart, redirecting to cart page');
     navigate('/cart');
     return null;
   }
+
+  console.log('Checkout page loaded with items:', items);
 
   if (step === 'confirmation' && orderData) {
     return (
