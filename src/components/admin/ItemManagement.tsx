@@ -320,6 +320,8 @@ const ItemManagement = () => {
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Discount</TableHead>
                   <TableHead>Delivery</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
