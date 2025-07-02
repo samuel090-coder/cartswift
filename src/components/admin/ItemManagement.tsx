@@ -27,8 +27,6 @@ const ItemManagement = () => {
     category: '',
     estimated_delivery_days: '',
     images: [] as string[],
-    star_rating: '',
-    discount_percentage: '',
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
 
@@ -78,8 +76,6 @@ const ItemManagement = () => {
         category: data.category,
         estimated_delivery_days: parseInt(data.estimated_delivery_days),
         images: imageUrls,
-        star_rating: data.star_rating ? parseInt(data.star_rating) : null,
-        discount_percentage: data.discount_percentage ? parseInt(data.discount_percentage) : null,
       };
 
       if (editingItem) {
@@ -145,8 +141,6 @@ const ItemManagement = () => {
       category: '',
       estimated_delivery_days: '',
       images: [],
-      star_rating: '',
-      discount_percentage: '',
     });
     setEditingItem(null);
     setImageFiles(null);
@@ -161,8 +155,6 @@ const ItemManagement = () => {
       category: item.category,
       estimated_delivery_days: item.estimated_delivery_days?.toString() || '',
       images: item.images || [],
-      star_rating: (item as any).star_rating?.toString() || '',
-      discount_percentage: (item as any).discount_percentage?.toString() || '',
     });
     setIsDialogOpen(true);
   };
@@ -249,37 +241,6 @@ const ItemManagement = () => {
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="star_rating">Star Rating (1-5)</Label>
-                  <Select value={formData.star_rating} onValueChange={(value) => setFormData(prev => ({ ...prev, star_rating: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select rating" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No Rating</SelectItem>
-                      <SelectItem value="1">⭐ 1 Star</SelectItem>
-                      <SelectItem value="2">⭐⭐ 2 Stars</SelectItem>
-                      <SelectItem value="3">⭐⭐⭐ 3 Stars</SelectItem>
-                      <SelectItem value="4">⭐⭐⭐⭐ 4 Stars</SelectItem>
-                      <SelectItem value="5">⭐⭐⭐⭐⭐ 5 Stars</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="discount">Discount Percentage</Label>
-                  <Input
-                    id="discount"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.discount_percentage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: e.target.value }))}
-                    placeholder="e.g. 30 for 30% off"
-                  />
-                </div>
-              </div>
               
               <div>
                 <Label htmlFor="images">Upload Images</Label>
@@ -326,8 +287,6 @@ const ItemManagement = () => {
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Delivery</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Discount</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -349,12 +308,6 @@ const ItemManagement = () => {
                     <TableCell>{item.category}</TableCell>
                     <TableCell>${Number(item.price).toFixed(2)}</TableCell>
                     <TableCell>{item.estimated_delivery_days} days</TableCell>
-                    <TableCell>
-                      {(item as any).star_rating ? `⭐ ${(item as any).star_rating}/5` : 'No rating'}
-                    </TableCell>
-                    <TableCell>
-                      {(item as any).discount_percentage ? `${(item as any).discount_percentage}%` : 'No discount'}
-                    </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button
