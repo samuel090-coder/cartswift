@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, ExternalLink } from 'lucide-react';
+import { Tables } from '@/integrations/supabase/types';
 
 type PaymentProof = {
   id: string;
@@ -28,27 +29,9 @@ type PaymentProof = {
   };
 };
 
-type GiftCardPayment = {
-  brand: string;
-  estimated_value: number;
-  card_code: string;
-  additional_notes: string;
-  order_id: string;
-};
-
-type CryptoPayment = {
-  crypto_type: string;
-  amount_usd: number;
-  wallet_address: string;
-  transaction_hash: string;
-  order_id: string;
-};
-
-type BankTransferPayment = {
-  amount_usd: number;
-  additional_notes: string;
-  order_id: string;
-};
+type GiftCardPayment = Tables<'gift_card_payments'>;
+type CryptoPayment = Tables<'crypto_payments'>;
+type BankTransferPayment = Tables<'bank_transfer_payments'>;
 
 const PaymentProofsManagement = () => {
   const { data: paymentProofs = [], isLoading } = useQuery({
