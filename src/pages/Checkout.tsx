@@ -14,6 +14,7 @@ import Header from '@/components/Header';
 import PaymentMethod from '@/components/PaymentMethod';
 import PaymentConfirmation from '@/components/PaymentConfirmation';
 import AnimatedCartIcon from '@/components/AnimatedCartIcon';
+import PaymentProcessingPopup from '@/components/PaymentProcessingPopup';
 import { motion } from 'framer-motion';
 
 const Checkout = () => {
@@ -21,6 +22,7 @@ const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -197,7 +199,7 @@ const Checkout = () => {
       });
       return;
     }
-    setStep('payment');
+    setShowPaymentPopup(true);
   };
 
   const handlePaymentSuccess = (paymentReference?: string) => {
@@ -460,6 +462,14 @@ const Checkout = () => {
           )}
         </div>
       </div>
+      
+      <PaymentProcessingPopup 
+        show={showPaymentPopup}
+        onComplete={() => {
+          setShowPaymentPopup(false);
+          setStep('payment');
+        }}
+      />
     </div>
   );
 };

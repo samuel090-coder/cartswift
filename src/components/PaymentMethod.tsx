@@ -25,7 +25,8 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
     customBrand: '',
     estimatedValue: '',
     cardCode: '',
-    notes: ''
+    notes: '',
+    currency: 'USD'
   });
   const [cryptoNotes, setCryptoNotes] = useState('');
   const [bankNotes, setBankNotes] = useState('');
@@ -284,23 +285,63 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
           </div>
 
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="gift-brand">Gift Card Brand *</Label>
-              <Select value={giftCardData.brand} onValueChange={(value) => 
-                setGiftCardData(prev => ({ ...prev, brand: value }))
-              }>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select brand" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apple">Apple</SelectItem>
-                  <SelectItem value="amazon">Amazon</SelectItem>
-                  <SelectItem value="steam">Steam</SelectItem>
-                  <SelectItem value="google_play">Google Play</SelectItem>
-                  <SelectItem value="walmart">Walmart</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="gift-brand">Gift Card Brand *</Label>
+                <Select value={giftCardData.brand} onValueChange={(value) => 
+                  setGiftCardData(prev => ({ ...prev, brand: value }))
+                }>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="steam">🎮 Steam</SelectItem>
+                    <SelectItem value="walmart">🛒 Walmart MoneyCard</SelectItem>
+                    <SelectItem value="razer">🐍 Razer</SelectItem>
+                    <SelectItem value="xbox">🎮 Xbox</SelectItem>
+                    <SelectItem value="macys">🛍️ Macy's</SelectItem>
+                    <SelectItem value="apple">🍎 Apple/iTunes</SelectItem>
+                    <SelectItem value="sephora">💄 Sephora</SelectItem>
+                    <SelectItem value="footlocker">👟 Foot Locker</SelectItem>
+                    <SelectItem value="nike">✅ Nike</SelectItem>
+                    <SelectItem value="google">🔍 Google</SelectItem>
+                    <SelectItem value="amazon">📦 Amazon</SelectItem>
+                    <SelectItem value="nordstrom">👗 Nordstrom</SelectItem>
+                    <SelectItem value="roblox">🎮 Roblox</SelectItem>
+                    <SelectItem value="amex">💳 AMEX</SelectItem>
+                    <SelectItem value="vanilla">🍦 Vanilla</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="gift-currency">Currency *</Label>
+                <Select value={giftCardData.currency} onValueChange={(value) => 
+                  setGiftCardData(prev => ({ ...prev, currency: value }))
+                }>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">🇺🇸 USD</SelectItem>
+                    <SelectItem value="CAD">🇨🇦 CAD</SelectItem>
+                    <SelectItem value="AUD">🇦🇺 AUD</SelectItem>
+                    <SelectItem value="BRL">🇧🇷 BRL</SelectItem>
+                    <SelectItem value="NZD">🇳🇿 NZD</SelectItem>
+                    <SelectItem value="HKD">🇭🇰 HKD</SelectItem>
+                    <SelectItem value="TWD">🇹🇼 TWD</SelectItem>
+                    <SelectItem value="MXN">🇲🇽 MXN</SelectItem>
+                    <SelectItem value="SGD">🇸🇬 SGD</SelectItem>
+                    <SelectItem value="EUR">🇳🇱 EUR - Netherlands</SelectItem>
+                    <SelectItem value="MYR">🇲🇾 MYR</SelectItem>
+                    <SelectItem value="IDR">🇮🇩 IDR</SelectItem>
+                    <SelectItem value="TRY">🇹🇷 TRY</SelectItem>
+                    <SelectItem value="THB">🇹🇭 THB</SelectItem>
+                    <SelectItem value="PHP">🇵🇭 PHP</SelectItem>
+                    <SelectItem value="COP">🇨🇴 COP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {giftCardData.brand === 'other' && (
@@ -316,14 +357,14 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             )}
 
             <div>
-              <Label htmlFor="gift-value">Estimated Value ($) *</Label>
+              <Label htmlFor="gift-value">Estimated Value ({giftCardData.currency}) *</Label>
               <Input
                 id="gift-value"
                 type="number"
                 min={total}
                 value={giftCardData.estimatedValue}
                 onChange={(e) => setGiftCardData(prev => ({ ...prev, estimatedValue: e.target.value }))}
-                placeholder="Enter card value"
+                placeholder={`Enter card value in ${giftCardData.currency}`}
               />
             </div>
 

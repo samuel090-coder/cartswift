@@ -33,6 +33,7 @@ type GiftCardPayment = {
   estimated_value: number;
   card_code: string;
   additional_notes: string;
+  order_id: string;
 };
 
 type CryptoPayment = {
@@ -40,11 +41,13 @@ type CryptoPayment = {
   amount_usd: number;
   wallet_address: string;
   transaction_hash: string;
+  order_id: string;
 };
 
 type BankTransferPayment = {
   amount_usd: number;
   additional_notes: string;
+  order_id: string;
 };
 
 const PaymentProofsManagement = () => {

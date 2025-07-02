@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock, Eye, ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import ExpandableDescription from './ExpandableDescription';
+import LazyImage from './LazyImage';
 
 type Item = Database['public']['Tables']['items']['Row'];
 
@@ -17,8 +19,28 @@ interface ItemCardProps {
 
 const ItemCard = ({ item }: ItemCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [mockViews, setMockViews] = useState(0);
+  const [mockPurchases, setMockPurchases] = useState(0);
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
+
+  // Initialize mock data
+  useEffect(() => {
+    const baseViews = Math.floor(Math.random() * 5000) + 1000;
+    const basePurchases = Math.floor(Math.random() * 1000) + 100;
+    setMockViews(baseViews);
+    setMockPurchases(basePurchases);
+
+    // Animate numbers slightly
+    const interval = setInterval(() => {
+      setMockViews(prev => prev + Math.floor(Math.random() * 3));
+      if (Math.random() > 0.7) {
+        setMockPurchases(prev => prev + 1);
+      }
+    }, 5000 + Math.random() * 10000);
+
+    return () => clearInterval(interval);
+  }, [item.id]);
 
   // Get session ID for reactions
   const getSessionId = () => {
@@ -101,11 +123,18 @@ const ItemCard = ({ item }: ItemCardProps) => {
       <CardContent className="p-4 space-y-3">
         {/* Image Slider */}
         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-gray-100">
-          <img
+          <LazyImage
             src={images[currentImageIndex]}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
+          
+          {/* Discount Badge */}
+          {item.discount_percentage && (
+            <Badge className="absolute top-2 left-2 bg-red-500 text-white font-bold">
+              -{item.discount_percentage}%
+            </Badge>
+          )}
           
           {images.length > 1 && (
             <>
@@ -161,6 +190,21 @@ const ItemCard = ({ item }: ItemCardProps) => {
             {item.title}
           </h3>
           
+          {/* Star Rating */}
+          {item.star_rating && (
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < item.star_rating! ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="text-sm text-gray-500 ml-1">({item.star_rating}/5)</span>
+            </div>
+          )}
+          
           <ExpandableDescription description={item.description || ''} maxLines={2} />
           
           <div className="flex items-center justify-between">
@@ -172,6 +216,28 @@ const ItemCard = ({ item }: ItemCardProps) => {
               <span>{item.estimated_delivery_days || 7} days</span>
             </div>
           </div>
+
+          {/* Mock Analytics */}
+          <div className="flex items-center justify-between text-sm text-gray-500 pt-2 border-t">
+            <div className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              <span className="animate-pulse">{mockViews.toLocaleString()} views</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <ShoppingCart className="h-3 w-3" />
+              <span className="animate-pulse">{mockPurchases.toLocaleString()} bought</span>
+            </div>
+          </div>
+
+          {/* Add to Cart Button */}
+          <Button 
+            onClick={handleAddToCart}
+            className="w-full mt-3"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add to Cart
+          </Button>
         </div>
       </CardContent>
     </Card>
