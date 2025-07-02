@@ -130,9 +130,9 @@ const ItemCard = ({ item }: ItemCardProps) => {
           />
           
           {/* Discount Badge */}
-          {item.discount_percentage && (
+          {(item as any).discount_percentage && (
             <Badge className="absolute top-2 left-2 bg-red-500 text-white font-bold">
-              -{item.discount_percentage}%
+              -{(item as any).discount_percentage}%
             </Badge>
           )}
           
@@ -191,17 +191,17 @@ const ItemCard = ({ item }: ItemCardProps) => {
           </h3>
           
           {/* Star Rating */}
-          {item.star_rating && (
+          {(item as any).star_rating && (
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
                   className={`h-4 w-4 ${
-                    i < item.star_rating! ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                    i < (item as any).star_rating! ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
                   }`}
                 />
               ))}
-              <span className="text-sm text-gray-500 ml-1">({item.star_rating}/5)</span>
+              <span className="text-sm text-gray-500 ml-1">({(item as any).star_rating}/5)</span>
             </div>
           )}
           
