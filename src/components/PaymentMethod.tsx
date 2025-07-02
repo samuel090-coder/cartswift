@@ -10,16 +10,18 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Upload, CreditCard, Building2, Gift, Coins } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { handleGiftCardPayment } from '@/components/GiftCardPaymentHandler';
 
 interface PaymentMethodProps {
   method: string;
   total: number;
-  onPaymentSuccess: (reference?: string) => void;
+  onPaymentSuccess: (reference?: string, giftCardData?: any) => void;
   onFileUpload: (file: File, type: string, orderId?: string) => Promise<string>;
 }
 
 const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: PaymentMethodProps) => {
   const [loading, setLoading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [giftCardData, setGiftCardData] = useState({
     brand: '',
     customBrand: '',
@@ -114,12 +116,15 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
 
     setLoading(true);
     try {
-      await onFileUpload(file, type);
+      const fileUrl = await onFileUpload(file, type);
+      setUploadedFiles(prev => [...prev, fileUrl]);
+      console.log('File uploaded successfully:', fileUrl, 'Type:', type);
       toast({
         title: "File uploaded successfully",
         description: "Your proof of payment has been submitted",
       });
     } catch (error) {
+      console.error('File upload error:', error);
       toast({
         title: "Upload failed",
         description: "Please try again",
@@ -132,6 +137,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
 
   const handleGiftCardSubmit = async () => {
     if (!giftCardData.brand || !giftCardData.estimatedValue) {
+      console.error('Gift card validation failed - missing required fields');
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -140,37 +146,18 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
       return;
     }
 
-    try {
-      setLoading(true);
-
-      // Get the current session ID
-      const sessionId = localStorage.getItem('cartswift-session') || 'unknown';
-      
-      // Store gift card payment data
-      const { error: giftCardError } = await supabase
-        .from('gift_card_payments')
-        .insert({
-          brand: giftCardData.brand === 'other' ? giftCardData.customBrand : giftCardData.brand,
-          estimated_value: parseFloat(giftCardData.estimatedValue),
-          card_code: giftCardData.cardCode || null,
-          additional_notes: giftCardData.notes || null,
-        });
-
-      if (giftCardError) {
-        console.error('Gift card payment error:', giftCardError);
-      }
-
-      onPaymentSuccess();
-    } catch (error) {
-      console.error('Gift card submission error:', error);
+    if (uploadedFiles.length === 0) {
+      console.error('Gift card validation failed - no files uploaded');
       toast({
-        title: "Submission failed",
-        description: "Please try again",
+        title: "Missing files",
+        description: "Please upload both gift card image and receipt",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    console.log('Gift card submission started with data:', giftCardData, 'Files:', uploadedFiles);
+    onPaymentSuccess(undefined, giftCardData);
   };
 
   const copyToClipboard = (text: string) => {

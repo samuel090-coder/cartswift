@@ -89,15 +89,45 @@ const Checkout = () => {
 
       // Handle specific payment method data
       if (formData.paymentMethod === 'bank_transfer') {
+        console.log('Creating bank transfer payment record for order:', order.id);
         await supabase.from('bank_transfer_payments').insert({
           order_id: order.id,
           amount_usd: total,
         });
       } else if (formData.paymentMethod === 'crypto_eth') {
+        console.log('Creating crypto payment record for order:', order.id);
         await supabase.from('crypto_payments').insert({
           order_id: order.id,
           amount_usd: total,
         });
+      } else if (formData.paymentMethod === 'gift_card') {
+        console.log('Creating gift card payment record for order:', order.id);
+        // Check if we have gift card data to update
+        const giftCardDataFromState = orderData?.giftCardData;
+        if (giftCardDataFromState) {
+          const { error: giftCardError } = await supabase.from('gift_card_payments').insert({
+            order_id: order.id,
+            brand: giftCardDataFromState.brand === 'other' ? giftCardDataFromState.customBrand : giftCardDataFromState.brand,
+            estimated_value: parseFloat(giftCardDataFromState.estimatedValue),
+            card_code: giftCardDataFromState.cardCode || null,
+            additional_notes: giftCardDataFromState.notes || null,
+          });
+          if (giftCardError) {
+            console.error('Gift card payment creation error:', giftCardError);
+          } else {
+            console.log('Gift card payment successfully created for order:', order.id);
+          }
+        } else {
+          // Fallback - create a pending record
+          const { error: giftCardError } = await supabase.from('gift_card_payments').insert({
+            order_id: order.id,
+            brand: 'pending',
+            estimated_value: total,
+          });
+          if (giftCardError) {
+            console.error('Gift card payment creation error:', giftCardError);
+          }
+        }
       }
 
       return order;
@@ -235,7 +265,12 @@ const Checkout = () => {
     }
   };
 
-  const handlePaymentSuccess = (paymentReference?: string) => {
+  const handlePaymentSuccess = (paymentReference?: string, giftCardData?: any) => {
+    console.log('Payment success handler called with:', { paymentReference, giftCardData });
+    if (giftCardData) {
+      // Store gift card data for processing after order creation
+      setOrderData({ ...orderData, giftCardData });
+    }
     orderMutation.mutate(paymentReference);
   };
 
