@@ -9,9 +9,10 @@ type GiftCardPayment = Database['public']['Tables']['gift_card_payments']['Row']
 type PaymentProof = Database['public']['Tables']['payment_proofs']['Row'];
 
 const GiftCardPaymentManagement = () => {
-  const { data: giftCardPayments = [], isLoading } = useQuery({
+  const { data: giftCardPayments = [], isLoading, error, refetch } = useQuery({
     queryKey: ['admin-gift-card-payments'],
     queryFn: async () => {
+      console.log('Fetching gift card payments for admin dashboard...');
       const { data, error } = await supabase
         .from('gift_card_payments')
         .select(`
@@ -26,20 +27,33 @@ const GiftCardPaymentManagement = () => {
           )
         `)
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error fetching gift card payments:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched gift card payments:', data?.length || 0, 'records');
       return data as (GiftCardPayment & { orders: any })[];
     },
   });
 
-  const { data: paymentProofs = [] } = useQuery({
+  const { data: paymentProofs = [], error: proofsError } = useQuery({
     queryKey: ['admin-payment-proofs-gift-card'],
     queryFn: async () => {
+      console.log('Fetching gift card payment proofs...');
       const { data, error } = await supabase
         .from('payment_proofs')
         .select('*')
         .eq('payment_method', 'gift_card')
         .order('uploaded_at', { ascending: false });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error fetching gift card payment proofs:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched gift card payment proofs:', data?.length || 0, 'records');
       return data as PaymentProof[];
     },
   });
@@ -49,14 +63,47 @@ const GiftCardPaymentManagement = () => {
   };
 
   if (isLoading) {
-    return <div>Loading gift card payments...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p>Loading gift card payments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || proofsError) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h3 className="text-red-800 font-medium">Error Loading Data</h3>
+        <p className="text-red-600 text-sm mt-1">
+          {error?.message || proofsError?.message || 'Failed to load gift card payments'}
+        </p>
+        <button 
+          onClick={() => {
+            refetch();
+            window.location.reload();
+          }}
+          className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Gift Card Payments ({giftCardPayments.length})</CardTitle>
+          <button 
+            onClick={() => refetch()}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+          >
+            Refresh
+          </button>
         </CardHeader>
         <CardContent>
           <Table>
