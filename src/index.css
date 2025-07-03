@@ -39,20 +39,28 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Premium animated background colors */
+    --deep-blue: 220 91% 8%;
+    --midnight-purple: 260 85% 12%;
+    --indigo-dark: 240 90% 15%;
+    --blue-glow: 210 100% 50%;
+    --purple-glow: 270 100% 50%;
+    --indigo-glow: 240 100% 55%;
+    --cyan-glow: 180 100% 50%;
+    --blue-light: 210 100% 70%;
+    --purple-light: 270 100% 70%;
+    --indigo-light: 240 100% 75%;
+    --blue-bright: 210 100% 80%;
+    --purple-bright: 270 100% 80%;
+    --cyan-bright: 180 100% 75%;
   }
 
   .dark {
@@ -113,4 +121,77 @@ All colors MUST be HSL.
   0% { background-color: hsl(var(--primary) / 0.1); }
   50% { background-color: hsl(var(--primary) / 0.2); }
   100% { background-color: transparent; }
+}
+
+/* Premium animated background styles */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(30px, -30px) scale(1.05); opacity: 0.6; }
+  66% { transform: translate(-20px, 20px) scale(0.95); opacity: 0.4; }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  50% { transform: translate(-25px, -25px) scale(1.1); opacity: 0.7; }
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Animation utilities */
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 8s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 4s ease-in-out infinite;
+}
+
+.animation-delay-800 {
+  animation-delay: 0.8s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
+}
+
+.animation-delay-1600 {
+  animation-delay: 1.6s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-2400 {
+  animation-delay: 2.4s;
+}
+
+.animation-delay-2500 {
+  animation-delay: 2.5s;
+}
+
+.animation-delay-3000 {
+  animation-delay: 3s;
 }

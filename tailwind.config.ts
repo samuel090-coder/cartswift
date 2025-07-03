@@ -61,7 +61,29 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Premium animated background colors
+				'deep-blue': 'hsl(var(--deep-blue))',
+				'midnight-purple': 'hsl(var(--midnight-purple))',
+				'indigo-dark': 'hsl(var(--indigo-dark))',
+				'blue-glow': 'hsl(var(--blue-glow))',
+				'purple-glow': 'hsl(var(--purple-glow))',
+				'indigo-glow': 'hsl(var(--indigo-glow))',
+				'cyan-glow': 'hsl(var(--cyan-glow))',
+				'blue-light': 'hsl(var(--blue-light))',
+				'purple-light': 'hsl(var(--purple-light))',
+				'indigo-light': 'hsl(var(--indigo-light))',
+				'blue-bright': 'hsl(var(--blue-bright))',
+				'purple-bright': 'hsl(var(--purple-bright))',
+				'cyan-bright': 'hsl(var(--cyan-bright))'
+			},
+			backgroundImage: {
+				'premium-gradient': 'linear-gradient(135deg, hsl(var(--deep-blue)), hsl(var(--midnight-purple)), hsl(var(--indigo-dark)))',
+				'gradient-radial': 'radial-gradient(circle, var(--tw-gradient-stops))',
+				'grid-pattern': 'linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(180deg, rgba(255,255,255,0.1) 1px, transparent 1px)'
+			},
+			backgroundSize: {
+				'200%': '200% 200%'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
