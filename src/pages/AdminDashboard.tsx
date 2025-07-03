@@ -10,6 +10,8 @@ import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LogOut } from 'lucide-react';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import NotificationBell from '@/components/admin/NotificationBell';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -86,6 +88,18 @@ const AdminDashboard = () => {
     navigate('/admin');
   };
 
+  const handleOrderClick = (orderId: string) => {
+    // Switch to orders tab and scroll to specific order
+    const orderElement = document.getElementById(`order-${orderId}`);
+    if (orderElement) {
+      orderElement.scrollIntoView({ behavior: 'smooth' });
+      orderElement.classList.add('highlight-order');
+      setTimeout(() => {
+        orderElement.classList.remove('highlight-order');
+      }, 3000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -98,54 +112,57 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">CARTSWIFT Admin</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user?.email}</span>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+    <NotificationProvider adminUserId={user?.id}>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">CARTSWIFT Admin</h1>
+              <div className="flex items-center space-x-4">
+                <NotificationBell onOrderClick={handleOrderClick} />
+                <span className="text-sm text-gray-600">Welcome, {user?.email}</span>
+                <Button variant="outline" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="items" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="items">Item Management</TabsTrigger>
-            <TabsTrigger value="orders">Order Management</TabsTrigger>
-            <TabsTrigger value="proofs">Payment Proofs</TabsTrigger>
-            <TabsTrigger value="gift-cards">Gift Card Payments</TabsTrigger>
-            <TabsTrigger value="analytics">Analysis</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="items">
-            <ItemManagement />
-          </TabsContent>
-          
-          <TabsContent value="orders">
-            <OrderManagement />
-          </TabsContent>
-          
-          <TabsContent value="proofs">
-            <PaymentProofsManagement />
-          </TabsContent>
-          
-          <TabsContent value="gift-cards">
-            <GiftCardPaymentManagement />
-          </TabsContent>
-          
-          <TabsContent value="analytics">
-            <AnalyticsManagement />
-          </TabsContent>
-        </Tabs>
+        <div className="container mx-auto px-4 py-8">
+          <Tabs defaultValue="items" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="items">Item Management</TabsTrigger>
+              <TabsTrigger value="orders">Order Management</TabsTrigger>
+              <TabsTrigger value="proofs">Payment Proofs</TabsTrigger>
+              <TabsTrigger value="gift-cards">Gift Card Payments</TabsTrigger>
+              <TabsTrigger value="analytics">Analysis</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="items">
+              <ItemManagement />
+            </TabsContent>
+            
+            <TabsContent value="orders">
+              <OrderManagement />
+            </TabsContent>
+            
+            <TabsContent value="proofs">
+              <PaymentProofsManagement />
+            </TabsContent>
+            
+            <TabsContent value="gift-cards">
+              <GiftCardPaymentManagement />
+            </TabsContent>
+            
+            <TabsContent value="analytics">
+              <AnalyticsManagement />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 };
 

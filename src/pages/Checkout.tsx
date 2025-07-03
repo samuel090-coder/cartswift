@@ -132,7 +132,7 @@ const Checkout = () => {
 
       return order;
     },
-    onSuccess: (order, paymentReference) => {
+    onSuccess: async (order, paymentReference) => {
       const estimatedDelivery = new Date();
       estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
       
@@ -143,6 +143,30 @@ const Checkout = () => {
         estimatedDelivery: estimatedDelivery.toLocaleDateString(),
         paymentReference,
       });
+      
+      // Send notification to admin
+      try {
+        const orderItems = items.map(item => ({
+          title: item.title,
+          quantity: item.quantity,
+          price: item.price
+        }));
+
+        await supabase.functions.invoke('send-order-notification', {
+          body: {
+            orderId: order.id,
+            customerName: formData.fullName,
+            customerEmail: formData.email,
+            totalAmount: total,
+            paymentMethod: formData.paymentMethod,
+            items: orderItems
+          }
+        });
+        console.log('Admin notification sent successfully');
+      } catch (notificationError) {
+        console.error('Failed to send admin notification:', notificationError);
+        // Don't fail the order if notification fails
+      }
       
       setStep('confirmation');
       clearCart();

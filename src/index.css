@@ -103,3 +103,14 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Notification highlight animation */
+.highlight-order {
+  animation: highlight-flash 3s ease-in-out;
+}
+
+@keyframes highlight-flash {
+  0% { background-color: hsl(var(--primary) / 0.1); }
+  50% { background-color: hsl(var(--primary) / 0.2); }
+  100% { background-color: transparent; }
+}
