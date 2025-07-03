@@ -63,9 +63,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Get admin emails from auth.users (this requires service role key)
     const adminUserIds = adminUsers.map(admin => admin.user_id);
     
-    // For now, we'll use a default admin email since we can't easily access auth.users
-    // In production, you might want to store admin emails in a separate table
-    const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'admin@cartswift.com';
+    // Use the specific admin email for notifications
+    const adminEmail = 'samuelsunday09066423764@gmail.com';
 
     const itemsList = items.map(item => 
       `• ${item.title} (Qty: ${item.quantity}) - $${item.price.toFixed(2)}`
