@@ -162,10 +162,19 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
           
           // Show toast notification
           toast({
-            title: "New Order Received!",
-            description: `Order from ${payload.new.full_name} - ${payload.new.payment_method}`,
+            title: "🛒 New Order Received!",
+            description: `Order from ${payload.new.full_name} - $${payload.new.total_amount}`,
             duration: 5000,
           });
+
+          // Play notification sound if available
+          try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMeBDOo1O/AfywFLYPP8tlKNEBE1');
+            audio.volume = 0.3;
+            audio.play().catch(() => {}); // Silently fail if audio can't play
+          } catch (error) {
+            // Ignore audio errors
+          }
 
           // Refresh notifications to get the new one
           setTimeout(() => {

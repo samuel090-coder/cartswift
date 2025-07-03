@@ -505,7 +505,7 @@ const OrderManagement = () => {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} id={`order-${order.id}`}>
                     <TableCell className="font-mono text-sm">
                       {order.id.slice(0, 8)}...
                     </TableCell>

@@ -18,9 +18,25 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ onOrderClick }) => 
 
   const handleNotificationClick = async (notificationId: string, orderId: string) => {
     await markAsRead(notificationId);
-    if (onOrderClick) {
-      onOrderClick(orderId);
+    
+    // Switch to orders tab
+    const ordersTab = document.querySelector('[value="orders"]') as HTMLElement;
+    if (ordersTab) {
+      ordersTab.click();
     }
+    
+    // Wait for tab to switch, then highlight order
+    setTimeout(() => {
+      const orderElement = document.getElementById(`order-${orderId}`);
+      if (orderElement) {
+        orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        orderElement.classList.add('highlight-order');
+        setTimeout(() => {
+          orderElement.classList.remove('highlight-order');
+        }, 3000);
+      }
+    }, 100);
+    
     setIsOpen(false);
   };
 
