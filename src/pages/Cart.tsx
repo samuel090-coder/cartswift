@@ -7,12 +7,19 @@ import { useCart } from '@/contexts/CartContext';
 import Header from '@/components/Header';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
+import SEOHead from '@/components/SEOHead';
+
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, total } = useCart();
 
   if (items.length === 0) {
     return (
       <AnimatedBackground>
+        <SEOHead 
+          title="Shopping Cart - CartSwift"
+          description="Review your selected items and proceed to secure checkout. Fast delivery and amazing deals at CartSwift."
+          canonical="https://cartswift.lovable.app/cart"
+        />
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
@@ -32,6 +39,11 @@ const Cart = () => {
 
   return (
     <AnimatedBackground>
+      <SEOHead 
+        title="Shopping Cart - CartSwift"
+        description="Review your selected items and proceed to secure checkout. Fast delivery and amazing deals at CartSwift."
+        canonical="https://cartswift.lovable.app/cart"
+      />
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">

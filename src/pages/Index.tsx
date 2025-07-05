@@ -8,6 +8,7 @@ import ItemGrid from '@/components/ItemGrid';
 import PromoBanner from '@/components/PromoBanner';
 import WelcomePopup from '@/components/WelcomePopup';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import SEOHead from '@/components/SEOHead';
 import { Database } from '@/integrations/supabase/types';
 
 type Item = Database['public']['Tables']['items']['Row'];
@@ -60,8 +61,29 @@ const Index = () => {
     setSelectedCategory(category);
   };
 
+  // Generate structured data for homepage
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "CartSwift",
+    "url": "https://cartswift.lovable.app",
+    "description": "Fast & reliable online shopping for fashion, books, tools, vehicles and more",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://cartswift.lovable.app/?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <AnimatedBackground>
+      <SEOHead 
+        title="CartSwift - Fast & Reliable Online Shopping | Fashion, Books, Tools & More"
+        description="Shop the latest products at CartSwift with fast delivery and amazing deals. Browse fashion, books, tools, vehicles and more with secure checkout."
+        keywords="online shopping, fashion, books, tools, vehicles, fast delivery, secure checkout, deals, cartswift"
+        canonical="https://cartswift.lovable.app/"
+        structured_data={structuredData}
+      />
       <Header />
       <PromoBanner />
       <WelcomePopup onCategorySelect={handleWelcomeCategorySelect} />
