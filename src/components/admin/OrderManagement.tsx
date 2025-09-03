@@ -61,6 +61,37 @@ const OrderManagement = () => {
     },
   });
 
+  // Fetch all payment proofs for the gallery view
+  const { data: allPaymentProofs = [], error: proofsError } = useQuery({
+    queryKey: ['all-payment-proofs'],
+    queryFn: async () => {
+      console.log('Fetching all payment proofs...');
+      
+      const { data, error } = await supabase
+        .from('payment_proofs')
+        .select(`
+          *,
+          orders (
+            id,
+            full_name,
+            email,
+            payment_method
+          )
+        `)
+        .order('uploaded_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching payment proofs:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched all payment proofs:', data?.length || 0, 'records');
+      console.log('Payment proofs data:', data);
+      
+      return data as (PaymentProof & { orders: any })[];
+    },
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       const { error } = await supabase
@@ -480,6 +511,63 @@ const OrderManagement = () => {
           Total Orders: {orders.length}
         </div>
       </div>
+
+      {/* All Payment Proof Images Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Payment Proof Images</CardTitle>
+          <p className="text-sm text-gray-600">Click any image to view full size</p>
+        </CardHeader>
+        <CardContent>
+          {proofsError ? (
+            <p className="text-red-500">Error loading payment proofs: {proofsError.message}</p>
+          ) : allPaymentProofs.length === 0 ? (
+            <p className="text-gray-500">No payment proofs found</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allPaymentProofs.map((proof) => (
+                <div key={proof.id} className="space-y-2">
+                  <div 
+                    className="cursor-pointer border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                    onClick={() => window.open(proof.file_url, '_blank')}
+                  >
+                    {isImageFile(proof.file_name || 'unknown') ? (
+                      <img 
+                        src={proof.file_url} 
+                        alt={proof.file_name || 'Payment proof'}
+                        className="w-full h-24 object-cover"
+                        onError={(e) => {
+                          console.error('Image failed to load:', proof.file_url);
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+                        <span className="text-xs text-gray-500">FILE</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div className="font-medium truncate">{proof.file_name || 'Unknown'}</div>
+                    <div className="text-gray-500">{new Date(proof.uploaded_at).toLocaleDateString()}</div>
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {proof.proof_type?.replace('_', ' ') || 'Unknown'}
+                      </Badge>
+                      <Badge variant={proof.status === 'verified' ? 'default' : 'secondary'} className="text-xs">
+                        {proof.status || 'pending'}
+                      </Badge>
+                    </div>
+                    {proof.orders?.full_name && (
+                      <div className="text-gray-500 truncate">{proof.orders.full_name}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
