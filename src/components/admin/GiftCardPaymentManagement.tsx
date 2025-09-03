@@ -65,9 +65,11 @@ const GiftCardPaymentManagement = () => {
       console.log('Successfully fetched payment proofs:', data?.length || 0, 'records');
       console.log('Payment proofs data:', data);
       
-      // Filter for gift card related proofs
+      // Filter for gift card related proofs (including orphaned ones)
       const giftCardProofs = data?.filter(proof => 
         proof.payment_method === 'gift_card' || 
+        proof.proof_type === 'gift_card_image' ||
+        proof.proof_type === 'gift_card_receipt' ||
         (proof.orders && proof.orders.payment_method === 'gift_card')
       ) || [];
       
@@ -123,6 +125,47 @@ const GiftCardPaymentManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* All Payment Proof Images Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Gift Card Payment Proof Images</CardTitle>
+          <p className="text-sm text-gray-600">Click any image to view full size</p>
+        </CardHeader>
+        <CardContent>
+          {paymentProofs.length === 0 ? (
+            <p className="text-gray-500">No payment proofs found</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {paymentProofs.map((proof) => (
+                <div key={proof.id} className="space-y-2">
+                  <div 
+                    className="cursor-pointer border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                    onClick={() => window.open(proof.file_url, '_blank')}
+                  >
+                    <img 
+                      src={proof.file_url} 
+                      alt={proof.file_name || 'Payment proof'}
+                      className="w-full h-24 object-cover"
+                      onError={(e) => {
+                        console.error('Image failed to load:', proof.file_url);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div className="font-medium truncate">{proof.file_name || 'Unknown'}</div>
+                    <div className="text-gray-500">{new Date(proof.uploaded_at).toLocaleDateString()}</div>
+                    <Badge variant="outline" className="text-xs">
+                      {proof.status || 'pending'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Gift Card Payments ({giftCardPayments.length})</CardTitle>
