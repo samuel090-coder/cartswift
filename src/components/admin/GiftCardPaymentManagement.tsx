@@ -42,24 +42,52 @@ const GiftCardPaymentManagement = () => {
     queryKey: ['admin-payment-proofs-gift-card'],
     queryFn: async () => {
       console.log('Fetching gift card payment proofs...');
+      
+      // Fetch all payment proofs (not just gift_card) to see what's available
       const { data, error } = await supabase
         .from('payment_proofs')
-        .select('*')
-        .eq('payment_method', 'gift_card')
+        .select(`
+          *,
+          orders (
+            id,
+            full_name,
+            email,
+            payment_method
+          )
+        `)
         .order('uploaded_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching gift card payment proofs:', error);
+        console.error('Error fetching payment proofs:', error);
         throw error;
       }
       
-      console.log('Successfully fetched gift card payment proofs:', data?.length || 0, 'records');
-      return data as PaymentProof[];
+      console.log('Successfully fetched payment proofs:', data?.length || 0, 'records');
+      console.log('Payment proofs data:', data);
+      
+      // Filter for gift card related proofs
+      const giftCardProofs = data?.filter(proof => 
+        proof.payment_method === 'gift_card' || 
+        (proof.orders && proof.orders.payment_method === 'gift_card')
+      ) || [];
+      
+      console.log('Filtered gift card payment proofs:', giftCardProofs.length, 'records');
+      return giftCardProofs as (PaymentProof & { orders: any })[];
     },
   });
 
   const getProofForPayment = (orderId: string) => {
-    return paymentProofs.find(proof => proof.order_id === orderId);
+    console.log(`Looking for proof for order: ${orderId}`);
+    console.log('Available proofs:', paymentProofs.map(p => ({ 
+      id: p.id, 
+      order_id: p.order_id, 
+      payment_method: p.payment_method,
+      file_url: p.file_url 
+    })));
+    
+    const proof = paymentProofs.find(proof => proof.order_id === orderId);
+    console.log(`Found proof for order ${orderId}:`, proof);
+    return proof;
   };
 
   if (isLoading) {
@@ -150,24 +178,44 @@ const GiftCardPaymentManagement = () => {
                     </TableCell>
                     <TableCell>
                       {proof ? (
-                        <div className="space-y-1">
-                          <img 
-                            src={proof.file_url} 
-                            alt="Payment proof"
-                            className="w-16 h-16 object-cover rounded border"
-                          />
-                          <Badge variant={proof.status === 'approved' ? 'default' : 'secondary'}>
-                            {proof.status}
-                          </Badge>
-                          <button
-                            onClick={() => window.open(proof.file_url, '_blank')}
-                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          >
-                            View Image
-                          </button>
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <img 
+                              src={proof.file_url} 
+                              alt="Payment proof"
+                              className="w-20 h-20 object-cover rounded border shadow-sm"
+                              onError={(e) => {
+                                console.error('Image failed to load:', proof.file_url);
+                                e.currentTarget.src = '/placeholder.svg';
+                              }}
+                              onLoad={() => {
+                                console.log('Image loaded successfully:', proof.file_url);
+                              }}
+                            />
+                          </div>
+                          <div className="flex flex-col space-y-1">
+                            <Badge variant={proof.status === 'approved' ? 'default' : 'secondary'} className="text-xs">
+                              {proof.status || 'pending'}
+                            </Badge>
+                            <button
+                              onClick={() => {
+                                console.log('Opening image:', proof.file_url);
+                                window.open(proof.file_url, '_blank');
+                              }}
+                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors w-full"
+                            >
+                              View Full Image
+                            </button>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {proof.file_name || 'Unknown file'}
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400">No proof uploaded</span>
+                        <div className="text-center py-4">
+                          <div className="text-gray-400 text-sm">No proof uploaded</div>
+                          <div className="text-xs text-gray-300 mt-1">Order ID: {payment.order_id}</div>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
