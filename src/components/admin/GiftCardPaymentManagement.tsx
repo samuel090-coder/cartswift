@@ -137,10 +137,7 @@ const GiftCardPaymentManagement = () => {
                     <TableCell>${payment.estimated_value}</TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">
-                        {payment.card_code ? 
-                          `${payment.card_code.substring(0, 4)}***` : 
-                          'Not provided'
-                        }
+                        {payment.card_code || 'Not provided'}
                       </span>
                     </TableCell>
                     <TableCell>${payment.orders?.total_amount}</TableCell>
