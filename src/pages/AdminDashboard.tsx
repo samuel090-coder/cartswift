@@ -8,6 +8,7 @@ import OrderManagement from '@/components/admin/OrderManagement';
 import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement';
 import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
+import ShareManagement from '@/components/admin/ShareManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LogOut } from 'lucide-react';
 import { NotificationProvider } from '@/contexts/NotificationContext';
@@ -135,6 +136,7 @@ const AdminDashboard = () => {
             <TabsList>
               <TabsTrigger value="items">Item Management</TabsTrigger>
               <TabsTrigger value="orders">Order Management</TabsTrigger>
+              <TabsTrigger value="shares">Share Views</TabsTrigger>
               <TabsTrigger value="proofs">Payment Proofs</TabsTrigger>
               <TabsTrigger value="gift-cards">Gift Card Payments</TabsTrigger>
               <TabsTrigger value="analytics">Analysis</TabsTrigger>
@@ -146,6 +148,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="orders">
               <OrderManagement />
+            </TabsContent>
+            
+            <TabsContent value="shares">
+              <ShareManagement />
             </TabsContent>
             
             <TabsContent value="proofs">
