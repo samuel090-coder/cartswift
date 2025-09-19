@@ -102,6 +102,66 @@ export type Database = {
           },
         ]
       }
+      collection_items: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          item_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      collections: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean
+          is_seasonal: boolean
+          name: string
+          start_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          is_seasonal?: boolean
+          name: string
+          start_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          is_seasonal?: boolean
+          name?: string
+          start_date?: string | null
+        }
+        Relationships: []
+      }
       crypto_payments: {
         Row: {
           amount_usd: number
@@ -140,6 +200,45 @@ export type Database = {
           },
         ]
       }
+      flash_sales: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          is_active: boolean
+          item_id: string
+          max_quantity: number | null
+          original_price: number
+          sale_price: number
+          sold_quantity: number
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          item_id: string
+          max_quantity?: number | null
+          original_price: number
+          sale_price: number
+          sold_quantity?: number
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          item_id?: string
+          max_quantity?: number | null
+          original_price?: number
+          sale_price?: number
+          sold_quantity?: number
+          starts_at?: string
+        }
+        Relationships: []
+      }
       gift_card_payments: {
         Row: {
           additional_notes: string | null
@@ -177,6 +276,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      item_popularity: {
+        Row: {
+          id: string
+          item_id: string
+          last_updated: string
+          purchase_count: number
+          share_count: number
+          trending_score: number
+          view_count: number
+          wishlist_count: number
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          last_updated?: string
+          purchase_count?: number
+          share_count?: number
+          trending_score?: number
+          view_count?: number
+          wishlist_count?: number
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          last_updated?: string
+          purchase_count?: number
+          share_count?: number
+          trending_score?: number
+          view_count?: number
+          wishlist_count?: number
+        }
+        Relationships: []
       }
       item_reactions: {
         Row: {
@@ -246,6 +378,42 @@ export type Database = {
           star_rating?: number | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      loyalty_points: {
+        Row: {
+          created_at: string
+          current_balance: number
+          email: string | null
+          id: string
+          order_id: string | null
+          points_earned: number
+          points_spent: number
+          session_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          current_balance?: number
+          email?: string | null
+          id?: string
+          order_id?: string | null
+          points_earned?: number
+          points_spent?: number
+          session_id: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          current_balance?: number
+          email?: string | null
+          id?: string
+          order_id?: string | null
+          points_earned?: number
+          points_spent?: number
+          session_id?: string
+          source?: string
         }
         Relationships: []
       }
@@ -401,6 +569,84 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          referral_code: string
+          referred_email: string
+          referrer_email: string | null
+          referrer_session_id: string
+          reward_amount: number | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          referral_code: string
+          referred_email: string
+          referrer_email?: string | null
+          referrer_session_id: string
+          reward_amount?: number | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          referral_code?: string
+          referred_email?: string
+          referrer_email?: string | null
+          referrer_session_id?: string
+          reward_amount?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          images: string[] | null
+          is_verified: boolean
+          item_id: string
+          rating: number
+          reviewer_email: string | null
+          reviewer_name: string | null
+          session_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          is_verified?: boolean
+          item_id: string
+          rating: number
+          reviewer_email?: string | null
+          reviewer_name?: string | null
+          session_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          is_verified?: boolean
+          item_id?: string
+          rating?: number
+          reviewer_email?: string | null
+          reviewer_name?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       share_analytics: {
         Row: {
           created_at: string
@@ -470,6 +716,57 @@ export type Database = {
           share_headline?: string | null
           social_proof_text?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      social_shares: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          platform: string
+          reward_points: number | null
+          session_id: string
+          shared_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          platform: string
+          reward_points?: number | null
+          session_id: string
+          shared_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          platform?: string
+          reward_points?: number | null
+          session_id?: string
+          shared_url?: string
+        }
+        Relationships: []
+      }
+      wishlists: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          session_id?: string
         }
         Relationships: []
       }
