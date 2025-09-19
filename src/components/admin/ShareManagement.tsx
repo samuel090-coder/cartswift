@@ -71,22 +71,18 @@ const ShareManagement = () => {
     }
   });
 
-  // Fetch analytics for selected item
-  const { data: analytics = [] } = useQuery({
-    queryKey: ['share-analytics', selectedItem?.id],
+  // Fetch analytics for all items
+  const { data: allAnalytics = [] } = useQuery({
+    queryKey: ['share-analytics-all'],
     queryFn: async (): Promise<ShareAnalytics[]> => {
-      if (!selectedItem?.id) return [];
-      
       const { data, error } = await supabase
         .from('share_analytics')
         .select('*')
-        .eq('item_id', selectedItem.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
-    },
-    enabled: !!selectedItem?.id
+    }
   });
 
   // Save share settings
@@ -170,10 +166,11 @@ const ShareManagement = () => {
     toast.success('Share URL copied to clipboard!');
   };
 
-  const getAnalyticsStats = (analytics: ShareAnalytics[]) => {
-    const views = analytics.filter(a => a.event_type === 'view').length;
-    const clicks = analytics.filter(a => a.event_type === 'click').length;
-    const conversions = analytics.filter(a => a.event_type === 'conversion').length;
+  const getAnalyticsStats = (itemId: string) => {
+    const itemAnalytics = allAnalytics.filter(a => a.item_id === itemId);
+    const views = itemAnalytics.filter(a => a.event_type === 'view').length;
+    const clicks = itemAnalytics.filter(a => a.event_type === 'click').length;
+    const conversions = itemAnalytics.filter(a => a.event_type === 'conversion').length;
     
     return { views, clicks, conversions };
   };
@@ -204,7 +201,7 @@ const ShareManagement = () => {
 
       <div className="grid gap-4">
         {items.map((item) => {
-          const stats = item.share_settings?.is_shareable ? getAnalyticsStats(analytics) : null;
+          const stats = item.share_settings?.is_shareable ? getAnalyticsStats(item.id) : null;
           
           return (
             <Card key={item.id} className="hover:shadow-md transition-shadow">
