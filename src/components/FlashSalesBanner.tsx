@@ -26,20 +26,33 @@ const FlashSalesBanner = () => {
   const { data: flashSales = [], isLoading } = useQuery({
     queryKey: ['flash-sales'],
     queryFn: async (): Promise<FlashSale[]> => {
-      const { data, error } = await supabase
+      // First get flash sales
+      const { data: sales, error: salesError } = await supabase
         .from('flash_sales')
-        .select(`
-          *,
-          items:items(title, images)
-        `)
+        .select('*')
         .eq('is_active', true)
         .gte('ends_at', new Date().toISOString())
         .lte('starts_at', new Date().toISOString())
         .order('ends_at', { ascending: true })
         .limit(3);
 
-      if (error) throw error;
-      return data;
+      if (salesError) throw salesError;
+      if (!sales || sales.length === 0) return [];
+
+      // Then get items for each sale
+      const itemIds = sales.map(sale => sale.item_id);
+      const { data: items, error: itemsError } = await supabase
+        .from('items')
+        .select('id, title, images')
+        .in('id', itemIds);
+
+      if (itemsError) throw itemsError;
+
+      // Combine the data
+      return sales.map(sale => ({
+        ...sale,
+        items: items?.find(item => item.id === sale.item_id) || { title: 'Unknown Item', images: [] }
+      }));
     },
     refetchInterval: 60000 // Refetch every minute
   });

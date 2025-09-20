@@ -124,7 +124,22 @@ export type Database = {
           item_id?: string
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_collection_items_collection_id"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_collection_items_item_id"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collections: {
         Row: {
@@ -237,7 +252,15 @@ export type Database = {
           sold_quantity?: number
           starts_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_flash_sales_item_id"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gift_card_payments: {
         Row: {
@@ -308,7 +331,15 @@ export type Database = {
           view_count?: number
           wishlist_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_item_popularity_item_id"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       item_reactions: {
         Row: {
@@ -645,7 +676,15 @@ export type Database = {
           reviewer_name?: string | null
           session_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_reviews_item_id"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       share_analytics: {
         Row: {
@@ -747,7 +786,15 @@ export type Database = {
           session_id?: string
           shared_url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_social_shares_item_id"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wishlists: {
         Row: {
@@ -768,7 +815,15 @@ export type Database = {
           item_id?: string
           session_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_wishlists_item_id"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

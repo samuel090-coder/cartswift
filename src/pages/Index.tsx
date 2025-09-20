@@ -2,6 +2,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import FlashSalesBanner from '@/components/FlashSalesBanner';
+import TrendingItems from '@/components/TrendingItems';
+import LoyaltyPointsDisplay from '@/components/LoyaltyPointsDisplay';
+import ReferralSystem from '@/components/ReferralSystem';
 import Header from '@/components/Header';
 import CategoryTabs from '@/components/CategoryTabs';
 import ItemGrid from '@/components/ItemGrid';
@@ -9,6 +13,8 @@ import PromoBanner from '@/components/PromoBanner';
 import WelcomePopup from '@/components/WelcomePopup';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShoppingBag, TrendingUp, Gift, Users } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type Item = Database['public']['Tables']['items']['Row'];
@@ -17,6 +23,7 @@ type ItemCategory = Database['public']['Enums']['item_category'];
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [welcomeCategory, setWelcomeCategory] = useState<string>('');
+  const [currentTab, setCurrentTab] = useState('shop');
 
   const { data: allItems = [], isLoading } = useQuery({
     queryKey: ['items'],
@@ -79,8 +86,8 @@ const Index = () => {
     <AnimatedBackground>
       <SEOHead 
         title="CartSwift - Fast & Reliable Online Shopping | Fashion, Books, Tools & More"
-        description="Shop the latest products at CartSwift with fast delivery and amazing deals. Browse fashion, books, tools, vehicles and more with secure checkout."
-        keywords="online shopping, fashion, books, tools, vehicles, fast delivery, secure checkout, deals, cartswift"
+        description="Shop the latest products at CartSwift with viral deals, trending items, and rewards program. Browse fashion, books, tools, vehicles and more with secure checkout."
+        keywords="online shopping, fashion, books, tools, vehicles, fast delivery, secure checkout, deals, trending, rewards, referrals"
         canonical="https://cartswift.lovable.app/"
         structured_data={structuredData}
       />
@@ -93,18 +100,71 @@ const Index = () => {
           <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-light via-purple-light to-cyan-bright bg-clip-text text-transparent mb-2 animate-pulse">
             CARTSWIFT
           </h1>
-          <p className="text-lg text-white/80 font-medium">Fast delivery, amazing deals</p>
+          <p className="text-lg text-white/80 font-medium">Fast delivery, amazing deals, viral rewards</p>
         </div>
         
-        <CategoryTabs 
-          selectedCategory={selectedCategory}
-          onCategoryChange={(category) => {
-            setSelectedCategory(category);
-            setWelcomeCategory('');
-          }}
-        />
-        
-        <ItemGrid items={items} isLoading={isLoading} />
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 max-w-md mx-auto">
+            <TabsTrigger value="shop" className="gap-2">
+              <ShoppingBag size={16} />
+              Shop
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="gap-2">
+              <TrendingUp size={16} />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="rewards" className="gap-2">
+              <Gift size={16} />
+              Rewards
+            </TabsTrigger>
+            <TabsTrigger value="refer" className="gap-2">
+              <Users size={16} />
+              Refer
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="shop" className="space-y-6">
+            <FlashSalesBanner />
+            <CategoryTabs 
+              selectedCategory={selectedCategory}
+              onCategoryChange={(category) => {
+                setSelectedCategory(category);
+                setWelcomeCategory('');
+              }}
+            />
+            <ItemGrid items={items} isLoading={isLoading} />
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-6">
+            <TrendingItems />
+          </TabsContent>
+
+          <TabsContent value="rewards" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <LoyaltyPointsDisplay />
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-white">How to Earn Points</h2>
+                <div className="grid gap-3">
+                  {[
+                    { action: '🛍️ Make a Purchase', points: '1 point per $1 spent' },
+                    { action: '⭐ Write a Review', points: '10 points' },
+                    { action: '📱 Share on Social Media', points: '5 points per platform' },
+                    { action: '👥 Successful Referral', points: '50 points' }
+                  ].map((item) => (
+                    <div key={item.action} className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
+                      <span className="font-medium text-white">{item.action}</span>
+                      <span className="text-cyan-bright font-bold">{item.points}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="refer" className="space-y-6">
+            <ReferralSystem />
+          </TabsContent>
+        </Tabs>
       </div>
     </AnimatedBackground>
   );

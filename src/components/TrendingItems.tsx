@@ -23,17 +23,38 @@ const TrendingItems = () => {
   const { data: trendingItems = [], isLoading } = useQuery({
     queryKey: ['trending-items'],
     queryFn: async (): Promise<TrendingItem[]> => {
-      const { data, error } = await supabase
+      // First get trending items
+      const { data: trending, error: trendingError } = await supabase
         .from('item_popularity')
-        .select(`
-          *,
-          items:items(title, price, images, discount_percentage)
-        `)
+        .select('*')
         .order('trending_score', { ascending: false })
         .limit(6);
 
-      if (error) throw error;
-      return data.filter(item => item.trending_score > 0);
+      if (trendingError) throw trendingError;
+      if (!trending || trending.length === 0) return [];
+
+      const validTrending = trending.filter(item => item.trending_score > 0);
+      if (validTrending.length === 0) return [];
+
+      // Then get items for each trending item
+      const itemIds = validTrending.map(item => item.item_id);
+      const { data: items, error: itemsError } = await supabase
+        .from('items')
+        .select('id, title, price, images, discount_percentage')
+        .in('id', itemIds);
+
+      if (itemsError) throw itemsError;
+
+      // Combine the data
+      return validTrending.map(trend => ({
+        ...trend,
+        items: items?.find(item => item.id === trend.item_id) || { 
+          title: 'Unknown Item', 
+          price: 0, 
+          images: [], 
+          discount_percentage: null 
+        }
+      }));
     },
     refetchInterval: 5 * 60 * 1000 // Refetch every 5 minutes
   });

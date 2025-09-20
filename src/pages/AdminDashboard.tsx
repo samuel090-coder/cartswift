@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import ViralFeaturesManagement from '@/components/admin/ViralFeaturesManagement';
 import ItemManagement from '@/components/admin/ItemManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
 import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement';
@@ -10,7 +11,7 @@ import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
 import ShareManagement from '@/components/admin/ShareManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3 } from 'lucide-react';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 
@@ -133,13 +134,35 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="items">Item Management</TabsTrigger>
-              <TabsTrigger value="orders">Order Management</TabsTrigger>
-              <TabsTrigger value="shares">Share Views</TabsTrigger>
-              <TabsTrigger value="proofs">Payment Proofs</TabsTrigger>
-              <TabsTrigger value="gift-cards">Gift Card Payments</TabsTrigger>
-              <TabsTrigger value="analytics">Analysis</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="items" className="flex items-center gap-2">
+                <Package size={16} />
+                Items
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart size={16} />
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="shares" className="flex items-center gap-2">
+                <Share size={16} />
+                Shares
+              </TabsTrigger>
+              <TabsTrigger value="viral" className="flex items-center gap-2">
+                <Zap size={16} />
+                Viral
+              </TabsTrigger>
+              <TabsTrigger value="proofs" className="flex items-center gap-2">
+                <CreditCard size={16} />
+                Proofs
+              </TabsTrigger>
+              <TabsTrigger value="gift-cards" className="flex items-center gap-2">
+                <FileText size={16} />
+                Gift Cards
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 size={16} />
+                Analytics
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="items">
@@ -152,6 +175,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="shares">
               <ShareManagement />
+            </TabsContent>
+            
+            <TabsContent value="viral">
+              <ViralFeaturesManagement />
             </TabsContent>
             
             <TabsContent value="proofs">

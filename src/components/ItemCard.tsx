@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock, Eye, ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import WishlistButton from './WishlistButton';
+import SocialShareButtons from './SocialShareButtons';
+import ReviewsSection from './ReviewsSection';
 import { useCart } from '@/contexts/CartContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import ExpandableDescription from './ExpandableDescription';
 import LazyImage from './LazyImage';
@@ -23,6 +26,32 @@ const ItemCard = ({ item }: ItemCardProps) => {
   const [mockPurchases, setMockPurchases] = useState(0);
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const sessionId = sessionStorage.getItem('sessionId') || '';
+
+  // Track item views for popularity
+  const trackView = useMutation({
+    mutationFn: async () => {
+      await supabase
+        .from('share_analytics')
+        .insert({
+          item_id: item.id,
+          event_type: 'view',
+          session_id: sessionId,
+          user_agent: navigator.userAgent,
+          referrer: document.referrer || null
+        });
+    }
+  });
+
+  // Track view when component mounts
+  useEffect(() => {
+    trackView.mutate();
+  }, [item.id]);
+
+  const finalPrice = item.discount_percentage 
+    ? Number(item.price) * (1 - item.discount_percentage / 100)
+    : Number(item.price);
 
   // Initialize mock data
   useEffect(() => {
@@ -109,7 +138,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
     addToCart({
       id: item.id,
       title: item.title,
-      price: Number(item.price),
+      price: finalPrice,
       image: images[0],
     });
     toast({
@@ -211,19 +240,10 @@ const ItemCard = ({ item }: ItemCardProps) => {
             </>
           )}
           
-          {/* React Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
-            onClick={() => likeMutation.mutate()}
-          >
-            <Heart
-              className={`h-4 w-4 ${
-                isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'
-              }`}
-            />
-          </Button>
+          {/* Wishlist Button */}
+          <div className="absolute top-2 right-2">
+            <WishlistButton itemId={item.id} size="sm" />
+          </div>
         </div>
 
         {/* Item Info */}
@@ -271,15 +291,28 @@ const ItemCard = ({ item }: ItemCardProps) => {
             </div>
           </div>
 
-          {/* Add to Cart Button */}
-          <Button 
-            onClick={handleAddToCart}
-            className="w-full mt-3"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add to Cart
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleAddToCart}
+              className="flex-1"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add to Cart
+            </Button>
+            <SocialShareButtons 
+              itemId={item.id}
+              itemTitle={item.title}
+              itemImage={images[0]}
+            />
+          </div>
+
+          <div className="text-sm text-gray-500">
+            Estimated delivery: {item.estimated_delivery_days || 7} days
+          </div>
+
+          <ReviewsSection itemId={item.id} />
         </div>
       </CardContent>
     </Card>
