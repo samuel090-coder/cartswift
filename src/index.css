@@ -38,6 +38,24 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Enhanced gradients and colors for premium design */
+    --gradient-primary: linear-gradient(135deg, hsl(222.2 47.4% 11.2%), hsl(240 90% 15%));
+    --gradient-secondary: linear-gradient(135deg, hsl(210 40% 96.1%), hsl(220 13% 91%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 100% 50%), hsl(180 100% 50%));
+    --gradient-premium: linear-gradient(135deg, hsl(270 100% 50%), hsl(240 100% 55%));
+    
+    /* Shadow variants */
+    --shadow-soft: 0 2px 8px -2px hsl(222.2 47.4% 11.2% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(222.2 47.4% 11.2% / 0.12);
+    --shadow-strong: 0 8px 32px -8px hsl(222.2 47.4% 11.2% / 0.16);
+    --shadow-glow: 0 0 32px hsl(210 100% 50% / 0.15);
+    
+    /* Animation variables */
+    --animation-fast: 0.15s ease-out;
+    --animation-normal: 0.3s ease-out;
+    --animation-slow: 0.5s ease-out;
+    --animation-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -100,9 +118,7 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -112,15 +128,80 @@ All colors MUST be HSL.
   }
 }
 
-/* Notification highlight animation */
-.highlight-order {
-  animation: highlight-flash 3s ease-in-out;
+@layer components {
+  /* Premium card styles */
+  .card-premium {
+    @apply bg-gradient-to-br from-background to-muted/30 backdrop-blur-sm border-0;
+    box-shadow: var(--shadow-soft);
+    transition: all var(--animation-normal);
+  }
+  
+  .card-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
+  
+  /* Enhanced button styles */
+  .btn-premium {
+    @apply bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary;
+    @apply shadow-lg hover:shadow-xl transform hover:scale-105;
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  /* Smooth animations */
+  .animate-fade-in {
+    animation: fadeIn var(--animation-normal) ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp var(--animation-normal) var(--animation-bounce);
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn var(--animation-fast) ease-out;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent;
+  }
+  
+  /* Enhanced image containers */
+  .image-container {
+    @apply relative overflow-hidden rounded-lg;
+    @apply before:absolute before:inset-0 before:bg-gradient-to-t before:from-black/20 before:to-transparent before:z-10;
+  }
+  
+  /* Review card enhancements */
+  .review-card {
+    @apply border-0 shadow-sm hover:shadow-md;
+    @apply transition-all duration-300 ease-out;
+    @apply bg-gradient-to-br from-background to-muted/20;
+  }
+  
+  .review-card:hover {
+    @apply transform -translate-y-1;
+  }
 }
 
-@keyframes highlight-flash {
-  0% { background-color: hsl(var(--primary) / 0.1); }
-  50% { background-color: hsl(var(--primary) / 0.2); }
-  100% { background-color: transparent; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* Premium animated background styles */

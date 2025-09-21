@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface LazyImageProps {
@@ -8,72 +8,106 @@ interface LazyImageProps {
   width?: number;
   height?: number;
   fallbackSrc?: string;
+  priority?: boolean;
+  sizes?: string;
 }
 
-const LazyImage = ({ 
+const LazyImage = memo(({ 
   src, 
   alt, 
   className = '', 
   width, 
   height, 
-  fallbackSrc = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'
+  fallbackSrc = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80',
+  priority = false,
+  sizes
 }: LazyImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isInView, setIsInView] = useState(false);
+  const [isInView, setIsInView] = useState(priority);
   const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string>('');
   const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Optimize image URL with quality and format params
+  const optimizeImageUrl = useCallback((url: string) => {
+    if (url.includes('unsplash.com')) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}q=80&fm=webp&auto=format`;
+    }
+    return url;
+  }, []);
 
   useEffect(() => {
+    if (priority) {
+      setImgSrc(optimizeImageUrl(src));
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
+          setImgSrc(optimizeImageUrl(src));
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { 
+        threshold: 0.1, 
+        rootMargin: '100px' // Increased for faster loading
+      }
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
     return () => observer.disconnect();
+  }, [src, priority, optimizeImageUrl]);
+
+  const handleLoad = useCallback(() => {
+    setIsLoading(false);
   }, []);
 
-  const handleLoad = () => {
-    setIsLoading(false);
-  };
-
-  const handleError = () => {
-    setHasError(true);
-    setIsLoading(false);
-  };
+  const handleError = useCallback(() => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(optimizeImageUrl(fallbackSrc));
+      setIsLoading(false);
+    }
+  }, [hasError, fallbackSrc, optimizeImageUrl]);
 
   return (
-    <div ref={imgRef} className={`relative ${className}`} style={{ width, height }}>
+    <div 
+      ref={containerRef} 
+      className={`relative overflow-hidden bg-muted/20 ${className}`} 
+      style={{ width, height }}
+    >
       {isLoading && (
-        <Skeleton className="absolute inset-0 w-full h-full" />
+        <Skeleton className="absolute inset-0 w-full h-full animate-pulse" />
       )}
-      {isInView && (
+      {(isInView || priority) && imgSrc && (
         <img
-          src={hasError ? fallbackSrc : src}
+          ref={imgRef}
+          src={imgSrc}
           alt={alt}
-          className={`${className} transition-opacity duration-300 ${
-            isLoading ? 'opacity-0' : 'opacity-100'
+          className={`w-full h-full object-cover transition-all duration-500 ease-out transform ${
+            isLoading 
+              ? 'opacity-0 scale-105' 
+              : 'opacity-100 scale-100'
           }`}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          sizes={sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'}
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
+            aspectRatio: width && height ? `${width}/${height}` : undefined,
           }}
         />
       )}
     </div>
   );
-};
+});
 
 export default LazyImage;

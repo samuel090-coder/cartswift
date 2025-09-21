@@ -17,6 +17,7 @@ interface Review {
   reviewer_name: string;
   created_at: string;
   images?: string[];
+  is_verified: boolean;
 }
 
 interface ReviewsSectionProps {
@@ -114,11 +115,17 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="animate-pulse">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Card key={i} className="animate-pulse border-0 shadow-sm">
             <CardContent className="p-4">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-muted rounded-full"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                  <div className="h-3 bg-muted rounded w-full"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -143,8 +150,8 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Star size={16} />
+            <Button className="btn-premium gap-2 text-white">
+              <Star size={16} className="fill-white" />
               Write Review
             </Button>
           </DialogTrigger>
@@ -204,36 +211,70 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
 
       <div className="space-y-4">
         {reviews.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Star className="mx-auto mb-2 text-gray-400" size={48} />
-              <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
+          <Card className="border-dashed border-2 border-muted">
+            <CardContent className="p-8 text-center">
+              <div className="animate-bounce mb-4">
+                <Star className="mx-auto text-primary/60" size={56} />
+              </div>
+              <h4 className="font-semibold text-lg mb-2">No reviews yet</h4>
+              <p className="text-muted-foreground mb-4">Be the first to share your experience!</p>
+              <div className="text-xs text-muted-foreground">
+                ⭐ Earn 10 loyalty points for your review
+              </div>
             </CardContent>
           </Card>
         ) : (
-          reviews.map((review) => (
-            <Card key={review.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User size={20} className="text-gray-600" />
+          <>
+            <div className="text-sm text-muted-foreground mb-4 flex items-center gap-2">
+              <span className="bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                {reviews.length.toLocaleString()} verified reviews
+              </span>
+              <span>•</span>
+              <span>{Math.round(averageRating * 10) / 10} average rating</span>
+            </div>
+            {reviews.slice(0, 10).map((review) => (
+              <Card key={review.id} className="review-card animate-fade-in">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/40 rounded-full flex items-center justify-center ring-2 ring-primary/10">
+                        <User size={18} className="text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-foreground">{review.reviewer_name}</span>
+                        {review.is_verified && (
+                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                            <div className="w-1 h-1 bg-emerald-500 rounded-full"></div>
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <StarRating rating={review.rating} />
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed">{review.comment}</p>
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{review.reviewer_name}</span>
-                      <StarRating rating={review.rating} />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm">{review.comment}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))}
+            {reviews.length > 10 && (
+              <div className="text-center pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing 10 of {reviews.length.toLocaleString()} reviews
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
