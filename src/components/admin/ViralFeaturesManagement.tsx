@@ -21,8 +21,11 @@ import {
   Share2,
   Heart,
   ShoppingBag,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import ReviewsManagement from './ReviewsManagement';
 
 const ViralFeaturesManagement = () => {
   const [selectedTab, setSelectedTab] = useState('flash-sales');
@@ -128,6 +131,24 @@ const ViralFeaturesManagement = () => {
     },
     onError: () => {
       toast.error('Failed to create flash sale');
+    }
+  });
+
+  // Delete flash sale mutation
+  const deleteFlashSale = useMutation({
+    mutationFn: async (flashSaleId: string) => {
+      const { error } = await supabase
+        .from('flash_sales')
+        .delete()
+        .eq('id', flashSaleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] });
+      toast.success('Flash sale deleted successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to delete flash sale');
     }
   });
 
@@ -288,15 +309,40 @@ const ViralFeaturesManagement = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant={sale.is_active ? 'default' : 'secondary'}>
-                        {sale.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                      {sale.max_quantity && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {sale.sold_quantity}/{sale.max_quantity} sold
-                        </div>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <Badge variant={sale.is_active ? 'default' : 'secondary'}>
+                          {sale.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {sale.max_quantity && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {sale.sold_quantity}/{sale.max_quantity} sold
+                          </div>
+                        )}
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 size={14} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Flash Sale</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this flash sale? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteFlashSale.mutate(sale.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
@@ -360,10 +406,7 @@ const ViralFeaturesManagement = () => {
         </TabsContent>
 
         <TabsContent value="reviews" className="space-y-4">
-          <div className="text-center p-6">
-            <Star className="mx-auto mb-2 text-gray-400" size={48} />
-            <p className="text-muted-foreground">Reviews management coming soon!</p>
-          </div>
+          <ReviewsManagement />
         </TabsContent>
 
         <TabsContent value="referrals" className="space-y-4">

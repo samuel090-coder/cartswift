@@ -34,6 +34,7 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
   const [comment, setComment] = useState('');
   const [reviewerName, setReviewerName] = useState('');
   const [reviewerEmail, setReviewerEmail] = useState('');
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews', itemId],
@@ -232,7 +233,7 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
               <span>•</span>
               <span>{Math.round(averageRating * 10) / 10} average rating</span>
             </div>
-            {reviews.slice(0, 10).map((review) => (
+            {reviews.slice(0, showAllReviews ? reviews.length : 3).map((review) => (
               <Card key={review.id} className="review-card animate-fade-in">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -267,11 +268,25 @@ const ReviewsSection = ({ itemId }: ReviewsSectionProps) => {
                 </CardContent>
               </Card>
             ))}
-            {reviews.length > 10 && (
+            {reviews.length > 3 && (
               <div className="text-center pt-4">
-                <p className="text-sm text-muted-foreground">
-                  Showing 10 of {reviews.length.toLocaleString()} reviews
-                </p>
+                {!showAllReviews ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAllReviews(true)}
+                    className="gap-2"
+                  >
+                    See all {reviews.length.toLocaleString()} reviews
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAllReviews(false)}
+                    className="gap-2"
+                  >
+                    Show less
+                  </Button>
+                )}
               </div>
             )}
           </>
