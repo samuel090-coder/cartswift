@@ -10,8 +10,9 @@ import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement'
 import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
 import ShareManagement from '@/components/admin/ShareManagement';
+import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3 } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star } from 'lucide-react';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 
@@ -134,7 +135,7 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="items" className="flex items-center gap-2">
                 <Package size={16} />
                 Items
@@ -142,6 +143,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <ShoppingCart size={16} />
                 Orders
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="flex items-center gap-2">
+                <Star size={16} />
+                Reviews
               </TabsTrigger>
               <TabsTrigger value="shares" className="flex items-center gap-2">
                 <Share size={16} />
@@ -171,6 +176,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="orders">
               <OrderManagement />
+            </TabsContent>
+            
+            <TabsContent value="reviews">
+              <ReviewsManagement />
             </TabsContent>
             
             <TabsContent value="shares">
