@@ -12,6 +12,9 @@ import ShareView from "./pages/ShareView";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStatusChecker from "./pages/AdminStatusChecker";
+import DownloadPayment from "./pages/DownloadPayment";
+import DownloadEmailSubmit from "./pages/DownloadEmailSubmit";
+import DownloadConfirmation from "./pages/DownloadConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ const App = () => (
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/share/:itemId" element={<ShareView />} />
+            <Route path="/download/:itemId/payment" element={<DownloadPayment />} />
+            <Route path="/download/:itemId/email" element={<DownloadEmailSubmit />} />
+            <Route path="/download/:itemId/confirmation" element={<DownloadConfirmation />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/check" element={<AdminStatusChecker />} />

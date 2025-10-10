@@ -215,6 +215,50 @@ export type Database = {
           },
         ]
       }
+      downloads: {
+        Row: {
+          created_at: string | null
+          download_token: string
+          downloaded_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          item_id: string
+          payment_verified: boolean | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          download_token: string
+          downloaded_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          item_id: string
+          payment_verified?: boolean | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          download_token?: string
+          downloaded_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          item_id?: string
+          payment_verified?: boolean | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "downloads_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flash_sales: {
         Row: {
           created_at: string
@@ -372,39 +416,54 @@ export type Database = {
       }
       items: {
         Row: {
+          allowed_payment_methods: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at: string
           description: string | null
           discount_percentage: number | null
+          download_count: number | null
           estimated_delivery_days: number | null
+          file_size: number | null
+          file_url: string | null
           id: string
           images: string[] | null
+          item_type: string
           price: number
           star_rating: number | null
           title: string
           updated_at: string
         }
         Insert: {
+          allowed_payment_methods?: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at?: string
           description?: string | null
           discount_percentage?: number | null
+          download_count?: number | null
           estimated_delivery_days?: number | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           images?: string[] | null
+          item_type?: string
           price: number
           star_rating?: number | null
           title: string
           updated_at?: string
         }
         Update: {
+          allowed_payment_methods?: string[] | null
           category?: Database["public"]["Enums"]["item_category"]
           created_at?: string
           description?: string | null
           discount_percentage?: number | null
+          download_count?: number | null
           estimated_delivery_days?: number | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           images?: string[] | null
+          item_type?: string
           price?: number
           star_rating?: number | null
           title?: string
@@ -830,6 +889,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_download_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_admin_user: {
         Args: { user_uuid: string }
         Returns: boolean

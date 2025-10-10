@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock, Eye, ShoppingCart, Star } from 'lucide-react';
+import { Heart, Plus, ChevronLeft, ChevronRight, Truck, Clock, Eye, ShoppingCart, Star, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -135,6 +135,13 @@ const ItemCard = ({ item }: ItemCardProps) => {
   };
 
   const handleAddToCart = () => {
+    // Check if it's an APK or file - redirect to download payment
+    if (item.item_type === 'apk' || item.item_type === 'file') {
+      window.location.href = `/download/${item.id}/payment`;
+      return;
+    }
+    
+    // Regular product - add to cart
     addToCart({
       id: item.id,
       title: item.title,
@@ -298,8 +305,17 @@ const ItemCard = ({ item }: ItemCardProps) => {
               className="flex-1"
               size="sm"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add to Cart
+              {item.item_type === 'apk' || item.item_type === 'file' ? (
+                <>
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add to Cart
+                </>
+              )}
             </Button>
             <SocialShareButtons 
               itemId={item.id}

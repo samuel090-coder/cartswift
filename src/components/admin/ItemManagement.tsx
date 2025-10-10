@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Upload } from 'lucide-react';
@@ -29,6 +30,10 @@ const ItemManagement = () => {
     star_rating: '',
     discount_percentage: '',
     images: [] as string[],
+    item_type: 'product',
+    file_url: '',
+    file_size: '',
+    allowed_payment_methods: ['stripe', 'crypto', 'bank_transfer', 'gift_card'] as string[],
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
 
@@ -80,6 +85,10 @@ const ItemManagement = () => {
         star_rating: data.star_rating ? parseFloat(data.star_rating) : null,
         discount_percentage: data.discount_percentage ? parseInt(data.discount_percentage) : null,
         images: imageUrls,
+        item_type: data.item_type || 'product',
+        file_url: data.file_url || null,
+        file_size: data.file_size ? parseInt(data.file_size) : null,
+        allowed_payment_methods: data.allowed_payment_methods || ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
       };
 
       if (editingItem) {
@@ -147,6 +156,10 @@ const ItemManagement = () => {
       star_rating: '',
       discount_percentage: '',
       images: [],
+      item_type: 'product',
+      file_url: '',
+      file_size: '',
+      allowed_payment_methods: ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
     });
     setEditingItem(null);
     setImageFiles(null);
@@ -163,6 +176,10 @@ const ItemManagement = () => {
       star_rating: item.star_rating?.toString() || '',
       discount_percentage: item.discount_percentage?.toString() || '',
       images: item.images || [],
+      item_type: item.item_type || 'product',
+      file_url: item.file_url || '',
+      file_size: item.file_size?.toString() || '',
+      allowed_payment_methods: item.allowed_payment_methods || ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
     });
     setIsDialogOpen(true);
   };
@@ -190,6 +207,20 @@ const ItemManagement = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="item_type">Item Type *</Label>
+                <Select value={formData.item_type} onValueChange={(value) => setFormData(prev => ({ ...prev, item_type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select item type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">Physical Product</SelectItem>
+                    <SelectItem value="apk">APK File</SelectItem>
+                    <SelectItem value="file">Digital File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title">Title *</Label>
@@ -291,6 +322,59 @@ const ItemManagement = () => {
                   </div>
                 )}
               </div>
+
+              {/* APK/File specific fields */}
+              {(formData.item_type === 'apk' || formData.item_type === 'file') && (
+                <>
+                  <div>
+                    <Label htmlFor="file_url">File URL *</Label>
+                    <Input
+                      id="file_url"
+                      required
+                      value={formData.file_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, file_url: e.target.value }))}
+                      placeholder="https://example.com/file.apk"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="file_size">File Size (bytes)</Label>
+                    <Input
+                      id="file_size"
+                      type="number"
+                      value={formData.file_size}
+                      onChange={(e) => setFormData(prev => ({ ...prev, file_size: e.target.value }))}
+                      placeholder="e.g., 52428800 for 50MB"
+                    />
+                  </div>
+                  <div>
+                    <Label>Allowed Payment Methods</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {['stripe', 'crypto', 'bank_transfer', 'gift_card'].map((method) => (
+                        <label key={method} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowed_payment_methods.includes(method)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  allowed_payment_methods: [...prev.allowed_payment_methods, method]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  allowed_payment_methods: prev.allowed_payment_methods.filter(m => m !== method)
+                                }));
+                              }
+                            }}
+                          />
+                          <span className="text-sm capitalize">{method.replace('_', ' ')}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
               
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -318,11 +402,9 @@ const ItemManagement = () => {
                 <TableRow>
                   <TableHead>Image</TableHead>
                   <TableHead>Title</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Discount</TableHead>
-                  <TableHead>Delivery</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -341,9 +423,13 @@ const ItemManagement = () => {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{item.title}</TableCell>
+                    <TableCell>
+                      <Badge variant={item.item_type === 'product' ? 'default' : 'secondary'}>
+                        {item.item_type || 'product'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>${Number(item.price).toFixed(2)}</TableCell>
-                    <TableCell>{item.estimated_delivery_days} days</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button
