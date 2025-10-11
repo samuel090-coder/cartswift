@@ -36,6 +36,7 @@ const ItemManagement = () => {
     allowed_payment_methods: ['stripe', 'crypto', 'bank_transfer', 'gift_card'] as string[],
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
+  const [apkFile, setApkFile] = useState<File | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['admin-items'],
@@ -52,6 +53,7 @@ const ItemManagement = () => {
   const itemMutation = useMutation({
     mutationFn: async (data: any) => {
       let imageUrls = formData.images;
+      let fileUrl = data.file_url;
 
       // Upload new images if any
       if (imageFiles && imageFiles.length > 0) {
@@ -76,18 +78,36 @@ const ItemManagement = () => {
         imageUrls = [...imageUrls, ...newImageUrls];
       }
 
+      // Upload APK/File if provided
+      if (apkFile) {
+        const fileExt = apkFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('item-images')
+          .upload(fileName, apkFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('item-images')
+          .getPublicUrl(fileName);
+
+        fileUrl = urlData.publicUrl;
+      }
+
       const itemData = {
         title: data.title,
         description: data.description || null,
         price: parseFloat(data.price),
         category: data.category,
-        estimated_delivery_days: parseInt(data.estimated_delivery_days),
+        estimated_delivery_days: data.item_type === 'product' ? parseInt(data.estimated_delivery_days) : null,
         star_rating: data.star_rating ? parseFloat(data.star_rating) : null,
         discount_percentage: data.discount_percentage ? parseInt(data.discount_percentage) : null,
         images: imageUrls,
         item_type: data.item_type || 'product',
-        file_url: data.file_url || null,
-        file_size: data.file_size ? parseInt(data.file_size) : null,
+        file_url: fileUrl || null,
+        file_size: apkFile ? apkFile.size : (data.file_size ? parseInt(data.file_size) : null),
         allowed_payment_methods: data.allowed_payment_methods || ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
       };
 
@@ -163,6 +183,7 @@ const ItemManagement = () => {
     });
     setEditingItem(null);
     setImageFiles(null);
+    setApkFile(null);
   };
 
   const handleEdit = (item: Item) => {
@@ -270,15 +291,17 @@ const ItemManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="delivery">Estimated Delivery (days)</Label>
-                  <Input
-                    id="delivery"
-                    type="number"
-                    value={formData.estimated_delivery_days}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimated_delivery_days: e.target.value }))}
-                  />
-                </div>
+                {formData.item_type === 'product' && (
+                  <div>
+                    <Label htmlFor="delivery">Estimated Delivery (days)</Label>
+                    <Input
+                      id="delivery"
+                      type="number"
+                      value={formData.estimated_delivery_days}
+                      onChange={(e) => setFormData(prev => ({ ...prev, estimated_delivery_days: e.target.value }))}
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -327,24 +350,18 @@ const ItemManagement = () => {
               {(formData.item_type === 'apk' || formData.item_type === 'file') && (
                 <>
                   <div>
-                    <Label htmlFor="file_url">File URL *</Label>
+                    <Label htmlFor="apk_file">Upload {formData.item_type === 'apk' ? 'APK' : 'File'} *</Label>
                     <Input
-                      id="file_url"
-                      required
-                      value={formData.file_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, file_url: e.target.value }))}
-                      placeholder="https://example.com/file.apk"
+                      id="apk_file"
+                      type="file"
+                      accept={formData.item_type === 'apk' ? '.apk' : '*'}
+                      onChange={(e) => setApkFile(e.target.files?.[0] || null)}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="file_size">File Size (bytes)</Label>
-                    <Input
-                      id="file_size"
-                      type="number"
-                      value={formData.file_size}
-                      onChange={(e) => setFormData(prev => ({ ...prev, file_size: e.target.value }))}
-                      placeholder="e.g., 52428800 for 50MB"
-                    />
+                    {formData.file_url && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Current file: {formData.file_url.split('/').pop()}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>Allowed Payment Methods</Label>

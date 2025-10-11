@@ -13,6 +13,7 @@ const categories = [
   { id: 'Tools', label: 'Tools' },
   { id: 'Vehicles', label: 'Vehicles' },
   { id: 'Books', label: 'Books' },
+  { id: 'APK/File', label: 'APK/File' },
 ];
 
 const CategoryTabs = ({ selectedCategory, onCategoryChange }: CategoryTabsProps) => {

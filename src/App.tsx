@@ -15,6 +15,7 @@ import AdminStatusChecker from "./pages/AdminStatusChecker";
 import DownloadPayment from "./pages/DownloadPayment";
 import DownloadEmailSubmit from "./pages/DownloadEmailSubmit";
 import DownloadConfirmation from "./pages/DownloadConfirmation";
+import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/check" element={<AdminStatusChecker />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

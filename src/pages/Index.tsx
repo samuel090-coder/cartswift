@@ -41,14 +41,23 @@ const Index = () => {
   const items = (() => {
     const activeCategory = welcomeCategory || selectedCategory;
     
+    // Filter out APK/File items unless that category is selected
+    const filteredItems = activeCategory === 'APK/File' 
+      ? allItems.filter(item => item.item_type === 'apk' || item.item_type === 'file')
+      : allItems.filter(item => item.item_type !== 'apk' && item.item_type !== 'file');
+    
     if (activeCategory === 'all' || !activeCategory) {
-      return allItems;
+      return filteredItems;
     }
     
-    if (welcomeCategory && welcomeCategory !== 'all') {
+    if (activeCategory === 'APK/File') {
+      return filteredItems;
+    }
+    
+    if (welcomeCategory && welcomeCategory !== 'all' && welcomeCategory !== 'APK/File') {
       // Show 70% from selected category, 30% from others
-      const categoryItems = allItems.filter(item => item.category === welcomeCategory);
-      const otherItems = allItems.filter(item => item.category !== welcomeCategory);
+      const categoryItems = filteredItems.filter(item => item.category === welcomeCategory);
+      const otherItems = filteredItems.filter(item => item.category !== welcomeCategory);
       
       const categoryCount = Math.ceil(categoryItems.length * 0.7);
       const otherCount = Math.ceil(otherItems.length * 0.3);
@@ -60,7 +69,7 @@ const Index = () => {
     }
     
     // Regular category filter
-    return allItems.filter(item => item.category === activeCategory);
+    return filteredItems.filter(item => item.category === activeCategory);
   })();
 
   const handleWelcomeCategorySelect = (category: string) => {
