@@ -135,38 +135,38 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
-              <TabsTrigger value="items" className="flex items-center gap-2">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-8 gap-1">
+              <TabsTrigger value="items" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Package size={16} />
-                Items
+                <span className="hidden sm:inline">Items</span>
               </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-2">
+              <TabsTrigger value="orders" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <ShoppingCart size={16} />
-                Orders
+                <span className="hidden sm:inline">Orders</span>
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="flex items-center gap-2">
+              <TabsTrigger value="reviews" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Star size={16} />
-                Reviews
+                <span className="hidden sm:inline">Reviews</span>
               </TabsTrigger>
-              <TabsTrigger value="shares" className="flex items-center gap-2">
+              <TabsTrigger value="shares" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Share size={16} />
-                Shares
+                <span className="hidden sm:inline">Shares</span>
               </TabsTrigger>
-              <TabsTrigger value="viral" className="flex items-center gap-2">
+              <TabsTrigger value="viral" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Zap size={16} />
-                Viral
+                <span className="hidden sm:inline">Viral</span>
               </TabsTrigger>
-              <TabsTrigger value="proofs" className="flex items-center gap-2">
+              <TabsTrigger value="proofs" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <CreditCard size={16} />
-                Proofs
+                <span className="hidden sm:inline">Proofs</span>
               </TabsTrigger>
-              <TabsTrigger value="gift-cards" className="flex items-center gap-2">
+              <TabsTrigger value="gift-cards" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <FileText size={16} />
-                Gift Cards
+                <span className="hidden sm:inline">Gift Cards</span>
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <BarChart3 size={16} />
-                Analytics
+                <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger>
             </TabsList>
             

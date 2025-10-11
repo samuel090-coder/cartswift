@@ -419,6 +419,7 @@ export type Database = {
           allowed_payment_methods: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at: string
+          currency: string
           description: string | null
           discount_percentage: number | null
           download_count: number | null
@@ -437,6 +438,7 @@ export type Database = {
           allowed_payment_methods?: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at?: string
+          currency?: string
           description?: string | null
           discount_percentage?: number | null
           download_count?: number | null
@@ -455,6 +457,7 @@ export type Database = {
           allowed_payment_methods?: string[] | null
           category?: Database["public"]["Enums"]["item_category"]
           created_at?: string
+          currency?: string
           description?: string | null
           discount_percentage?: number | null
           download_count?: number | null

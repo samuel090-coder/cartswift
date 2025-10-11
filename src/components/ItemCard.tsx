@@ -29,6 +29,14 @@ const ItemCard = ({ item }: ItemCardProps) => {
   const { toast } = useToast();
   const sessionId = sessionStorage.getItem('sessionId') || '';
 
+  // Currency symbol helper
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      USD: '$', NGN: '₦', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹', AUD: '$', CAD: '$'
+    };
+    return symbols[currency] || currency + ' ';
+  };
+
   // Track item views for popularity
   const trackView = useMutation({
     mutationFn: async () => {
@@ -165,7 +173,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
     "offers": {
       "@type": "Offer",
       "price": Number(item.price).toFixed(2),
-      "priceCurrency": "USD",
+      "priceCurrency": item.currency || "USD",
       "availability": "https://schema.org/InStock",
       "url": `https://cartswift.lovable.app/#item-${item.id}`
     },
@@ -203,7 +211,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-gray-100">
           <LazyImage
             src={images[currentImageIndex]}
-            alt={`${item.title} - ${item.category} - $${Number(item.price).toFixed(2)}`}
+            alt={`${item.title} - ${item.category} - ${getCurrencySymbol(item.currency || 'USD')}${Number(item.price).toFixed(2)}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
           
@@ -278,7 +286,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
           
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-green-600">
-              ${Number(item.price).toFixed(2)}
+              {getCurrencySymbol(item.currency || 'USD')}{Number(item.price).toFixed(2)}
             </span>
             <div className="flex items-center space-x-1 text-sm text-gray-500">
               <Clock className="h-4 w-4" />

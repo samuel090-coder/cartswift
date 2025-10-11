@@ -25,6 +25,7 @@ const ItemManagement = () => {
     title: '',
     description: '',
     price: '',
+    currency: 'USD',
     category: '',
     estimated_delivery_days: '',
     star_rating: '',
@@ -100,6 +101,7 @@ const ItemManagement = () => {
         title: data.title,
         description: data.description || null,
         price: parseFloat(data.price),
+        currency: data.currency || 'USD',
         category: data.category,
         estimated_delivery_days: data.item_type === 'product' ? parseInt(data.estimated_delivery_days) : null,
         star_rating: data.star_rating ? parseFloat(data.star_rating) : null,
@@ -171,6 +173,7 @@ const ItemManagement = () => {
       title: '',
       description: '',
       price: '',
+      currency: 'USD',
       category: '',
       estimated_delivery_days: '',
       star_rating: '',
@@ -192,6 +195,7 @@ const ItemManagement = () => {
       title: item.title,
       description: item.description || '',
       price: item.price.toString(),
+      currency: item.currency || 'USD',
       category: item.category,
       estimated_delivery_days: item.estimated_delivery_days?.toString() || '',
       star_rating: item.star_rating?.toString() || '',
@@ -242,16 +246,17 @@ const ItemManagement = () => {
                 </Select>
               </div>
 
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  />
-                </div>
                 <div>
                   <Label htmlFor="price">Price *</Label>
                   <Input
@@ -262,6 +267,25 @@ const ItemManagement = () => {
                     value={formData.price}
                     onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="currency">Currency *</Label>
+                  <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="NGN">NGN (₦)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="JPY">JPY (¥)</SelectItem>
+                      <SelectItem value="CNY">CNY (¥)</SelectItem>
+                      <SelectItem value="INR">INR (₹)</SelectItem>
+                      <SelectItem value="AUD">AUD ($)</SelectItem>
+                      <SelectItem value="CAD">CAD ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
