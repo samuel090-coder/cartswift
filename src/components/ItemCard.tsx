@@ -155,6 +155,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
       title: item.title,
       price: finalPrice,
       image: images[0],
+      currency: item.currency || 'USD',
     });
     toast({
       title: "Added to cart",

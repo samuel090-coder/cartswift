@@ -10,7 +10,7 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 
 const Cart = () => {
-  const { items, updateQuantity, removeFromCart, total } = useCart();
+  const { items, updateQuantity, removeFromCart, total, getCurrencySymbol } = useCart();
 
   if (items.length === 0) {
     return (
@@ -73,7 +73,7 @@ const Cart = () => {
                       />
                       <div className="flex-1">
                         <h3 className="font-medium text-white">{item.title}</h3>
-                        <p className="text-lg font-bold text-blue-light">${item.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-blue-light">{getCurrencySymbol(item.currency)}{item.price.toFixed(2)}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -117,7 +117,7 @@ const Cart = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between text-white">
                     <span>Subtotal</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-white">
                     <span>Shipping</span>
@@ -126,7 +126,7 @@ const Cart = () => {
                   <div className="border-t border-white/20 pt-4">
                     <div className="flex justify-between font-bold text-lg text-white">
                       <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+                      <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
                     </div>
                   </div>
                   <Link to="/checkout" className="block">

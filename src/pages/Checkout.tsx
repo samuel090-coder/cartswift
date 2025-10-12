@@ -19,7 +19,7 @@ import { motion } from 'framer-motion';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items, total, clearCart } = useCart();
+  const { items, total, clearCart, getCurrencySymbol } = useCart();
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
@@ -486,7 +486,7 @@ const Checkout = () => {
                             </div>
                           </div>
                           <span className="font-medium">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {getCurrencySymbol(item.currency)}{(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
                       ))}
@@ -494,7 +494,7 @@ const Checkout = () => {
                       <div className="border-t pt-4 space-y-2">
                         <div className="flex justify-between">
                           <span>Subtotal</span>
-                          <span>${total.toFixed(2)}</span>
+                          <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Shipping</span>
@@ -506,7 +506,7 @@ const Checkout = () => {
                         </div>
                         <div className="flex justify-between font-bold text-lg border-t pt-2">
                           <span>Total</span>
-                          <span>${total.toFixed(2)}</span>
+                          <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
                         </div>
                       </div>
                       

@@ -97,7 +97,8 @@ const ShareView = () => {
       id: shareData.item.id,
       title: shareData.item.title,
       price: Number(shareData.item.price),
-      image: shareData.item.images?.[0] || '/placeholder.svg'
+      image: shareData.item.images?.[0] || '/placeholder.svg',
+      currency: shareData.item.currency || 'USD',
     };
     
     addToCart(cartItem);
@@ -113,7 +114,8 @@ const ShareView = () => {
       id: shareData.item.id,
       title: shareData.item.title,
       price: Number(shareData.item.price),
-      image: shareData.item.images?.[0] || '/placeholder.svg'
+      image: shareData.item.images?.[0] || '/placeholder.svg',
+      currency: shareData.item.currency || 'USD',
     };
     
     addToCart(cartItem);

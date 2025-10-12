@@ -7,6 +7,7 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  currency: string;
 }
 
 interface CartContextType {
@@ -17,6 +18,7 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
+  getCurrencySymbol: (currency: string) => string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -79,6 +81,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems([]);
   };
 
+  const getCurrencySymbol = (currency: string): string => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'NGN': '₦',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CNY': '¥',
+      'INR': '₹',
+      'AUD': 'A$',
+      'CAD': 'C$',
+    };
+    return symbols[currency] || currency;
+  };
+
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -90,7 +107,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateQuantity,
       clearCart,
       total,
-      itemCount
+      itemCount,
+      getCurrencySymbol
     }}>
       {children}
     </CartContext.Provider>
