@@ -18,6 +18,21 @@ const DownloadPayment = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'NGN': '₦',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CNY': '¥',
+      'INR': '₹',
+      'AUD': 'A$',
+      'CAD': 'C$',
+    };
+    return symbols[currency] || currency;
+  };
+
   const { data: item, isLoading } = useQuery({
     queryKey: ['download-item', itemId],
     queryFn: async () => {
@@ -94,7 +109,7 @@ const DownloadPayment = () => {
                   <p className="text-gray-600 text-sm">{item.description}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-2xl font-bold text-green-600">
-                      ${Number(item.price).toFixed(2)}
+                      {getCurrencySymbol(item.currency || 'USD')}{Number(item.price).toFixed(2)}
                     </span>
                     {item.file_size && (
                       <span className="text-sm text-gray-500">
