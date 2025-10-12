@@ -499,7 +499,7 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             </div>
 
             <Badge variant="outline" className="mt-3">
-              Amount: ${total.toFixed(2)} USD equivalent in ETH
+              Amount: {getCurrencySymbol(currency)}{total.toFixed(2)} equivalent in ETH
             </Badge>
           </div>
 

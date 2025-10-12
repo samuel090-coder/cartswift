@@ -75,6 +75,7 @@ export type Database = {
           additional_notes: string | null
           amount_usd: number
           created_at: string | null
+          currency: string | null
           id: string
           order_id: string | null
         }
@@ -82,6 +83,7 @@ export type Database = {
           additional_notes?: string | null
           amount_usd: number
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
         }
@@ -89,6 +91,7 @@ export type Database = {
           additional_notes?: string | null
           amount_usd?: number
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
         }
@@ -182,6 +185,7 @@ export type Database = {
           amount_usd: number
           created_at: string | null
           crypto_type: string | null
+          currency: string | null
           id: string
           order_id: string | null
           transaction_hash: string | null
@@ -191,6 +195,7 @@ export type Database = {
           amount_usd: number
           created_at?: string | null
           crypto_type?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
           transaction_hash?: string | null
@@ -200,6 +205,7 @@ export type Database = {
           amount_usd?: number
           created_at?: string | null
           crypto_type?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
           transaction_hash?: string | null
@@ -312,6 +318,7 @@ export type Database = {
           brand: string
           card_code: string | null
           created_at: string | null
+          currency: string | null
           estimated_value: number
           id: string
           order_id: string | null
@@ -321,6 +328,7 @@ export type Database = {
           brand: string
           card_code?: string | null
           created_at?: string | null
+          currency?: string | null
           estimated_value: number
           id?: string
           order_id?: string | null
@@ -330,6 +338,7 @@ export type Database = {
           brand?: string
           card_code?: string | null
           created_at?: string | null
+          currency?: string | null
           estimated_value?: number
           id?: string
           order_id?: string | null

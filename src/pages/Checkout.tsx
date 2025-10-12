@@ -93,12 +93,14 @@ const Checkout = () => {
         await supabase.from('bank_transfer_payments').insert({
           order_id: order.id,
           amount_usd: total,
+          currency: items[0]?.currency || 'USD',
         });
       } else if (formData.paymentMethod === 'crypto_eth') {
         console.log('Creating crypto payment record for order:', order.id);
         await supabase.from('crypto_payments').insert({
           order_id: order.id,
           amount_usd: total,
+          currency: items[0]?.currency || 'USD',
         });
       } else if (formData.paymentMethod === 'gift_card') {
         console.log('Creating gift card payment record for order:', order.id);

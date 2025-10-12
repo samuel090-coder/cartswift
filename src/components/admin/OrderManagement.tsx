@@ -39,6 +39,14 @@ const OrderManagement = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$', 'NGN': '₦', 'EUR': '€', 'GBP': '£',
+      'JPY': '¥', 'CNY': '¥', 'INR': '₹', 'AUD': 'A$', 'CAD': 'C$',
+    };
+    return symbols[currency] || currency;
+  };
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['admin-orders'],
     queryFn: async () => {
@@ -342,7 +350,7 @@ const OrderManagement = () => {
                 <h4 className="font-medium text-green-800 mb-2">Gift Card Details</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div><strong>Brand:</strong> {giftCard.brand}</div>
-                  <div><strong>Value:</strong> ${Number(giftCard.estimated_value).toFixed(2)}</div>
+                  <div><strong>Value:</strong> {getCurrencySymbol(giftCard.currency || 'USD')}{Number(giftCard.estimated_value).toFixed(2)}</div>
                   {giftCard.card_code && <div><strong>Code:</strong> {giftCard.card_code}</div>}
                   {giftCard.additional_notes && (
                     <div className="col-span-2"><strong>Notes:</strong> {giftCard.additional_notes}</div>
@@ -357,7 +365,7 @@ const OrderManagement = () => {
                 <h4 className="font-medium text-purple-800 mb-2">Cryptocurrency Details</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div><strong>Type:</strong> {crypto.crypto_type}</div>
-                  <div><strong>Amount (USD):</strong> ${Number(crypto.amount_usd).toFixed(2)}</div>
+                  <div><strong>Amount:</strong> {getCurrencySymbol(crypto.currency || 'USD')}{Number(crypto.amount_usd).toFixed(2)}</div>
                   <div className="col-span-2">
                     <strong>Wallet:</strong> 
                     <p className="font-mono text-xs break-all">{crypto.wallet_address}</p>

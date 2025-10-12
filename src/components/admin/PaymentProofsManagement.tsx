@@ -34,6 +34,7 @@ type GiftCardPayment = {
   card_code: string;
   additional_notes: string;
   order_id: string;
+  currency?: string;
 };
 
 type CryptoPayment = {
@@ -42,15 +43,25 @@ type CryptoPayment = {
   wallet_address: string;
   transaction_hash: string;
   order_id: string;
+  currency?: string;
 };
 
 type BankTransferPayment = {
   amount_usd: number;
   additional_notes: string;
   order_id: string;
+  currency?: string;
 };
 
 const PaymentProofsManagement = () => {
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$', 'NGN': '₦', 'EUR': '€', 'GBP': '£',
+      'JPY': '¥', 'CNY': '¥', 'INR': '₹', 'AUD': 'A$', 'CAD': 'C$',
+    };
+    return symbols[currency] || currency;
+  };
+  
   const { data: paymentProofs = [], isLoading } = useQuery({
     queryKey: ['payment-proofs-details'],
     queryFn: async () => {
@@ -224,7 +235,7 @@ const PaymentProofsManagement = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div><strong>Crypto Type:</strong> {cryptoPayment.crypto_type}</div>
-                <div><strong>Amount (USD):</strong> ${Number(cryptoPayment.amount_usd).toFixed(2)}</div>
+                <div><strong>Amount:</strong> {getCurrencySymbol(cryptoPayment.currency || 'USD')}{Number(cryptoPayment.amount_usd).toFixed(2)}</div>
                 <div>
                   <strong>Wallet Address:</strong>
                   <p className="font-mono text-sm break-all">{cryptoPayment.wallet_address}</p>
