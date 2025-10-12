@@ -15,11 +15,12 @@ import { handleGiftCardPayment } from '@/components/GiftCardPaymentHandler';
 interface PaymentMethodProps {
   method: string;
   total: number;
+  currency?: string;
   onPaymentSuccess: (reference?: string, giftCardData?: any) => void;
   onFileUpload: (file: File, type: string, orderId?: string) => Promise<string>;
 }
 
-const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: PaymentMethodProps) => {
+const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFileUpload }: PaymentMethodProps) => {
   const [loading, setLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [giftCardData, setGiftCardData] = useState({
@@ -70,19 +71,32 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
   const [cryptoNotes, setCryptoNotes] = useState('');
   const [bankNotes, setBankNotes] = useState('');
 
-  // USD to NGN conversion rate (you can make this dynamic by calling a currency API)
-  const USD_TO_NGN_RATE = 1500; // 1 USD = 1500 NGN (update this rate as needed)
+  const getCurrencySymbol = (curr: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$', 'NGN': '₦', 'EUR': '€', 'GBP': '£',
+      'JPY': '¥', 'CNY': '¥', 'INR': '₹', 'AUD': 'A$', 'CAD': 'C$',
+    };
+    return symbols[curr] || curr;
+  };
 
   const handlePaystackPayment = () => {
-    // Convert USD to NGN
-    const amountInNGN = total * USD_TO_NGN_RATE;
-    const amountInKobo = Math.round(amountInNGN * 100); // Convert to kobo
+    // Paystack only supports NGN, so we convert if needed
+    let amountInKobo: number;
+    let paystackCurrency = 'NGN';
+    
+    if (currency === 'NGN') {
+      amountInKobo = Math.round(total * 100); // Convert to kobo
+    } else {
+      // For non-NGN currencies, convert (rough estimate - ideally use real-time rates)
+      const conversionRate = currency === 'USD' ? 1500 : 1500;
+      amountInKobo = Math.round(total * conversionRate * 100);
+    }
 
     const handler = (window as any).PaystackPop.setup({
       key: 'pk_live_0e0f5f39decd0ac1abe180cddf4b41fe5b45d10b',
       email: 'customer@cartswift.com',
-      amount: amountInKobo, // Amount in kobo (NGN)
-      currency: 'NGN',
+      amount: amountInKobo,
+      currency: paystackCurrency,
       callback: function(response: any) {
         onPaymentSuccess(response.reference);
         toast({
@@ -169,7 +183,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
   };
 
   if (method === 'credit_card') {
-    const amountInNGN = total * USD_TO_NGN_RATE;
+    const currencySymbol = getCurrencySymbol(currency);
     
     return (
       <Card>
@@ -186,10 +200,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             </p>
             <div className="space-y-1">
               <p className="text-2xl font-bold text-blue-900">
-                ₦{amountInNGN.toLocaleString()}
-              </p>
-              <p className="text-sm text-blue-700">
-                (~${total.toFixed(2)} USD)
+                {currencySymbol}{total.toLocaleString()}
               </p>
             </div>
           </div>
@@ -198,7 +209,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
             className="w-full"
             size="lg"
           >
-            Pay ₦{amountInNGN.toLocaleString()}
+            Pay {currencySymbol}{total.toLocaleString()}
           </Button>
         </CardContent>
       </Card>
@@ -250,7 +261,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
               </div>
             </div>
             <Badge variant="outline" className="mt-3">
-              Amount: ${total.toFixed(2)}
+              Amount: {getCurrencySymbol(currency)}{total.toFixed(2)}
             </Badge>
           </div>
 
@@ -303,7 +314,7 @@ const PaymentMethod = ({ method, total, onPaymentSuccess, onFileUpload }: Paymen
         <CardContent className="space-y-4">
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <p className="text-sm text-green-800">
-              Cart Total: <span className="font-bold">${total.toFixed(2)}</span> — 
+              Cart Total: <span className="font-bold">{getCurrencySymbol(currency)}{total.toFixed(2)}</span> — 
               Please upload a gift card of equal or higher value.
             </p>
           </div>

@@ -195,6 +195,7 @@ const DownloadPayment = () => {
           <PaymentMethod
             method={selectedPaymentMethod}
             total={Number(item?.price || 0)}
+            currency={item?.currency || 'USD'}
             onPaymentSuccess={handlePaymentComplete}
             onFileUpload={async (file, type) => {
               // Upload file to storage

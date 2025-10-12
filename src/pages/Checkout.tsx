@@ -541,6 +541,7 @@ const Checkout = () => {
               <PaymentMethod
                 method={formData.paymentMethod}
                 total={total}
+                currency={items[0]?.currency || 'USD'}
                 onPaymentSuccess={handlePaymentSuccess}
                 onFileUpload={handleFileUpload}
               />
