@@ -123,8 +123,8 @@ const ShareView = () => {
     
     trackAnalytics.mutate({ eventType: 'conversion', itemId: shareData.item.id });
     
-    // For downloadable items (APK), redirect to download payment page
-    if (shareData.item.item_type === 'download') {
+    // For downloadable items (APK/Files), redirect to download payment page
+    if (shareData.item.item_type === 'apk' || shareData.item.item_type === 'file') {
       window.location.href = `/download-payment/${shareData.item.id}`;
       return;
     }
