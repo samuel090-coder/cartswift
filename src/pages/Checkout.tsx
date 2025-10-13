@@ -23,6 +23,9 @@ const Checkout = () => {
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [targetCurrency, setTargetCurrency] = useState('');
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -43,6 +46,29 @@ const Checkout = () => {
       localStorage.setItem('cartswift-session', sessionId);
     }
     return sessionId;
+  };
+
+  const fetchExchangeRate = async (from: string, to: string) => {
+    if (!to || from === to) {
+      setExchangeRate(null);
+      return;
+    }
+    
+    setIsLoadingRate(true);
+    try {
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+      const data = await response.json();
+      setExchangeRate(data.rates[to]);
+    } catch (error) {
+      console.error('Error fetching exchange rate:', error);
+      toast({
+        title: "Exchange Rate Error",
+        description: "Could not fetch current exchange rates. Showing original price.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingRate(false);
+    }
   };
 
   const orderMutation = useMutation({
@@ -510,6 +536,56 @@ const Checkout = () => {
                           <span>Total</span>
                           <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
                         </div>
+                      </div>
+                      
+                      {/* Currency Converter */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                        <label className="block text-sm font-medium mb-2">
+                          Convert to Your Currency
+                        </label>
+                        <Select 
+                          value={targetCurrency} 
+                          onValueChange={(value) => {
+                            setTargetCurrency(value);
+                            if (value && items.length > 0) {
+                              fetchExchangeRate(items[0].currency || 'USD', value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your local currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No conversion</SelectItem>
+                            <SelectItem value="USD">USD - US Dollar</SelectItem>
+                            <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                            <SelectItem value="EUR">EUR - Euro</SelectItem>
+                            <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                            <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                            <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
+                            <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                            <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                            <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        {isLoadingRate && (
+                          <p className="text-sm text-blue-600 mt-2">Fetching exchange rate...</p>
+                        )}
+                        
+                        {exchangeRate && targetCurrency && items.length > 0 && (
+                          <div className="mt-3 p-3 bg-white rounded border border-blue-200">
+                            <p className="text-sm text-gray-600 mb-1">
+                              Original Total: {getCurrencySymbol(items[0].currency)}{total.toFixed(2)} {items[0].currency}
+                            </p>
+                            <p className="text-lg font-bold text-blue-600">
+                              You'll pay approximately: {getCurrencySymbol(targetCurrency)}{(total * exchangeRate).toFixed(2)} {targetCurrency}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Rate: 1 {items[0].currency} = {exchangeRate.toFixed(4)} {targetCurrency}
+                            </p>
+                          </div>
+                        )}
                       </div>
                       
                       <Button type="submit" className="w-full" size="lg">
