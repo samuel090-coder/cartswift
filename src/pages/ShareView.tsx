@@ -27,6 +27,19 @@ const ShareView = () => {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 200]);
 
+  const getCurrencySymbol = (currency: string = 'USD') => {
+    const symbols: { [key: string]: string } = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      NGN: '₦',
+      JPY: '¥',
+      CNY: '¥',
+      INR: '₹',
+    };
+    return symbols[currency] || currency;
+  };
+
   // Generate or get session ID
   useEffect(() => {
     let currentSessionId = localStorage.getItem('cartswift_session_id');
@@ -110,6 +123,13 @@ const ShareView = () => {
     
     trackAnalytics.mutate({ eventType: 'conversion', itemId: shareData.item.id });
     
+    // For downloadable items (APK), redirect to download payment page
+    if (shareData.item.item_type === 'download') {
+      window.location.href = `/download-payment/${shareData.item.id}`;
+      return;
+    }
+    
+    // For physical products, add to cart and go to checkout
     const cartItem = {
       id: shareData.item.id,
       title: shareData.item.title,
@@ -164,7 +184,7 @@ const ShareView = () => {
     "offers": {
       "@type": "Offer",
       "price": discountPrice.toFixed(2),
-      "priceCurrency": "USD",
+      "priceCurrency": item.currency || "USD",
       "availability": "https://schema.org/InStock"
     },
     "aggregateRating": item.star_rating ? {
@@ -330,11 +350,11 @@ const ShareView = () => {
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
                 <div className="text-4xl font-bold text-primary">
-                  ${discountPrice.toFixed(2)}
+                  {getCurrencySymbol(item.currency)}{discountPrice.toFixed(2)}
                 </div>
                 {item.discount_percentage && (
                   <div className="text-2xl text-muted-foreground line-through">
-                    ${originalPrice.toFixed(2)}
+                    {getCurrencySymbol(item.currency)}{originalPrice.toFixed(2)}
                   </div>
                 )}
               </motion.div>
