@@ -16,6 +16,7 @@ const DownloadPayment = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [email, setEmail] = useState('');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const getCurrencySymbol = (currency: string) => {
@@ -47,10 +48,62 @@ const DownloadPayment = () => {
     },
   });
 
+  const getSessionId = () => {
+    let sessionId = localStorage.getItem('cartswift-session');
+    if (!sessionId) {
+      sessionId = Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('cartswift-session', sessionId);
+    }
+    return sessionId;
+  };
+
   const handlePaymentComplete = async (paymentReference?: string, giftCardData?: any) => {
-    // Navigate to email submission page with payment reference
     setShowPaymentDialog(false);
-    navigate(`/download/${itemId}/email?payment=${paymentReference || 'pending'}`);
+    
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address to receive the download link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const sessionId = getSessionId();
+      
+      // Generate download token and create download record
+      const { data: tokenData, error: tokenError } = await supabase
+        .rpc('generate_download_token');
+      
+      if (tokenError) throw tokenError;
+      
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      const { error: downloadError } = await supabase
+        .from('downloads')
+        .insert({
+          item_id: itemId,
+          email: email,
+          download_token: tokenData,
+          session_id: sessionId,
+          payment_verified: false,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (downloadError) throw downloadError;
+
+      // Navigate directly to confirmation page
+      navigate(`/download/${itemId}/confirmation`);
+    } catch (error) {
+      console.error('Error creating download record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your request. Please contact support.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -91,7 +144,7 @@ const DownloadPayment = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Download className="h-6 w-6" />
-                Complete Your Purchase
+                Download Payment
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -129,6 +182,24 @@ const DownloadPayment = () => {
                     After payment confirmation, you'll receive a download link via email valid for 24 hours.
                   </p>
                 </div>
+              </div>
+
+              {/* Email Input */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Your download link will be sent to this email
+                </p>
               </div>
 
               {/* Payment Method Selection */}
@@ -180,9 +251,9 @@ const DownloadPayment = () => {
                 <Button
                   className="flex-1"
                   onClick={() => setShowPaymentDialog(true)}
-                  disabled={!selectedPaymentMethod}
+                  disabled={!selectedPaymentMethod || !email}
                 >
-                  Proceed to Payment
+                  Make Payment
                 </Button>
               </div>
             </CardContent>
