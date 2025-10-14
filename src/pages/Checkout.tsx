@@ -547,8 +547,10 @@ const Checkout = () => {
                           value={targetCurrency} 
                           onValueChange={(value) => {
                             setTargetCurrency(value);
-                            if (value && items.length > 0) {
+                            if (value && value !== 'none' && items.length > 0) {
                               fetchExchangeRate(items[0].currency || 'USD', value);
+                            } else {
+                              setExchangeRate(null);
                             }
                           }}
                         >
@@ -556,7 +558,7 @@ const Checkout = () => {
                             <SelectValue placeholder="Select your local currency" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">No conversion</SelectItem>
+                            <SelectItem value="none">No conversion</SelectItem>
                             <SelectItem value="USD">USD - US Dollar</SelectItem>
                             <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
                             <SelectItem value="EUR">EUR - Euro</SelectItem>
