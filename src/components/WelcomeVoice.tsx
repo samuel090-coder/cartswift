@@ -42,7 +42,9 @@ const WelcomeVoice = () => {
 
     } catch (error) {
       console.error('Error playing welcome voice:', error);
-      toast.error('Failed to play welcome message');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to play welcome message';
+      toast.error(errorMessage, { duration: 6000 });
+      setShowPlayButton(false);
     }
   };
 
