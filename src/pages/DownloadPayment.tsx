@@ -38,7 +38,7 @@ const DownloadPayment = () => {
   };
 
   const fetchExchangeRate = async (from: string, to: string) => {
-    if (!to || from === to) {
+    if (!to || to === 'none' || from === to) {
       setExchangeRate(null);
       return;
     }
@@ -237,8 +237,10 @@ const DownloadPayment = () => {
                   value={targetCurrency} 
                   onValueChange={(value) => {
                     setTargetCurrency(value);
-                    if (value && item?.currency) {
+                    if (value && value !== 'none' && item?.currency) {
                       fetchExchangeRate(item.currency, value);
+                    } else {
+                      setExchangeRate(null);
                     }
                   }}
                 >
@@ -246,7 +248,7 @@ const DownloadPayment = () => {
                     <SelectValue placeholder="Select your local currency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No conversion</SelectItem>
+                    <SelectItem value="none">No conversion</SelectItem>
                     <SelectItem value="USD">USD - US Dollar</SelectItem>
                     <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
                     <SelectItem value="EUR">EUR - Euro</SelectItem>

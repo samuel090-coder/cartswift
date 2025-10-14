@@ -49,7 +49,7 @@ const Checkout = () => {
   };
 
   const fetchExchangeRate = async (from: string, to: string) => {
-    if (!to || from === to) {
+    if (!to || to === 'none' || from === to) {
       setExchangeRate(null);
       return;
     }
