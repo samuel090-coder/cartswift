@@ -1,1 +1,7 @@
 project_id = "qcfsnqumydfminvmqyfp"
+
+[functions.send-order-notification]
+verify_jwt = false
+
+[functions.generate-welcome-voice]
+verify_jwt = false

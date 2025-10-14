@@ -11,6 +11,7 @@ import CategoryTabs from '@/components/CategoryTabs';
 import ItemGrid from '@/components/ItemGrid';
 import PromoBanner from '@/components/PromoBanner';
 import WelcomePopup from '@/components/WelcomePopup';
+import WelcomeVoice from '@/components/WelcomeVoice';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -103,6 +104,7 @@ const Index = () => {
       <Header />
       <PromoBanner />
       <WelcomePopup onCategorySelect={handleWelcomeCategorySelect} />
+      <WelcomeVoice />
       
       <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="text-center mb-8">
