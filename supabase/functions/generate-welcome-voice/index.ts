@@ -11,49 +11,35 @@ serve(async (req) => {
   }
 
   try {
-    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error('ELEVENLABS_API_KEY is not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     const text = "Welcome to CartSwift, your number one shopping and ordering platform. Enjoy affordable prices and get your orders delivered right to your doorstep. Thank you for choosing us!";
     
-    // Using Aria voice (9BWtsMINqrJLrRacOk9x) with eleven_turbo_v2_5 model
+    // Using OpenAI's text-to-speech API with alloy voice
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/9BWtsMINqrJLrRacOk9x`,
+      'https://api.openai.com/v1/audio/speech',
       {
         method: 'POST',
         headers: {
-          'Accept': 'audio/mpeg',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_API_KEY,
         },
         body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-          },
+          model: 'tts-1',
+          input: text,
+          voice: 'alloy',
+          response_format: 'mp3',
         }),
       }
     );
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('ElevenLabs API error:', error);
-      
-      let errorMessage = `ElevenLabs API error: ${response.status}`;
-      try {
-        const errorJson = JSON.parse(error);
-        if (errorJson.detail?.message) {
-          errorMessage = errorJson.detail.message;
-        }
-      } catch (e) {
-        // Use default error message
-      }
-      
-      throw new Error(errorMessage);
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const audioBuffer = await response.arrayBuffer();
