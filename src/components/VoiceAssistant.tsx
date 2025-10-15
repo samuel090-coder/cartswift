@@ -5,7 +5,7 @@ import { Mic, MicOff, X } from 'lucide-react';
 import { VoiceAssistant as VoiceAssistantClass, VoiceMessage } from '@/utils/VoiceAssistant';
 import { toast } from 'sonner';
 
-const VoiceAssistant = () => {
+const VoiceAssistantComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -223,4 +223,4 @@ const VoiceAssistant = () => {
   );
 };
 
-export default VoiceAssistant;
+export default VoiceAssistantComponent;
