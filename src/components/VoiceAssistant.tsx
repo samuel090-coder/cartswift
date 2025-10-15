@@ -104,21 +104,26 @@ const VoiceAssistantComponent = () => {
   };
 
   useEffect(() => {
+    console.log('VoiceAssistant component mounted');
     return () => {
+      console.log('VoiceAssistant component unmounted');
       if (assistantRef.current) {
         assistantRef.current.disconnect();
       }
     };
   }, []);
 
+  console.log('VoiceAssistant render - isOpen:', isOpen, 'isConnected:', isConnected);
+
   if (!isOpen) {
     return (
       <Button
         onClick={() => {
+          console.log('Microphone button clicked');
           setIsOpen(true);
           if (!isConnected) connect();
         }}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg"
+        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50"
         size="icon"
       >
         <Mic className="h-6 w-6" />
