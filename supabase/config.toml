@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-welcome-voice]
 verify_jwt = false
+
+[functions.voice-assistant]
+verify_jwt = false
