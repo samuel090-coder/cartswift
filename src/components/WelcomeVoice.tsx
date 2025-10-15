@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Volume2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 const WelcomeVoice = () => {
   const [showPlayButton, setShowPlayButton] = useState(false);
@@ -15,19 +13,9 @@ const WelcomeVoice = () => {
     }
   }, []);
 
-  const playWelcomeVoice = async () => {
+  const playWelcomeVoice = () => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-welcome-voice');
-      
-      if (error) throw error;
-      if (!data?.audioContent) throw new Error('No audio content received');
-
-      const audioBlob = new Blob(
-        [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-        { type: 'audio/mpeg' }
-      );
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      const audio = new Audio('/welcome-message.mp3');
 
       audio.play().catch(() => {
         // If autoplay fails, show button
@@ -36,14 +24,11 @@ const WelcomeVoice = () => {
 
       audio.onended = () => {
         localStorage.setItem('cartswift-welcome-voice-played', 'true');
-        URL.revokeObjectURL(audioUrl);
         setShowPlayButton(false);
       };
 
     } catch (error) {
       console.error('Error playing welcome voice:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to play welcome message';
-      toast.error(errorMessage, { duration: 6000 });
       setShowPlayButton(false);
     }
   };
