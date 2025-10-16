@@ -519,6 +519,42 @@ export type Database = {
         }
         Relationships: []
       }
+      media_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_purpose: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_purpose: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_purpose?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string

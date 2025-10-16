@@ -8,11 +8,12 @@ import ItemManagement from '@/components/admin/ItemManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
 import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement';
 import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
+import MediaManagement from '@/components/admin/MediaManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
 import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen } from 'lucide-react';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 
@@ -135,7 +136,7 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-8 gap-1">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-9 gap-1">
               <TabsTrigger value="items" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Package size={16} />
                 <span className="hidden sm:inline">Items</span>
@@ -167,6 +168,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <BarChart3 size={16} />
                 <span className="hidden sm:inline">Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                <FolderOpen size={16} />
+                <span className="hidden sm:inline">Media</span>
               </TabsTrigger>
             </TabsList>
             
@@ -200,6 +205,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="analytics">
               <AnalyticsManagement />
+            </TabsContent>
+            
+            <TabsContent value="media">
+              <MediaManagement />
             </TabsContent>
           </Tabs>
         </div>
