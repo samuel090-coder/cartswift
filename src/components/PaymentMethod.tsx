@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,9 +20,23 @@ interface PaymentMethodProps {
   onFileUpload: (file: File, type: string, orderId?: string) => Promise<string>;
 }
 
+interface PaymentSettings {
+  payment_method: string;
+  display_name: string;
+  is_enabled: boolean;
+  instructions: string | null;
+  wallet_address: string | null;
+  account_number: string | null;
+  account_name: string | null;
+  bank_name: string | null;
+  routing_number: string | null;
+  additional_info: any;
+}
+
 const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFileUpload }: PaymentMethodProps) => {
   const [loading, setLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings[]>([]);
   const [giftCardData, setGiftCardData] = useState({
     brand: '',
     customBrand: '',
@@ -70,6 +84,26 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
   ];
   const [cryptoNotes, setCryptoNotes] = useState('');
   const [bankNotes, setBankNotes] = useState('');
+
+  // Fetch payment settings from database
+  useEffect(() => {
+    const fetchPaymentSettings = async () => {
+      const { data, error } = await supabase
+        .from('payment_method_settings')
+        .select('*')
+        .eq('is_enabled', true);
+      
+      if (data && !error) {
+        setPaymentSettings(data);
+      }
+    };
+    fetchPaymentSettings();
+  }, []);
+
+  // Helper to get settings for a specific payment method
+  const getSettings = (methodKey: string): PaymentSettings | undefined => {
+    return paymentSettings.find(s => s.payment_method === methodKey);
+  };
 
   const getCurrencySymbol = (curr: string) => {
     const symbols: Record<string, string> = {
@@ -217,6 +251,8 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
   }
 
   if (method === 'bank_transfer') {
+    const bankSettings = getSettings('bank_transfer');
+    
     return (
       <Card>
         <CardHeader>
@@ -228,37 +264,48 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
         <CardContent className="space-y-4">
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
             <p className="text-sm text-yellow-800 mb-3">
-              Make payment to the following bank account and upload proof of payment. 
-              Your order will be confirmed within 30 minutes to 2 hours.
+              {bankSettings?.instructions || 'Make payment to the following bank account and upload proof of payment. Your order will be confirmed within 30 minutes to 2 hours.'}
             </p>
           </div>
           
           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
             <div className="space-y-3">
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-sm text-gray-600">Account Name:</span>
-                <span className="font-semibold">Samuel Sunday</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-sm text-gray-600">Bank Name:</span>
-                <span className="font-semibold">Wells Fargo</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-sm text-gray-600">Account Number:</span>
-                <span className="font-mono font-semibold">40630281780274976</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-sm text-gray-600">Routing Number:</span>
-                <span className="font-mono font-semibold">121000248</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-sm text-gray-600">SWIFT Code:</span>
-                <span className="font-mono font-semibold">WFBIUS6SXXX</span>
-              </div>
-              <div className="pt-2">
-                <span className="font-medium text-sm text-gray-600">Bank Address:</span>
-                <p className="text-sm mt-1">580 California Street, San Francisco, CA 94104, US</p>
-              </div>
+              {bankSettings?.account_name && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-medium text-sm text-gray-600">Account Name:</span>
+                  <span className="font-semibold">{bankSettings.account_name}</span>
+                </div>
+              )}
+              {bankSettings?.bank_name && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-medium text-sm text-gray-600">Bank Name:</span>
+                  <span className="font-semibold">{bankSettings.bank_name}</span>
+                </div>
+              )}
+              {bankSettings?.account_number && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-medium text-sm text-gray-600">Account Number:</span>
+                  <span className="font-mono font-semibold">{bankSettings.account_number}</span>
+                </div>
+              )}
+              {bankSettings?.routing_number && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-medium text-sm text-gray-600">Routing Number:</span>
+                  <span className="font-mono font-semibold">{bankSettings.routing_number}</span>
+                </div>
+              )}
+              {bankSettings?.additional_info?.swift_code && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-medium text-sm text-gray-600">SWIFT Code:</span>
+                  <span className="font-mono font-semibold">{bankSettings.additional_info.swift_code}</span>
+                </div>
+              )}
+              {bankSettings?.additional_info?.bank_address && (
+                <div className="pt-2">
+                  <span className="font-medium text-sm text-gray-600">Bank Address:</span>
+                  <p className="text-sm mt-1">{bankSettings.additional_info.bank_address}</p>
+                </div>
+              )}
             </div>
             <Badge variant="outline" className="mt-3">
               Amount: {getCurrencySymbol(currency)}{total.toFixed(2)}
@@ -459,6 +506,9 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
   }
 
   if (method === 'crypto_eth') {
+    const cryptoSettings = getSettings('crypto_eth');
+    const ethAddress = cryptoSettings?.wallet_address || '0xE0520ED79515cA41a28C1Dc8c09C218C940F7a6e';
+    
     return (
       <Card>
         <CardHeader>
@@ -470,8 +520,7 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
         <CardContent className="space-y-4">
           <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
             <p className="text-sm text-purple-800 mb-3">
-              Send your exact cart total to the address below and upload proof. 
-              Your order will be reviewed within 30 minutes – 2 hours.
+              {cryptoSettings?.instructions || 'Send your exact cart total to the address below and upload proof. Your order will be reviewed within 30 minutes – 2 hours.'}
             </p>
           </div>
 
@@ -481,19 +530,19 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copyToClipboard('0xE0520ED79515cA41a28C1Dc8c09C218C940F7a6e')}
+                onClick={() => copyToClipboard(ethAddress)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
             <p className="font-mono text-sm break-all bg-white p-2 rounded border">
-              0xE0520ED79515cA41a28C1Dc8c09C218C940F7a6e
+              {ethAddress}
             </p>
             
             <div className="mt-4 flex items-center justify-center">
               <img 
                 src="/lovable-uploads/315e5ecd-90aa-409f-a151-038a2736a829.png" 
-                alt="ETH QR Code for 0xE0520ED79515cA41a28C1Dc8c09C218C940F7a6e" 
+                alt={`ETH QR Code for ${ethAddress}`}
                 className="w-48 h-48 border rounded shadow-sm"
               />
             </div>
