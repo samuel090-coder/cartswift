@@ -660,6 +660,57 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_method_settings: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          additional_info: Json | null
+          bank_name: string | null
+          created_at: string
+          display_name: string
+          email_address: string | null
+          id: string
+          instructions: string | null
+          is_enabled: boolean
+          payment_method: string
+          routing_number: string | null
+          updated_at: string
+          wallet_address: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          additional_info?: Json | null
+          bank_name?: string | null
+          created_at?: string
+          display_name: string
+          email_address?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean
+          payment_method: string
+          routing_number?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          additional_info?: Json | null
+          bank_name?: string | null
+          created_at?: string
+          display_name?: string
+          email_address?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean
+          payment_method?: string
+          routing_number?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
       payment_proofs: {
         Row: {
           admin_notes: string | null
@@ -937,14 +988,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_download_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_admin_user: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      generate_download_token: { Args: never; Returns: string }
+      is_admin_user: { Args: { user_uuid: string }; Returns: boolean }
     }
     Enums: {
       item_category: "Fashion" | "Animals" | "Tools" | "Vehicles" | "Books"

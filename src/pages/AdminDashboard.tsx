@@ -12,8 +12,9 @@ import MediaManagement from '@/components/admin/MediaManagement';
 import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagement';
 import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
+import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings } from 'lucide-react';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 
@@ -136,7 +137,7 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-9 gap-1">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-10 gap-1">
               <TabsTrigger value="items" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Package size={16} />
                 <span className="hidden sm:inline">Items</span>
@@ -164,6 +165,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="gift-cards" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <FileText size={16} />
                 <span className="hidden sm:inline">Gift Cards</span>
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                <Settings size={16} />
+                <span className="hidden sm:inline">Payments</span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <BarChart3 size={16} />
@@ -203,8 +208,16 @@ const AdminDashboard = () => {
               <GiftCardPaymentManagement />
             </TabsContent>
             
+            <TabsContent value="payments">
+              <PaymentSettingsManagement />
+            </TabsContent>
+            
             <TabsContent value="analytics">
               <AnalyticsManagement />
+            </TabsContent>
+            
+            <TabsContent value="media">
+              <MediaManagement />
             </TabsContent>
             
             <TabsContent value="media">
