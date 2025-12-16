@@ -15,12 +15,13 @@ import PaymentMethod from '@/components/PaymentMethod';
 import PaymentConfirmation from '@/components/PaymentConfirmation';
 import AnimatedCartIcon from '@/components/AnimatedCartIcon';
 import PaymentProcessingPopup from '@/components/PaymentProcessingPopup';
+import OrderPreviewAnimation from '@/components/OrderPreviewAnimation';
 import { motion } from 'framer-motion';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, total, clearCart, getCurrencySymbol } = useCart();
-  const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
+  const [step, setStep] = useState<'details' | 'preview' | 'payment' | 'confirmation'>('details');
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [targetCurrency, setTargetCurrency] = useState('');
@@ -600,6 +601,27 @@ const Checkout = () => {
             </motion.div>
           )}
 
+          {step === 'preview' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <OrderPreviewAnimation
+                items={items.map(item => ({
+                  id: item.id,
+                  title: item.title,
+                  price: item.price,
+                  quantity: item.quantity,
+                  images: item.image ? [item.image] : undefined,
+                  currency: item.currency
+                }))}
+                onProceedToPayment={() => setStep('payment')}
+                getCurrencySymbol={getCurrencySymbol}
+              />
+            </motion.div>
+          )}
+
           {step === 'payment' && (
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -610,10 +632,10 @@ const Checkout = () => {
               <div className="mb-6">
                 <Button 
                   variant="outline" 
-                  onClick={() => setStep('details')}
+                  onClick={() => setStep('preview')}
                   className="mb-4"
                 >
-                  ← Back to Details
+                  ← Back to Preview
                 </Button>
                 <h2 className="text-xl font-semibold">Complete Your Payment</h2>
               </div>
@@ -643,7 +665,7 @@ const Checkout = () => {
         show={showPaymentPopup}
         onComplete={() => {
           setShowPaymentPopup(false);
-          setStep('payment');
+          setStep('preview');
         }}
       />
     </div>
