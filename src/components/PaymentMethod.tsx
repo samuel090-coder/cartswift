@@ -308,7 +308,7 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
               )}
             </div>
             <Badge variant="outline" className="mt-3">
-              Amount: {getCurrencySymbol(currency)}{total.toFixed(2)}
+              Amount: {getCurrencySymbol(currency)}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Badge>
           </div>
 
@@ -336,7 +336,17 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             </div>
 
             <Button 
-              onClick={() => onPaymentSuccess()}
+              onClick={() => {
+                if (uploadedFiles.length === 0) {
+                  toast({
+                    title: "Missing payment proof",
+                    description: "Please upload proof of payment before submitting",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                onPaymentSuccess();
+              }}
               disabled={loading}
               className="w-full"
               size="lg"
@@ -361,7 +371,7 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
         <CardContent className="space-y-4">
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <p className="text-sm text-green-800">
-              Cart Total: <span className="font-bold">{getCurrencySymbol(currency)}{total.toFixed(2)}</span> — 
+              Cart Total: <span className="font-bold">{getCurrencySymbol(currency)}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> — 
               Please upload a gift card of equal or higher value.
             </p>
           </div>
@@ -548,7 +558,7 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             </div>
 
             <Badge variant="outline" className="mt-3">
-              Amount: {getCurrencySymbol(currency)}{total.toFixed(2)} equivalent in ETH
+              Amount: {getCurrencySymbol(currency)}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} equivalent in ETH
             </Badge>
           </div>
 

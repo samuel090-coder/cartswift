@@ -39,7 +39,7 @@ const OrderPreviewAnimation: React.FC<OrderPreviewAnimationProps> = ({
   const productImage = firstItem?.images?.[0] || '/placeholder.svg';
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center relative overflow-visible">
       {/* Sky gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-300 via-sky-200 to-amber-100" />
       
@@ -351,13 +351,13 @@ const OrderPreviewAnimation: React.FC<OrderPreviewAnimationProps> = ({
 
               {/* 3D Cartoon Truck */}
               <motion.div
-                initial={{ x: 600, rotateY: -20 }}
+                initial={{ x: 500, rotateY: -20 }}
                 animate={{ 
-                  x: 100, 
+                  x: -80, 
                   rotateY: 0 
                 }}
-                transition={{ duration: 2, type: 'spring', stiffness: 30, damping: 15 }}
-                className="absolute bottom-16 right-0 z-30"
+                transition={{ duration: 2.5, type: 'spring', stiffness: 25, damping: 12 }}
+                className="absolute bottom-16 left-1/2 z-30"
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <div 
@@ -714,7 +714,7 @@ const OrderPreviewAnimation: React.FC<OrderPreviewAnimationProps> = ({
                 {item.title} × {item.quantity}
               </span>
               <span className="font-bold text-gray-800">
-                {getCurrencySymbol(item.currency || 'USD')}{(item.price * item.quantity).toFixed(2)}
+                {getCurrencySymbol(item.currency || 'USD')}{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           ))}
@@ -723,7 +723,7 @@ const OrderPreviewAnimation: React.FC<OrderPreviewAnimationProps> = ({
           <span className="font-bold text-gray-800 text-lg">Total</span>
           <span className="text-2xl font-black text-green-600">
             {getCurrencySymbol(items[0]?.currency || 'USD')}
-            {items.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)}
+            {items.reduce((acc, item) => acc + item.price * item.quantity, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
       </motion.div>
