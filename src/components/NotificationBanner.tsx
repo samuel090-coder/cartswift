@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
 
 interface InAppNotification {
   id: string;
@@ -22,15 +22,13 @@ export const NotificationBanner = () => {
   const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
   const [currentNotification, setCurrentNotification] = useState<InAppNotification | null>(null);
 
-  const getSessionId = () => {
-    return localStorage.getItem('session_id') || '';
-  };
+  const sessionSupabase = createSessionSupabaseClient();
 
   // Fetch unread in-app notifications
   const { data: notifications = [] } = useQuery({
-    queryKey: ['in-app-notifications'],
+    queryKey: ['in-app-notifications', getSessionId()],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sessionSupabase
         .from('in_app_notifications')
         .select('*')
         .or(`session_id.eq.${getSessionId()},session_id.is.null`)
@@ -40,13 +38,13 @@ export const NotificationBanner = () => {
       if (error) throw error;
       return data as InAppNotification[];
     },
-    refetchInterval: 30000 // Check every 30 seconds
+    refetchInterval: 30000,
   });
 
   // Mark as read mutation
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await sessionSupabase
         .from('in_app_notifications')
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', id);
@@ -54,7 +52,7 @@ export const NotificationBanner = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['in-app-notifications'] });
-    }
+    },
   });
 
   // Show subscribe prompt after 10 seconds if not subscribed
@@ -127,8 +125,8 @@ export const NotificationBanner = () => {
                     Get notified about flash sales, new products, and exclusive deals!
                   </p>
                   <div className="flex gap-2 mt-3">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="secondary"
                       onClick={handleSubscribe}
                       disabled={loading}
@@ -136,9 +134,9 @@ export const NotificationBanner = () => {
                     >
                       {loading ? 'Enabling...' : 'Enable Notifications'}
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={handleDismissPrompt}
                       className="text-primary-foreground hover:bg-white/20"
                     >
@@ -161,7 +159,7 @@ export const NotificationBanner = () => {
             exit={{ y: -100, opacity: 0 }}
             className="fixed top-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50"
           >
-            <div 
+            <div
               className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
               onClick={handleNotificationClick}
             >
@@ -169,12 +167,8 @@ export const NotificationBanner = () => {
                 <div className="flex items-start gap-3">
                   <span className="text-3xl">{currentNotification.icon_emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-foreground truncate">
-                      {currentNotification.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {currentNotification.body}
-                    </p>
+                    <h4 className="font-bold text-foreground truncate">{currentNotification.title}</h4>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{currentNotification.body}</p>
                     {currentNotification.link_url && (
                       <div className="flex items-center gap-1 text-primary text-sm mt-2">
                         <span>View</span>
@@ -182,9 +176,9 @@ export const NotificationBanner = () => {
                       </div>
                     )}
                   </div>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     className="h-8 w-8 shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -195,7 +189,6 @@ export const NotificationBanner = () => {
                   </Button>
                 </div>
               </div>
-              {/* Progress bar for auto-dismiss */}
               <motion.div
                 initial={{ scaleX: 1 }}
                 animate={{ scaleX: 0 }}
@@ -210,3 +203,4 @@ export const NotificationBanner = () => {
     </>
   );
 };
+
