@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
+import { supabase } from '@/integrations/supabase/client';
+import { getSessionId } from '@/lib/sessionSupabase';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -41,8 +42,8 @@ export const usePushNotifications = () => {
   }, []);
 
   const fetchVapidPublicKey = useCallback(async () => {
-    const sessionSupabase = createSessionSupabaseClient();
-    const { data, error } = await sessionSupabase.functions.invoke('get-vapid-public-key');
+    // Use main supabase client for edge function invocations
+    const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
     if (error) throw error;
     if (!data?.publicKey) throw new Error('Missing VAPID public key');
     return data.publicKey as string;
@@ -81,6 +82,7 @@ export const usePushNotifications = () => {
       }
 
       const vapidPublicKey = await fetchVapidPublicKey();
+      console.log('Got VAPID public key, subscribing to push...');
 
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
@@ -89,10 +91,10 @@ export const usePushNotifications = () => {
       });
 
       const subscriptionJson = subscription.toJSON();
+      console.log('Push subscription created, saving to database...');
 
-      // Save to database using a session-scoped client that always sends x-session-id
-      const sessionSupabase = createSessionSupabaseClient();
-      const { error } = await sessionSupabase
+      // Save to database - use main client with custom header for this specific request
+      const { error } = await supabase
         .from('push_subscriptions')
         .upsert(
           {
@@ -105,7 +107,10 @@ export const usePushNotifications = () => {
           { onConflict: 'endpoint' },
         );
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving subscription:', error);
+        throw error;
+      }
 
       setIsSubscribed(true);
       toast({ title: '🔔 Notifications enabled!', description: "You'll receive updates about deals and orders" });
@@ -121,6 +126,7 @@ export const usePushNotifications = () => {
 
   const unsubscribe = useCallback(async () => {
     setLoading(true);
+    const sessionId = getSessionId();
 
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -129,9 +135,11 @@ export const usePushNotifications = () => {
       if (subscription) {
         await subscription.unsubscribe();
 
-        // Remove from database (requires x-session-id header for RLS)
-        const sessionSupabase = createSessionSupabaseClient();
-        await sessionSupabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+        // Remove from database
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('endpoint', subscription.endpoint);
       }
 
       setIsSubscribed(false);
@@ -155,4 +163,3 @@ export const usePushNotifications = () => {
     unsubscribe,
   };
 };
-
