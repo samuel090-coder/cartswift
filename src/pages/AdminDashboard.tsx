@@ -14,7 +14,8 @@ import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell } from 'lucide-react';
+import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 
@@ -137,7 +138,7 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-10 gap-1">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-11 gap-1">
               <TabsTrigger value="items" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Package size={16} />
                 <span className="hidden sm:inline">Items</span>
@@ -145,6 +146,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="orders" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <ShoppingCart size={16} />
                 <span className="hidden sm:inline">Orders</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                <Bell size={16} />
+                <span className="hidden sm:inline">Notify</span>
               </TabsTrigger>
               <TabsTrigger value="reviews" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
                 <Star size={16} />
@@ -186,6 +191,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="orders">
               <OrderManagement />
+            </TabsContent>
+            
+            <TabsContent value="notifications">
+              <NotificationManagement />
             </TabsContent>
             
             <TabsContent value="reviews">

@@ -353,6 +353,53 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          icon_emoji: string | null
+          id: string
+          is_read: boolean
+          link_url: string | null
+          notification_id: string | null
+          read_at: string | null
+          session_id: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          notification_id?: string | null
+          read_at?: string | null
+          session_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          notification_id?: string | null
+          read_at?: string | null
+          session_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "in_app_notifications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_popularity: {
         Row: {
           id: string
@@ -551,6 +598,87 @@ export type Database = {
           file_url?: string
           id?: string
           mime_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          icon_emoji: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          title: string
+          total_clicked: number | null
+          total_sent: number | null
+          trigger_data: Json | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          title: string
+          total_clicked?: number | null
+          total_sent?: number | null
+          trigger_data?: Json | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string
+          total_clicked?: number | null
+          total_sent?: number | null
+          trigger_data?: Json | null
+          trigger_type?: string
           updated_at?: string
         }
         Relationships: []
@@ -757,6 +885,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       referrals: {
         Row: {
