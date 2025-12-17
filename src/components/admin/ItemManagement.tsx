@@ -120,10 +120,22 @@ const ItemManagement = () => {
           .eq('id', editingItem.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: newItem, error } = await supabase
           .from('items')
-          .insert(itemData);
+          .insert(itemData)
+          .select()
+          .single();
         if (error) throw error;
+
+        // Trigger new product notification
+        if (newItem) {
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
+              autoTrigger: 'new_product',
+              triggerData: { product_name: newItem.title }
+            }
+          });
+        }
       }
     },
     onSuccess: () => {
