@@ -107,6 +107,17 @@ const OrderManagement = () => {
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', orderId);
       if (error) throw error;
+
+      // Trigger order update notification
+      await supabase.functions.invoke('send-push-notification', {
+        body: {
+          autoTrigger: 'order_update',
+          triggerData: { 
+            order_id: orderId.slice(0, 8).toUpperCase(),
+            status: status.charAt(0).toUpperCase() + status.slice(1)
+          }
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });

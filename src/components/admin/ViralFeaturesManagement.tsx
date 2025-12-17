@@ -115,6 +115,21 @@ const ViralFeaturesManagement = () => {
           max_quantity: flashSaleForm.max_quantity ? Number(flashSaleForm.max_quantity) : null
         });
       if (error) throw error;
+
+      // Get item name for notification
+      const selectedItem = items?.find(i => i.id === flashSaleForm.item_id);
+      const discount = Math.round(((Number(flashSaleForm.original_price) - Number(flashSaleForm.sale_price)) / Number(flashSaleForm.original_price)) * 100);
+
+      // Trigger flash sale notification
+      await supabase.functions.invoke('send-push-notification', {
+        body: {
+          autoTrigger: 'flash_sale',
+          triggerData: { 
+            product_name: selectedItem?.title || 'Product',
+            discount: discount
+          }
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] });

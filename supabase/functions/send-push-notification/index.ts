@@ -1,14 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as webpush from "jsr:@negrel/webpush";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Web Push library for Deno
-const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || 'Dl5gNALBAgMW-KIHxNbA3v2bDqhKQAY7h7H1hF6b2Qk';
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -20,6 +17,23 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get VAPID keys from environment
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      throw new Error('VAPID keys not configured');
+    }
+
+    // Initialize web push application server
+    const appServer = await webpush.ApplicationServer.new({
+      contactInformation: "mailto:admin@cartswift.com",
+      vapidKeys: {
+        publicKey: VAPID_PUBLIC_KEY,
+        privateKey: VAPID_PRIVATE_KEY,
+      },
+    });
 
     const { notificationId, autoTrigger, triggerData } = await req.json();
     
@@ -112,12 +126,25 @@ serve(async (req) => {
     let sentCount = 0;
     const failedEndpoints: string[] = [];
 
-    // Send to each subscriber
+    // Send to each subscriber using real web push
     for (const sub of subscriptions) {
       try {
-        // For now, we'll create in-app notifications since browser push requires proper VAPID setup
-        // The actual web push would require crypto libraries not available in Deno edge functions
-        
+        // Create subscription object for web push
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          }
+        };
+
+        // Subscribe and send push message
+        const subscriber = appServer.subscribe(pushSubscription);
+        await subscriber.pushTextMessage(payload, {});
+
+        console.log(`Push sent to ${sub.session_id}`);
+
+        // Also create in-app notification as backup
         await supabase.from('in_app_notifications').insert({
           session_id: sub.session_id,
           notification_id: notification.id,
@@ -128,7 +155,6 @@ serve(async (req) => {
         });
 
         sentCount++;
-        console.log(`Notification queued for session ${sub.session_id}`);
       } catch (error) {
         console.error(`Failed to send to ${sub.endpoint}:`, error);
         failedEndpoints.push(sub.endpoint);
@@ -145,7 +171,7 @@ serve(async (req) => {
       })
       .eq('id', notification.id);
 
-    // Clean up failed endpoints
+    // Clean up failed endpoints (expired subscriptions)
     if (failedEndpoints.length > 0) {
       console.log(`Removing ${failedEndpoints.length} failed endpoints`);
       await supabase
@@ -154,7 +180,7 @@ serve(async (req) => {
         .in('endpoint', failedEndpoints);
     }
 
-    console.log(`Successfully sent ${sentCount} notifications`);
+    console.log(`Successfully sent ${sentCount} push notifications`);
 
     return new Response(JSON.stringify({ 
       sent: sentCount, 
