@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Bell, Send, Users, Settings, Plus, Trash2, Eye, Clock, Zap } from 'lucide-react';
+import { Bell, Send, Users, Settings, Plus, Trash2, Eye, Clock, Zap, Upload } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -37,15 +37,10 @@ interface NotificationSetting {
   is_enabled: boolean;
 }
 
-interface PushSubscription {
-  id: string;
-  session_id: string;
-  created_at: string;
-}
-
 export const NotificationManagement = () => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     body: '',
@@ -53,61 +48,80 @@ export const NotificationManagement = () => {
     icon_emoji: '🔔',
     link_url: '',
     trigger_type: 'manual',
-    scheduled_at: ''
+    scheduled_at: '',
   });
 
   // Fetch notifications
   const { data: notifications = [], isLoading: loadingNotifications } = useQuery({
     queryKey: ['admin-notifications'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data as Notification[];
-    }
+    },
   });
 
   // Fetch notification settings
   const { data: settings = [], isLoading: loadingSettings } = useQuery({
     queryKey: ['notification-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('notification_settings')
-        .select('*');
+      const { data, error } = await supabase.from('notification_settings').select('*');
       if (error) throw error;
       return data as NotificationSetting[];
-    }
+    },
   });
 
   // Fetch subscribers count
   const { data: subscribersCount = 0 } = useQuery({
     queryKey: ['push-subscribers-count'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('push_subscriptions')
-        .select('*', { count: 'exact', head: true });
+      const { count, error } = await supabase.from('push_subscriptions').select('*', { count: 'exact', head: true });
       if (error) throw error;
       return count || 0;
-    }
+    },
   });
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please select an image file');
+      }
+
+      const fileExt = file.name.split('.').pop() || 'png';
+      const filePath = `notifications/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from('media-files').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrl } = supabase.storage.from('media-files').getPublicUrl(filePath);
+
+      setFormData((prev) => ({ ...prev, image_url: publicUrl.publicUrl }));
+      toast({ title: 'Image uploaded', description: 'Notification image added.' });
+    } catch (error: any) {
+      toast({ title: 'Image upload failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Create notification mutation
   const createNotification = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase
-        .from('notifications')
-        .insert({
-          title: data.title,
-          body: data.body,
-          image_url: data.image_url || null,
-          icon_emoji: data.icon_emoji,
-          link_url: data.link_url || null,
-          trigger_type: data.trigger_type,
-          status: data.scheduled_at ? 'scheduled' : 'draft',
-          scheduled_at: data.scheduled_at || null
-        });
+      const { error } = await supabase.from('notifications').insert({
+        title: data.title,
+        body: data.body,
+        image_url: data.image_url || null,
+        icon_emoji: data.icon_emoji,
+        link_url: data.link_url || null,
+        trigger_type: data.trigger_type,
+        status: data.scheduled_at ? 'scheduled' : 'draft',
+        scheduled_at: data.scheduled_at || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -118,14 +132,14 @@ export const NotificationManagement = () => {
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
+    },
   });
 
   // Send notification mutation
   const sendNotification = useMutation({
     mutationFn: async (notificationId: string) => {
       const { data, error } = await supabase.functions.invoke('send-push-notification', {
-        body: { notificationId }
+        body: { notificationId },
       });
       if (error) throw error;
       return data;
@@ -136,7 +150,7 @@ export const NotificationManagement = () => {
     },
     onError: (error: any) => {
       toast({ title: 'Error sending', description: error.message, variant: 'destructive' });
-    }
+    },
   });
 
   // Delete notification mutation
@@ -148,7 +162,7 @@ export const NotificationManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
       toast({ title: 'Notification deleted' });
-    }
+    },
   });
 
   // Toggle setting mutation
@@ -163,7 +177,7 @@ export const NotificationManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       toast({ title: 'Setting updated' });
-    }
+    },
   });
 
   // Update setting template mutation
@@ -178,8 +192,9 @@ export const NotificationManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       toast({ title: 'Template updated' });
-    }
+    },
   });
+
 
   const resetForm = () => {
     setFormData({
