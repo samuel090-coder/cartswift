@@ -339,12 +339,44 @@ export const NotificationManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label>Image URL (optional)</Label>
-                  <Input
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://..."
-                  />
+                  <Label>Notification Image (optional)</Label>
+                  <div className="space-y-3">
+                    {formData.image_url && (
+                      <div className="relative">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Preview" 
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <label className="flex-1">
+                        <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                          disabled={uploadingImage}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label>Link URL (optional)</Label>
