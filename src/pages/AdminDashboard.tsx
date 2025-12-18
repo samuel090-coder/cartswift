@@ -14,7 +14,7 @@ import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-11 gap-1 bg-slate-900/80 border border-amber-500/20 p-1 rounded-lg">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-10 gap-1 bg-slate-900/80 border border-amber-500/20 p-1 rounded-lg">
               <TabsTrigger 
                 value="items" 
                 className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
@@ -194,13 +194,6 @@ const AdminDashboard = () => {
               >
                 <Zap size={16} />
                 <span className="hidden sm:inline">Viral</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="proofs" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <CreditCard size={16} />
-                <span className="hidden sm:inline">Proofs</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="gift-cards" 
@@ -256,16 +249,15 @@ const AdminDashboard = () => {
               <ViralFeaturesManagement />
             </TabsContent>
             
-            <TabsContent value="proofs">
-              <PaymentProofsManagement />
-            </TabsContent>
-            
             <TabsContent value="gift-cards">
               <GiftCardPaymentManagement />
             </TabsContent>
             
             <TabsContent value="payments">
-              <PaymentSettingsManagement />
+              <div className="space-y-6">
+                <PaymentSettingsManagement />
+                <PaymentProofsManagement />
+              </div>
             </TabsContent>
             
             <TabsContent value="analytics">
