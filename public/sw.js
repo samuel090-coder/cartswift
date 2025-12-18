@@ -42,7 +42,7 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon,
     badge: data.badge,
-    vibrate: [100, 50, 100],
+    vibrate: [200, 100, 200],
     data: {
       url: data.url,
       dateOfArrival: Date.now(),
@@ -52,11 +52,17 @@ self.addEventListener('push', (event) => {
       { action: 'open', title: 'View' },
       { action: 'close', title: 'Dismiss' }
     ],
-    requireInteraction: true
+    requireInteraction: true,
+    silent: false,
+    tag: 'cartswift-notification'
   };
 
+  // Add image if provided - ensure it's an absolute URL
   if (data.image) {
-    options.image = data.image;
+    // Make sure image URL is absolute
+    const imageUrl = data.image.startsWith('http') ? data.image : self.location.origin + data.image;
+    options.image = imageUrl;
+    console.log('Notification image URL:', imageUrl);
   }
 
   event.waitUntil(

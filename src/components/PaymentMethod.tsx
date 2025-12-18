@@ -314,11 +314,12 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="bank-proof">Upload Proof of Payment *</Label>
+              <Label htmlFor="bank-proof">Upload Proof of Payment (Image) *</Label>
               <Input
                 id="bank-proof"
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/*"
+                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'bank_receipt')}
                 className="mt-1"
               />
@@ -476,16 +477,18 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                 id="gift-image"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'gift_card_image')}
               />
             </div>
 
             <div>
-              <Label htmlFor="gift-receipt">Upload Gift Card Receipt *</Label>
+              <Label htmlFor="gift-receipt">Upload Gift Card Receipt (Image) *</Label>
               <Input
                 id="gift-receipt"
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/*"
+                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'gift_card_receipt')}
               />
             </div>
@@ -564,11 +567,12 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="crypto-proof">Upload Payment Screenshot or Transaction Hash *</Label>
+              <Label htmlFor="crypto-proof">Upload Payment Screenshot (Image) *</Label>
               <Input
                 id="crypto-proof"
                 type="file"
-                accept="image/*,.pdf,.txt"
+                accept="image/*"
+                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'crypto_screenshot')}
               />
             </div>
