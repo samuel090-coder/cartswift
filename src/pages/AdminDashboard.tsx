@@ -14,7 +14,7 @@ import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, CreditCard, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
@@ -95,7 +95,6 @@ const AdminDashboard = () => {
   };
 
   const handleOrderClick = (orderId: string) => {
-    // Switch to orders tab and scroll to specific order
     const orderElement = document.getElementById(`order-${orderId}`);
     if (orderElement) {
       orderElement.scrollIntoView({ behavior: 'smooth' });
@@ -108,10 +107,10 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div>Verifying admin access...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+          <div className="text-amber-300">Verifying admin access...</div>
         </div>
       </div>
     );
@@ -119,15 +118,30 @@ const AdminDashboard = () => {
 
   return (
     <NotificationProvider adminUserId={user?.id}>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        {/* Header */}
+        <header className="bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 border-b border-amber-500/30 shadow-lg shadow-amber-500/5">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">CARTSWIFT Admin</h1>
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-amber-500 to-amber-700 p-2 rounded-lg">
+                  <Crown className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
+                    CARTSWIFT Admin
+                  </h1>
+                  <p className="text-xs text-amber-400/60">Management Dashboard</p>
+                </div>
+              </div>
               <div className="flex items-center space-x-4">
                 <NotificationBell onOrderClick={handleOrderClick} />
-                <span className="text-sm text-gray-600">Welcome, {user?.email}</span>
-                <Button variant="outline" onClick={handleLogout}>
+                <span className="text-sm text-amber-300/70 hidden md:block">Welcome, {user?.email}</span>
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="border-amber-500/50 text-amber-300 hover:bg-amber-950/50 hover:text-amber-200"
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </Button>
@@ -138,48 +152,81 @@ const AdminDashboard = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-11 gap-1">
-              <TabsTrigger value="items" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-11 gap-1 bg-slate-900/80 border border-amber-500/20 p-1 rounded-lg">
+              <TabsTrigger 
+                value="items" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Package size={16} />
                 <span className="hidden sm:inline">Items</span>
               </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="orders" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <ShoppingCart size={16} />
                 <span className="hidden sm:inline">Orders</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="notifications" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Bell size={16} />
                 <span className="hidden sm:inline">Notify</span>
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="reviews" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Star size={16} />
                 <span className="hidden sm:inline">Reviews</span>
               </TabsTrigger>
-              <TabsTrigger value="shares" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="shares" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Share size={16} />
                 <span className="hidden sm:inline">Shares</span>
               </TabsTrigger>
-              <TabsTrigger value="viral" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="viral" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Zap size={16} />
                 <span className="hidden sm:inline">Viral</span>
               </TabsTrigger>
-              <TabsTrigger value="proofs" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="proofs" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <CreditCard size={16} />
                 <span className="hidden sm:inline">Proofs</span>
               </TabsTrigger>
-              <TabsTrigger value="gift-cards" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="gift-cards" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <FileText size={16} />
                 <span className="hidden sm:inline">Gift Cards</span>
               </TabsTrigger>
-              <TabsTrigger value="payments" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="payments" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <Settings size={16} />
                 <span className="hidden sm:inline">Payments</span>
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="analytics" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <BarChart3 size={16} />
                 <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+              <TabsTrigger 
+                value="media" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
                 <FolderOpen size={16} />
                 <span className="hidden sm:inline">Media</span>
               </TabsTrigger>
