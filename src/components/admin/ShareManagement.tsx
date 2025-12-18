@@ -19,6 +19,7 @@ type ShareAnalytics = Database['public']['Tables']['share_analytics']['Row'];
 
 interface ItemWithShare extends Item {
   share_settings?: ShareSettings;
+  short_id?: number;
 }
 
 interface ShareFormData {
@@ -47,28 +48,28 @@ const ShareManagement = () => {
 
   const queryClient = useQueryClient();
 
-  // Fetch items with share settings
+  // Fetch items with share settings + short links
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['items-with-shares'],
     queryFn: async (): Promise<ItemWithShare[]> => {
-      const { data: items, error: itemsError } = await supabase
-        .from('items')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data: items, error: itemsError } = await supabase.from('items').select('*').order('created_at', { ascending: false });
 
       if (itemsError) throw itemsError;
 
-      const { data: shareSettings, error: shareError } = await supabase
-        .from('share_settings')
-        .select('*');
+      const { data: shareSettings, error: shareError } = await supabase.from('share_settings').select('*');
 
       if (shareError) throw shareError;
 
-      return items.map(item => ({
+      const { data: shortlinks, error: shortError } = await supabase.from('share_shortlinks').select('id,item_id');
+
+      if (shortError) throw shortError;
+
+      return items.map((item) => ({
         ...item,
-        share_settings: shareSettings.find(s => s.item_id === item.id)
+        share_settings: shareSettings.find((s) => s.item_id === item.id),
+        short_id: shortlinks.find((l) => l.item_id === item.id)?.id,
       }));
-    }
+    },
   });
 
   // Fetch analytics for all items
@@ -104,6 +105,15 @@ const ShareManagement = () => {
         });
 
       if (error) throw error;
+
+      // Ensure short URL exists for shareable items
+      if (settings.is_shareable) {
+        const { error: shortErr } = await supabase
+          .from('share_shortlinks')
+          .upsert({ item_id: itemId }, { onConflict: 'item_id' });
+        if (shortErr) throw shortErr;
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -160,8 +170,9 @@ const ShareManagement = () => {
     });
   };
 
-  const copyShareUrl = (itemId: string) => {
-    const url = `${window.location.origin}/share/${itemId}`;
+  const copyShareUrl = (item: ItemWithShare) => {
+    const shareId = item.short_id ? String(item.short_id) : item.id;
+    const url = `${window.location.origin}/share/${shareId}`;
     navigator.clipboard.writeText(url);
     toast.success('Share URL copied to clipboard!');
   };
@@ -249,7 +260,7 @@ const ShareManagement = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => copyShareUrl(item.id)}
+                          onClick={() => copyShareUrl(item)}
                         >
                           <Copy size={16} className="mr-1" />
                           Copy URL
@@ -260,7 +271,7 @@ const ShareManagement = () => {
                           asChild
                         >
                           <a 
-                            href={`/share/${item.id}`} 
+                            href={`/share/${item.short_id ? String(item.short_id) : item.id}`}
                             target="_blank" 
                             rel="noopener noreferrer"
                           >

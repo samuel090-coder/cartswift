@@ -17,15 +17,19 @@ type ShareSettings = Database['public']['Tables']['share_settings']['Row'];
 interface ShareData {
   item: Item;
   shareSettings: ShareSettings;
+  canonicalId?: string;
 }
 
 const ShareView = () => {
-  const { itemId } = useParams<{ itemId: string }>();
+  const { itemId: shareParam } = useParams<{ itemId: string }>();
   const { addToCart } = useCart();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [sessionId, setSessionId] = useState<string>('');
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 200]);
+
+  const isUuid = (value: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
   const getCurrencySymbol = (currency: string = 'USD') => {
     const symbols: { [key: string]: string } = {
@@ -53,45 +57,67 @@ const ShareView = () => {
   // Track page view
   const trackAnalytics = useMutation({
     mutationFn: async ({ eventType, itemId }: { eventType: string; itemId: string }) => {
-      const { error } = await supabase
-        .from('share_analytics')
-        .insert({
-          item_id: itemId,
-          event_type: eventType,
-          session_id: sessionId,
-          user_agent: navigator.userAgent,
-          referrer: document.referrer || null
-        });
+      const { error } = await supabase.from('share_analytics').insert({
+        item_id: itemId,
+        event_type: eventType,
+        session_id: sessionId,
+        user_agent: navigator.userAgent,
+        referrer: document.referrer || null,
+      });
       if (error) throw error;
-    }
+    },
   });
 
-  // Fetch share data
+  // Fetch share data (supports both UUID and short numeric IDs)
   const { data: shareData, isLoading, error } = useQuery({
-    queryKey: ['share-view', itemId],
-    queryFn: async (): Promise<ShareData> => {
-      if (!itemId) throw new Error('Item ID is required');
-      
+    queryKey: ['share-view', shareParam],
+    queryFn: async (): Promise<ShareData & { canonicalId: string }> => {
+      if (!shareParam) throw new Error('Share ID is required');
+
+      let resolvedItemId = shareParam;
+      let canonicalId = shareParam;
+
+      if (!isUuid(shareParam)) {
+        const shortId = Number(shareParam);
+        if (!Number.isFinite(shortId)) throw new Error('Invalid share link');
+
+        const { data: shortlink, error: shortErr } = await supabase
+          .from('share_shortlinks')
+          .select('id,item_id')
+          .eq('id', shortId)
+          .single();
+
+        if (shortErr || !shortlink?.item_id) throw new Error('Share page not found or not available');
+
+        resolvedItemId = shortlink.item_id;
+        canonicalId = String(shortlink.id);
+      } else {
+        // If accessed via UUID, still canonicalize to the short ID when available
+        const { data: shortlink } = await supabase
+          .from('share_shortlinks')
+          .select('id')
+          .eq('item_id', resolvedItemId)
+          .maybeSingle();
+
+        if (shortlink?.id) canonicalId = String(shortlink.id);
+      }
+
       const { data: shareSettings, error: shareError } = await supabase
         .from('share_settings')
         .select('*')
-        .eq('item_id', itemId)
+        .eq('item_id', resolvedItemId)
         .eq('is_shareable', true)
         .single();
-      
+
       if (shareError) throw new Error('Share page not found or not available');
-      
-      const { data: item, error: itemError } = await supabase
-        .from('items')
-        .select('*')
-        .eq('id', itemId)
-        .single();
-      
+
+      const { data: item, error: itemError } = await supabase.from('items').select('*').eq('id', resolvedItemId).single();
+
       if (itemError) throw new Error('Product not found');
-      
-      return { item, shareSettings };
+
+      return { item, shareSettings, canonicalId };
     },
-    retry: false
+    retry: false,
   });
 
   // Track view on load
@@ -199,7 +225,7 @@ const ShareView = () => {
       <SEOHead
         title={`${shareSettings.share_headline || item.title} - CartSwift`}
         description={item.description || `Get ${shareSettings.share_headline || item.title} at the best price with fast delivery.`}
-        canonical={`https://cartswift.lovable.app/share/${item.id}`}
+        canonical={`https://cartswift.lovable.app/share/${shareData.canonicalId || item.id}`}
         structured_data={structuredData}
       />
       
