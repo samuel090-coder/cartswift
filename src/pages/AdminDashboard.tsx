@@ -228,10 +228,6 @@ const AdminDashboard = () => {
             <TabsContent value="media">
               <MediaManagement />
             </TabsContent>
-            
-            <TabsContent value="media">
-              <MediaManagement />
-            </TabsContent>
           </Tabs>
         </div>
       </div>
