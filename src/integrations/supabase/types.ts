@@ -1074,6 +1074,24 @@ export type Database = {
         }
         Relationships: []
       }
+      share_shortlinks: {
+        Row: {
+          created_at: string
+          id: number
+          item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          item_id?: string
+        }
+        Relationships: []
+      }
       social_shares: {
         Row: {
           created_at: string

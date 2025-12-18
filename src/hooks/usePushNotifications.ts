@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { getSessionId } from '@/lib/sessionSupabase';
+import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -93,8 +93,9 @@ export const usePushNotifications = () => {
       const subscriptionJson = subscription.toJSON();
       console.log('Push subscription created, saving to database...');
 
-      // Save to database - use main client with custom header for this specific request
-      const { error } = await supabase
+      // Save to database with x-session-id header for RLS
+      const sessionSupabase = createSessionSupabaseClient();
+      const { error } = await sessionSupabase
         .from('push_subscriptions')
         .upsert(
           {
@@ -135,11 +136,9 @@ export const usePushNotifications = () => {
       if (subscription) {
         await subscription.unsubscribe();
 
-        // Remove from database
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('endpoint', subscription.endpoint);
+        // Remove from database (must include x-session-id header for RLS)
+        const sessionSupabase = createSessionSupabaseClient();
+        await sessionSupabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
       }
 
       setIsSubscribed(false);
