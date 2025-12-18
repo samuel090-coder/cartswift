@@ -29,7 +29,7 @@ type PaymentProof = {
     payment_reference: string;
     total_amount: number;
     session_id: string;
-  };
+  } | null;
 };
 
 type GiftCardPayment = {
@@ -242,6 +242,16 @@ const PaymentProofsManagement = () => {
   });
 
   const sendNotificationToUser = async (proof: PaymentProof, type: 'approved' | 'declined') => {
+    const order = proof.orders;
+    if (!order) {
+      toast({
+        title: 'Missing order details',
+        description: 'This payment proof is not linked to an order record.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSendingNotification(proof.id);
     try {
       const title = type === 'approved' 
@@ -268,7 +278,7 @@ const PaymentProofsManagement = () => {
       if (createError) throw createError;
 
       await supabase.from('in_app_notifications').insert({
-        session_id: proof.orders.session_id,
+        session_id: order.session_id,
         notification_id: notification.id,
         title,
         body,
@@ -286,7 +296,7 @@ const PaymentProofsManagement = () => {
 
       toast({
         title: 'Notification Sent',
-        description: `${type === 'approved' ? 'Approval' : 'Decline'} notification sent to ${proof.orders.full_name}`,
+        description: `${type === 'approved' ? 'Approval' : 'Decline'} notification sent to ${order.full_name}`,
       });
     } catch (error: any) {
       console.error('Error sending notification:', error);
@@ -302,11 +312,21 @@ const PaymentProofsManagement = () => {
 
   // Open email client with template
   const openEmailTemplate = (proof: PaymentProof, templateKey: keyof typeof emailTemplates) => {
+    const order = proof.orders;
+    if (!order) {
+      toast({
+        title: 'Missing customer email',
+        description: 'This payment proof is not linked to an order email.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const template = emailTemplates[templateKey];
-    const email = proof.orders.email;
-    const customerName = proof.orders.full_name;
+    const email = order.email;
+    const customerName = order.full_name;
     const orderId = proof.order_id.slice(0, 8).toUpperCase();
-    const amount = `$${Number(proof.orders.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    const amount = `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
     const subject = template.subject.replace('{orderId}', orderId);
     const body = template.body
@@ -361,11 +381,31 @@ const PaymentProofsManagement = () => {
     return bankTransferPayments.find(payment => payment.order_id === orderId);
   };
 
-  const pendingCount = paymentProofs.filter(p => p.status === 'pending').length;
-  const verifiedCount = paymentProofs.filter(p => p.status === 'verified').length;
-  const rejectedCount = paymentProofs.filter(p => p.status === 'rejected').length;
+  const validProofs = paymentProofs.filter((p) => Boolean(p.orders));
+  const missingOrderCount = paymentProofs.length - validProofs.length;
+
+  const pendingCount = validProofs.filter(p => p.status === 'pending').length;
+  const verifiedCount = validProofs.filter(p => p.status === 'verified').length;
+  const rejectedCount = validProofs.filter(p => p.status === 'rejected').length;
 
   const PaymentDetailsDialog = ({ proof }: { proof: PaymentProof }) => {
+    const order = proof.orders;
+    if (!order) {
+      return (
+        <DialogContent className="max-w-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-amber-500/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-400">
+              <AlertTriangle className="h-5 w-5" />
+              Missing Order Details
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-300 text-sm">
+            This payment proof is not linked to an order record (or the order is not accessible). Please refresh and try again.
+          </p>
+        </DialogContent>
+      );
+    }
+
     const giftCardPayment = getGiftCardPaymentForOrder(proof.order_id);
     const cryptoPayment = getCryptoPaymentForOrder(proof.order_id);
     const bankTransferPayment = getBankTransferPaymentForOrder(proof.order_id);
@@ -402,40 +442,40 @@ const PaymentProofsManagement = () => {
           </div>
 
           {/* Order Information */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
-                <DollarSign className="h-5 w-5" />
-                Order Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-white">
-              <div>
-                <Label className="text-slate-400">Customer</Label>
-                <p className="font-medium">{proof.orders.full_name}</p>
-              </div>
-              <div>
-                <Label className="text-slate-400">Email</Label>
-                <p className="font-medium text-amber-300">{proof.orders.email}</p>
-              </div>
-              <div>
-                <Label className="text-slate-400">Order Total</Label>
-                <p className="font-medium text-lg text-emerald-400">${Number(proof.orders.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-              </div>
-              <div>
-                <Label className="text-slate-400">Payment Method</Label>
-                <Badge variant="outline" className="mt-1 border-amber-500/50 text-amber-300">
-                  {proof.payment_method.replace('_', ' ').toUpperCase()}
-                </Badge>
-              </div>
-              {proof.orders.payment_reference && (
-                <div className="col-span-2">
-                  <Label className="text-slate-400">Payment Reference</Label>
-                  <p className="font-mono text-sm bg-slate-900/50 p-2 rounded border border-slate-700">{proof.orders.payment_reference}</p>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
+                  <DollarSign className="h-5 w-5" />
+                  Order Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4 text-white">
+                <div>
+                  <Label className="text-slate-400">Customer</Label>
+                  <p className="font-medium">{order.full_name}</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div>
+                  <Label className="text-slate-400">Email</Label>
+                  <p className="font-medium text-amber-300">{order.email}</p>
+                </div>
+                <div>
+                  <Label className="text-slate-400">Order Total</Label>
+                  <p className="font-medium text-lg text-emerald-400">${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <Label className="text-slate-400">Payment Method</Label>
+                  <Badge variant="outline" className="mt-1 border-amber-500/50 text-amber-300">
+                    {proof.payment_method.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                {order.payment_reference && (
+                  <div className="col-span-2">
+                    <Label className="text-slate-400">Payment Reference</Label>
+                    <p className="font-mono text-sm bg-slate-900/50 p-2 rounded border border-slate-700">{order.payment_reference}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
           {/* Email Templates */}
           <Card className="bg-slate-800/50 border-amber-500/30">
@@ -724,7 +764,7 @@ const PaymentProofsManagement = () => {
             <div className="flex items-center gap-3">
               <FileCheck className="h-8 w-8 text-amber-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{paymentProofs.length}</p>
+                <p className="text-2xl font-bold text-white">{validProofs.length}</p>
                 <p className="text-sm text-amber-300/70">Total Proofs</p>
               </div>
             </div>
@@ -781,10 +821,15 @@ const PaymentProofsManagement = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
             </div>
-          ) : paymentProofs.length === 0 ? (
+          ) : validProofs.length === 0 ? (
             <div className="text-center py-12">
               <FileCheck className="h-12 w-12 mx-auto mb-4 text-slate-600" />
               <p className="text-slate-400">No payment proofs submitted yet</p>
+              {missingOrderCount > 0 && (
+                <p className="text-xs text-amber-300/70 mt-2">
+                  {missingOrderCount} proof(s) are missing order details and were hidden.
+                </p>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -800,15 +845,15 @@ const PaymentProofsManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paymentProofs.map((proof) => (
+                  {validProofs.map((proof) => (
                     <TableRow 
                       key={proof.id} 
                       className={`border-slate-700 hover:bg-slate-800/50 ${proof.status === 'pending' ? 'bg-amber-950/20' : ''}`}
                     >
                       <TableCell>
                         <div>
-                          <p className="font-medium text-white">{proof.orders.full_name}</p>
-                          <p className="text-sm text-amber-300/70">{proof.orders.email}</p>
+                          <p className="font-medium text-white">{proof.orders!.full_name}</p>
+                          <p className="text-sm text-amber-300/70">{proof.orders!.email}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -817,7 +862,7 @@ const PaymentProofsManagement = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-semibold text-emerald-400">
-                        ${Number(proof.orders.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        ${Number(proof.orders!.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(proof.status)}>
