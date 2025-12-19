@@ -47,6 +47,7 @@ type PaymentProof = {
     country: string;
     payment_reference: string | null;
     total_amount: number;
+    currency?: string;
     session_id: string;
     order_items: OrderItem[];
   } | null;
@@ -77,120 +78,147 @@ type BankTransferPayment = {
   currency?: string;
 };
 
-// Email Templates
+// Professional Email Templates - designed to avoid spam filters
 const emailTemplates = {
+  // For physical products
   approved: {
-    subject: "🎉 CONGRATULATIONS! Your Payment Has Been Approved - Order #{orderId}",
-    body: `🎉 CONGRATULATIONS {customerName}! 🎉
-
-We are thrilled to inform you that your payment has been APPROVED!
-
-═══════════════════════════════════════
-📦 ORDER DETAILS
-═══════════════════════════════════════
-Order ID: #{orderId}
-Product(s): {productNames}
-Amount Paid: {amount}
-
-═══════════════════════════════════════
-✅ PAYMENT STATUS: VERIFIED & APPROVED
-═══════════════════════════════════════
-
-Your order is now being processed and will be delivered to you shortly!
-
-📲 DOWNLOAD YOUR PRODUCT HERE:
-{downloadLink}
-
-Thank you for choosing CARTSWIFT! We truly appreciate your business and trust in us.
-
-If you have any questions or need assistance, please don't hesitate to reach out to us.
-
-Warm regards,
-The CARTSWIFT Team 💫
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-  },
-  declined: {
-    subject: "⚠️ Payment Issue - Action Required for Order #{orderId}",
+    subject: "Your Order #{orderId} is Confirmed - CARTSWIFT",
     body: `Dear {customerName},
 
-We've reviewed your payment for Order #{orderId}, but unfortunately, we couldn't verify it.
+Thank you for your purchase! We are pleased to confirm that your payment has been verified and your order is now being processed.
 
-═══════════════════════════════════════
-📦 ORDER DETAILS
-═══════════════════════════════════════
+ORDER SUMMARY
+─────────────────────────────────
 Order ID: #{orderId}
 Product(s): {productNames}
 Amount: {amount}
-Status: ❌ Payment Could Not Be Verified
+Status: Confirmed
 
-═══════════════════════════════════════
+DELIVERY INFORMATION
+─────────────────────────────────
+Your order is now being prepared for shipment. You will receive tracking information once your package is dispatched.
 
-Common reasons for payment issues:
-• Payment proof image is unclear or incomplete
-• Transaction amount doesn't match order total
-• Payment was not completed successfully
+Estimated delivery: 5-7 business days
 
-📌 WHAT YOU CAN DO:
-1. Double-check your payment was successful
-2. Submit a clearer payment proof screenshot
-3. Contact us if you need assistance
+If you have any questions about your order, please reply to this email or contact our support team.
 
-We're here to help! Reply to this email if you have any questions.
+Thank you for choosing CARTSWIFT.
 
 Best regards,
-CARTSWIFT Support Team 🙏`
+CARTSWIFT Customer Service`
   },
-  issue: {
-    subject: "📋 We Need More Information About Your Payment - Order #{orderId}",
+  // For APK/file downloads
+  approvedDigital: {
+    subject: "Your Download is Ready - Order #{orderId} | CARTSWIFT",
     body: `Dear {customerName},
 
-We're reviewing your payment for Order #{orderId} and need some additional information.
+Great news! Your payment has been verified and your digital product is ready for download.
 
-═══════════════════════════════════════
-📦 ORDER DETAILS
-═══════════════════════════════════════
+PURCHASE DETAILS
+─────────────────────────────────
+Order ID: #{orderId}
+Product: {productNames}
+Amount: {amount}
+Type: Digital Download
+
+DOWNLOAD YOUR PRODUCT
+─────────────────────────────────
+Click the link below to download your product:
+
+{downloadLink}
+
+IMPORTANT:
+• This download link is valid for 24 hours
+• Please save the file after downloading
+• Do not share this link with others
+
+If you experience any issues with your download, please contact our support team immediately.
+
+Thank you for your purchase!
+
+Best regards,
+CARTSWIFT Support Team`
+  },
+  declined: {
+    subject: "Payment Issue - Order #{orderId} | CARTSWIFT",
+    body: `Dear {customerName},
+
+We have reviewed your payment for Order #{orderId}, but unfortunately we were unable to verify it at this time.
+
+ORDER DETAILS
+─────────────────────────────────
 Order ID: #{orderId}
 Product(s): {productNames}
 Amount: {amount}
-Status: 🔍 Under Review
 
-═══════════════════════════════════════
+WHAT HAPPENED?
+─────────────────────────────────
+Common reasons for payment verification issues:
+• Payment proof image is unclear or incomplete
+• Transaction amount does not match order total
+• Payment was not completed successfully
 
-Could you please provide:
+NEXT STEPS
+─────────────────────────────────
+1. Verify that your payment was completed successfully
+2. Submit a clearer screenshot of your payment confirmation
+3. Reply to this email if you need assistance
+
+We are here to help resolve this issue quickly.
+
+Best regards,
+CARTSWIFT Support Team`
+  },
+  issue: {
+    subject: "Additional Information Needed - Order #{orderId} | CARTSWIFT",
+    body: `Dear {customerName},
+
+We are reviewing your payment for Order #{orderId} and need some additional information to complete the verification.
+
+ORDER DETAILS
+─────────────────────────────────
+Order ID: #{orderId}
+Product(s): {productNames}
+Amount: {amount}
+Status: Under Review
+
+INFORMATION NEEDED
+─────────────────────────────────
+Please provide the following:
 • A clearer image of your payment confirmation
 • The transaction reference number
 • Date and time of the payment
 
-This will help us verify your payment quickly and get your order processed.
+You can reply directly to this email with the requested information.
 
-Thank you for your patience! 🙏
+Thank you for your patience.
 
 Best regards,
-CARTSWIFT Team`
+CARTSWIFT Support Team`
   },
   thankYou: {
-    subject: "🙏 Thank You for Your Order #{orderId} - Payment Under Review",
+    subject: "Order Received - #{orderId} | CARTSWIFT",
     body: `Dear {customerName},
 
-Thank you so much for your order! 🎉
+Thank you for your order! We have received your payment proof and it is currently being reviewed.
 
-═══════════════════════════════════════
-📦 ORDER DETAILS
-═══════════════════════════════════════
+ORDER DETAILS
+─────────────────────────────────
 Order ID: #{orderId}
 Product(s): {productNames}
 Total: {amount}
+Status: Payment Under Review
 
-═══════════════════════════════════════
+WHAT HAPPENS NEXT?
+─────────────────────────────────
+Our team will verify your payment within 30 minutes to 2 hours during business hours. You will receive a confirmation email once your payment is approved.
 
-We've received your payment proof and it's currently being reviewed. You'll receive a confirmation email once verified.
+If you have any questions, feel free to reply to this email.
 
-⏱️ Estimated processing time: 24-48 hours
+Thank you for choosing CARTSWIFT.
 
-If you have any questions, don't hesitate to reach out!
-
-Warm regards,
-CARTSWIFT Team ❤️`
+Best regards,
+CARTSWIFT Customer Service`
   }
 };
 
@@ -227,6 +255,7 @@ const PaymentProofsManagement = () => {
             country,
             payment_reference,
             total_amount,
+            currency,
             session_id,
             order_items (
               id,
@@ -236,7 +265,8 @@ const PaymentProofsManagement = () => {
                 title,
                 images,
                 item_type,
-                file_url
+                file_url,
+                admin_download_link
               )
             )
           )
@@ -395,31 +425,45 @@ const PaymentProofsManagement = () => {
     // Get product names and check for APK/file items
     let productNames = 'Your ordered items';
     let downloadLinks: string[] = [];
+    let hasDigitalItems = false;
     
     if (order.order_items && order.order_items.length > 0) {
       productNames = order.order_items.map(item => item.items?.title || 'Unknown Product').join(', ');
       
       // Check for APK/file items and get their download URLs
       order.order_items.forEach(item => {
-        const itemData = item.items;
+        const itemData = item.items as any;
         if (itemData && (itemData.item_type === 'apk' || itemData.item_type === 'file')) {
-          if (itemData.file_url) {
-            downloadLinks.push(`📥 ${itemData.title}: ${itemData.file_url}`);
+          hasDigitalItems = true;
+          // Prefer admin_download_link if set, otherwise use file_url
+          const downloadUrl = itemData.admin_download_link || itemData.file_url;
+          if (downloadUrl) {
+            downloadLinks.push(`${itemData.title}:\n${downloadUrl}`);
           }
         }
       });
     }
 
-    const template = emailTemplates[templateKey];
+    // Use correct currency symbol
+    const orderCurrency = order.currency || 'USD';
+    const currencySymbol = getCurrencySymbol(orderCurrency);
+    
+    // Determine which template to use - use digital template for APK/file items when approving
+    let actualTemplateKey = templateKey;
+    if (templateKey === 'approved' && hasDigitalItems) {
+      actualTemplateKey = 'approvedDigital';
+    }
+
+    const template = emailTemplates[actualTemplateKey as keyof typeof emailTemplates] || emailTemplates[templateKey];
     const email = order.email;
     const customerName = order.full_name;
     const orderId = proof.order_id?.slice(0, 8).toUpperCase() || 'N/A';
-    const amount = `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    const amount = `${currencySymbol}${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} ${orderCurrency}`;
     
-    // Generate download link - use actual file URLs for APK/file items, or orders page for physical items
+    // Generate download link - use actual file URLs for APK/file items, or delivery notice for physical items
     let downloadLink = '';
     if (downloadLinks.length > 0) {
-      downloadLink = downloadLinks.join('\n');
+      downloadLink = downloadLinks.join('\n\n');
     } else {
       downloadLink = 'Your physical order will be shipped to your address shortly.';
     }

@@ -472,6 +472,7 @@ export type Database = {
       }
       items: {
         Row: {
+          admin_download_link: string | null
           allowed_payment_methods: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at: string
@@ -491,6 +492,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_download_link?: string | null
           allowed_payment_methods?: string[] | null
           category: Database["public"]["Enums"]["item_category"]
           created_at?: string
@@ -510,6 +512,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_download_link?: string | null
           allowed_payment_methods?: string[] | null
           category?: Database["public"]["Enums"]["item_category"]
           created_at?: string
@@ -732,6 +735,7 @@ export type Database = {
           city: string
           country: string
           created_at: string
+          currency: string | null
           delivery_instructions: string | null
           email: string | null
           full_name: string
@@ -752,6 +756,7 @@ export type Database = {
           city: string
           country?: string
           created_at?: string
+          currency?: string | null
           delivery_instructions?: string | null
           email?: string | null
           full_name: string
@@ -772,6 +777,7 @@ export type Database = {
           city?: string
           country?: string
           created_at?: string
+          currency?: string | null
           delivery_instructions?: string | null
           email?: string | null
           full_name?: string

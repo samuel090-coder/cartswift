@@ -114,6 +114,7 @@ const DownloadPayment = () => {
         .insert({
           session_id: sessionId,
           total_amount: Number(item?.price || 0),
+          currency: item?.currency || 'USD',
           payment_method: selectedPaymentMethod as any,
           status: 'pending',
           email: email,

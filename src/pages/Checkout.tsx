@@ -92,6 +92,9 @@ const Checkout = () => {
         throw new Error('No items in cart');
       }
 
+      // Get the currency from the first item (all items in cart should have same currency)
+      const orderCurrency = items[0]?.currency || 'USD';
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -109,6 +112,7 @@ const Checkout = () => {
           payment_method: formData.paymentMethod as any,
           payment_reference: paymentReference || null,
           total_amount: total,
+          currency: orderCurrency,
           status: formData.paymentMethod === 'credit_card' ? 'processing' : 'pending',
         })
         .select()
