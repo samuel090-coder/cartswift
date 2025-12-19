@@ -1,0 +1,234 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Premium notification templates by category
+const notificationTemplates = {
+  morning: [
+    { title: "☀️ Good Morning!", body: "Start your day with amazing deals waiting for you!", icon: "🌅" },
+    { title: "🌤️ Rise & Shop", body: "Early bird catches the best deals! Check out what's new.", icon: "☀️" },
+    { title: "☕ Morning Deals", body: "Fresh morning, fresh offers! Don't miss out today.", icon: "🌞" },
+  ],
+  afternoon: [
+    { title: "🌞 Afternoon Flash!", body: "Midday savings are here! Limited time only.", icon: "⚡" },
+    { title: "🍽️ Lunch Break Deals", body: "Take a break and browse our latest offers!", icon: "🛍️" },
+    { title: "🎯 Today's Hot Picks", body: "Don't let these deals slip away this afternoon!", icon: "🔥" },
+  ],
+  evening: [
+    { title: "🌙 Evening Exclusives", body: "Wind down with these special evening offers!", icon: "✨" },
+    { title: "🌆 Sunset Sale", body: "As the day ends, the savings begin!", icon: "💫" },
+    { title: "🛒 Tonight Only!", body: "Exclusive evening deals you can't miss!", icon: "🌟" },
+  ],
+  night: [
+    { title: "🌃 Night Owl Deals", body: "Can't sleep? Shop our midnight specials!", icon: "🦉" },
+    { title: "💤 Before You Sleep...", body: "Quick peek at tomorrow's best deals!", icon: "🌙" },
+    { title: "✨ Midnight Magic", body: "Exclusive late-night offers just for you!", icon: "🔮" },
+  ],
+  reminder: [
+    { title: "⏰ Don't Forget!", body: "Items in your wishlist are waiting for you!", icon: "💭" },
+    { title: "🔔 Friendly Reminder", body: "Complete your purchase before it's gone!", icon: "⌛" },
+    { title: "📌 Still Interested?", body: "Your cart misses you! Come back and checkout.", icon: "🛒" },
+  ],
+  newProduct: [
+    { title: "🆕 Just Dropped!", body: "Be the first to check out our newest arrivals!", icon: "🎁" },
+    { title: "🚀 New Launch Alert", body: "Fresh products are here! Don't miss the launch.", icon: "✨" },
+    { title: "🎉 New & Exclusive", body: "Just in! Check out what's new in store.", icon: "🆕" },
+  ],
+  sale: [
+    { title: "🔥 FLASH SALE!", body: "Massive discounts for a limited time only!", icon: "💥" },
+    { title: "💰 Price Drop Alert", body: "Your wishlist items are now on sale!", icon: "📉" },
+    { title: "🎊 MEGA SALE LIVE", body: "Up to 70% OFF! Shop now before it ends!", icon: "🛍️" },
+  ],
+  urgency: [
+    { title: "⚡ LAST CHANCE!", body: "Only a few hours left! Grab yours now!", icon: "⏳" },
+    { title: "🚨 Selling Fast!", body: "Limited stock remaining. Act now!", icon: "🔴" },
+    { title: "⌛ Ending Soon!", body: "Don't miss out - offer expires today!", icon: "💨" },
+  ],
+  loyalty: [
+    { title: "💎 VIP Exclusive", body: "Special offer just for our loyal customers!", icon: "👑" },
+    { title: "🎁 Reward Unlocked", body: "You've earned a special discount! Claim it now.", icon: "🏆" },
+    { title: "⭐ Thank You!", body: "As a valued customer, enjoy this exclusive offer.", icon: "💝" },
+  ],
+  seasonal: [
+    { title: "🎄 Holiday Special", body: "Celebrate the season with amazing deals!", icon: "🎅" },
+    { title: "🌸 Spring Collection", body: "Fresh styles for the new season!", icon: "🌷" },
+    { title: "☀️ Summer Vibes", body: "Hot deals for the summer season!", icon: "🏖️" },
+  ],
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    const { action, topic, category, customPrompt } = await req.json();
+    console.log("AI Notification Assistant request:", { action, topic, category });
+
+    if (action === 'getTemplates') {
+      // Return all premium templates
+      return new Response(JSON.stringify({ templates: notificationTemplates }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'generateImage') {
+      // Generate notification image using Gemini image model
+      const imagePrompt = customPrompt || `Create a professional, eye-catching notification banner image for: ${topic}. Style: modern, clean, vibrant colors, suitable for mobile push notification. No text in the image, just visual elements.`;
+      
+      console.log("Generating image with prompt:", imagePrompt);
+      
+      const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: imagePrompt
+            }
+          ],
+          modalities: ["image", "text"]
+        }),
+      });
+
+      if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        console.error("Image generation error:", imageResponse.status, errorText);
+        throw new Error(`Image generation failed: ${imageResponse.status}`);
+      }
+
+      const imageData = await imageResponse.json();
+      console.log("Image response received");
+      
+      const generatedImage = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      return new Response(JSON.stringify({ 
+        success: true,
+        imageUrl: generatedImage || null,
+        message: generatedImage ? "Image generated successfully" : "No image generated"
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'suggest') {
+      // Generate AI suggestions based on topic
+      const systemPrompt = `You are a professional push notification copywriter for an e-commerce store called CARTSWIFT. 
+Generate engaging, concise push notification content that drives user engagement and clicks.
+Keep titles under 50 characters and body under 100 characters.
+Use appropriate emojis sparingly.
+Make the content feel urgent but not spammy.`;
+
+      const userPrompt = topic 
+        ? `Generate 3 unique push notification variations for this topic: "${topic}". 
+Return as JSON array with objects containing: title, body, icon_emoji`
+        : category 
+        ? `Generate 3 unique push notification variations for the "${category}" category.
+Return as JSON array with objects containing: title, body, icon_emoji`
+        : `Generate 3 unique, engaging push notification ideas for a general e-commerce store.
+Return as JSON array with objects containing: title, body, icon_emoji`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "suggest_notifications",
+                description: "Return 3 push notification suggestions",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    suggestions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string", description: "Notification title (max 50 chars)" },
+                          body: { type: "string", description: "Notification body (max 100 chars)" },
+                          icon_emoji: { type: "string", description: "Single emoji for the notification icon" }
+                        },
+                        required: ["title", "body", "icon_emoji"],
+                        additionalProperties: false
+                      }
+                    }
+                  },
+                  required: ["suggestions"],
+                  additionalProperties: false
+                }
+              }
+            }
+          ],
+          tool_choice: { type: "function", function: { name: "suggest_notifications" } }
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const errorText = await response.text();
+        console.error("AI suggestion error:", response.status, errorText);
+        throw new Error(`AI suggestion failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("AI response:", JSON.stringify(data));
+      
+      // Extract suggestions from tool call
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      let suggestions = [];
+      
+      if (toolCall?.function?.arguments) {
+        try {
+          const parsed = JSON.parse(toolCall.function.arguments);
+          suggestions = parsed.suggestions || [];
+        } catch (e) {
+          console.error("Failed to parse tool arguments:", e);
+        }
+      }
+
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action" }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error("AI Notification Assistant error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});

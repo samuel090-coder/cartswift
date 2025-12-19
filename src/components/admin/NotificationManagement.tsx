@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
-import { Bell, Send, Users, Settings, Plus, Trash2, Eye, Clock, Zap, Upload } from 'lucide-react';
-
+import { Bell, Send, Users, Settings, Plus, Trash2, Eye, Clock, Zap, Upload, Sparkles, ChevronDown } from 'lucide-react';
+import { AINotificationAssistant } from './AINotificationAssistant';
 interface Notification {
   id: string;
   title: string;
@@ -41,6 +42,7 @@ export const NotificationManagement = () => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     body: '',
@@ -50,6 +52,16 @@ export const NotificationManagement = () => {
     trigger_type: 'manual',
     scheduled_at: '',
   });
+
+  const handleAISelect = (notification: { title: string; body: string; icon_emoji: string; image_url?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      title: notification.title,
+      body: notification.body,
+      icon_emoji: notification.icon_emoji,
+      image_url: notification.image_url || prev.image_url,
+    }));
+  };
 
   // Fetch notifications
   const { data: notifications = [], isLoading: loadingNotifications } = useQuery({
@@ -301,106 +313,133 @@ export const NotificationManagement = () => {
                 <Plus className="h-4 w-4 mr-2" /> Create Notification
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Push Notification</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="w-20">
-                    <Label>Icon</Label>
-                    <Select value={formData.icon_emoji} onValueChange={(v) => setFormData({ ...formData, icon_emoji: v })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {emojiOptions.map(emoji => (
-                          <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex-1">
-                    <Label>Title</Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="🔥 Don't miss out!"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Message</Label>
-                  <Textarea
-                    value={formData.body}
-                    onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                    placeholder="Amazing deals await you..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label>Notification Image (optional)</Label>
-                  <div className="space-y-3">
-                    {formData.image_url && (
-                      <div className="relative">
-                        <img 
-                          src={formData.image_url} 
-                          alt="Preview" 
-                          className="w-full h-32 object-cover rounded-lg border"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          className="absolute top-2 right-2"
-                          onClick={() => setFormData({ ...formData, image_url: '' })}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <label className="flex-1">
-                        <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
-                          <Upload className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                          </span>
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                          disabled={uploadingImage}
-                        />
-                      </label>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left Column - Form */}
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <div className="w-20">
+                      <Label>Icon</Label>
+                      <Select value={formData.icon_emoji} onValueChange={(v) => setFormData({ ...formData, icon_emoji: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {emojiOptions.map(emoji => (
+                            <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1">
+                      <Label>Title</Label>
+                      <Input
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="🔥 Don't miss out!"
+                      />
                     </div>
                   </div>
+                  <div>
+                    <Label>Message</Label>
+                    <Textarea
+                      value={formData.body}
+                      onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                      placeholder="Amazing deals await you..."
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label>Notification Image (optional)</Label>
+                    <div className="space-y-3">
+                      {formData.image_url && (
+                        <div className="relative">
+                          <img 
+                            src={formData.image_url} 
+                            alt="Preview" 
+                            className="w-full h-32 object-cover rounded-lg border"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-2 right-2"
+                            onClick={() => setFormData({ ...formData, image_url: '' })}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <label className="flex-1">
+                          <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                            </span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                            disabled={uploadingImage}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Link URL (optional)</Label>
+                    <Input
+                      value={formData.link_url}
+                      onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+                      placeholder="https://yoursite.com/deals"
+                    />
+                  </div>
+                  <div>
+                    <Label>Schedule (optional)</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.scheduled_at}
+                      onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => createNotification.mutate(formData)}
+                    disabled={!formData.title || !formData.body || createNotification.isPending}
+                    className="w-full"
+                  >
+                    {createNotification.isPending ? 'Creating...' : 'Create Notification'}
+                  </Button>
                 </div>
-                <div>
-                  <Label>Link URL (optional)</Label>
-                  <Input
-                    value={formData.link_url}
-                    onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                    placeholder="https://yoursite.com/deals"
-                  />
+
+                {/* Right Column - AI Assistant */}
+                <div className="border-l pl-6 hidden md:block">
+                  <AINotificationAssistant onSelectNotification={handleAISelect} />
                 </div>
-                <div>
-                  <Label>Schedule (optional)</Label>
-                  <Input
-                    type="datetime-local"
-                    value={formData.scheduled_at}
-                    onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
-                  />
-                </div>
-                <Button 
-                  onClick={() => createNotification.mutate(formData)}
-                  disabled={!formData.title || !formData.body || createNotification.isPending}
-                  className="w-full"
-                >
-                  {createNotification.isPending ? 'Creating...' : 'Create Notification'}
-                </Button>
+              </div>
+
+              {/* Mobile AI Assistant (Collapsible) */}
+              <div className="md:hidden mt-4">
+                <Collapsible open={isAIOpen} onOpenChange={setIsAIOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        AI Assistant
+                      </span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isAIOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-4">
+                    <AINotificationAssistant onSelectNotification={handleAISelect} />
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </DialogContent>
           </Dialog>
