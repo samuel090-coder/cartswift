@@ -918,8 +918,6 @@ const PaymentProofsManagement = () => {
           )}
         </CardContent>
       </Card>
-        </CardContent>
-      </Card>
     </div>
   );
 };
