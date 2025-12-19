@@ -83,62 +83,63 @@ type BankTransferPayment = {
 const emailTemplates = {
   // For physical products
   approved: {
-    subject: "Your Order #{orderId} is Confirmed - CARTSWIFT",
+    subject: "Order Confirmed - #{orderId} | CARTSWIFT",
     body: `Dear {customerName},
 
-Thank you for your purchase! We are pleased to confirm that your payment has been verified and your order is now being processed.
+Thank you for your purchase. We are pleased to confirm that your payment has been verified and your order is now being processed.
 
 ORDER SUMMARY
 ─────────────────────────────────
 Order ID: #{orderId}
 Product(s): {productNames}
-Amount: {amount}
+Amount Paid: {amount}
 Status: Confirmed
 
 DELIVERY INFORMATION
 ─────────────────────────────────
-Your order is now being prepared for shipment. You will receive tracking information once your package is dispatched.
+Your order is being prepared for shipment. You will receive tracking information once your package is dispatched.
 
 Estimated delivery: 5-7 business days
 
-If you have any questions about your order, please reply to this email or contact our support team.
-
-Thank you for choosing CARTSWIFT.
+If you have any questions about your order, please reply to this email.
 
 Best regards,
-CARTSWIFT Customer Service`
+CARTSWIFT Customer Service
+`
   },
-  // For APK/file downloads
+  // For APK/file downloads - clean professional template
   approvedDigital: {
     subject: "Your Download is Ready - Order #{orderId} | CARTSWIFT",
     body: `Dear {customerName},
 
-Great news! Your payment has been verified and your digital product is ready for download.
+Your payment has been verified. Your digital product is ready for download.
 
-PURCHASE DETAILS
+ORDER DETAILS
 ─────────────────────────────────
 Order ID: #{orderId}
 Product: {productNames}
-Amount: {amount}
-Type: Digital Download
+Amount Paid: {amount}
 
-DOWNLOAD YOUR PRODUCT
+ACCESS YOUR DOWNLOAD
 ─────────────────────────────────
-Click the link below to download your product:
+Use the secure link below to download your product:
 
 {downloadLink}
 
-IMPORTANT:
-• This download link is valid for 24 hours
-• Please save the file after downloading
-• Do not share this link with others
+Please note:
+- Save the file immediately after downloading.
+- This link expires in 24 hours.
+- For security, do not share this link.
 
-If you experience any issues with your download, please contact our support team immediately.
+NEED HELP?
+─────────────────────────────────
+If you experience any issues accessing your download, reply to this email and our support team will assist you promptly.
 
-Thank you for your purchase!
+Thank you for your purchase.
 
 Best regards,
-CARTSWIFT Support Team`
+CARTSWIFT Support Team
+`
   },
   declined: {
     subject: "Payment Issue - Order #{orderId} | CARTSWIFT",
