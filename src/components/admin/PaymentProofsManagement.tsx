@@ -20,6 +20,7 @@ type OrderItem = {
     images: string[] | null;
     item_type: string | null;
     file_url: string | null;
+    admin_download_link: string | null;
   } | null;
 };
 
