@@ -230,10 +230,23 @@ const PaymentProofsManagement = () => {
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: Record<string, string> = {
-      'USD': '$', 'NGN': '₦', 'EUR': '€', 'GBP': '£',
-      'JPY': '¥', 'CNY': '¥', 'INR': '₹', 'AUD': 'A$', 'CAD': 'C$',
+      USD: '$',
+      NGN: '₦',
+      EUR: '€',
+      GBP: '£',
+      JPY: '¥',
+      CNY: '¥',
+      INR: '₹',
+      AUD: 'A$',
+      CAD: 'C$',
     };
     return symbols[currency] || currency;
+  };
+
+  const formatMoney = (amount: number, currency?: string) => {
+    const cur = currency || 'USD';
+    const symbol = getCurrencySymbol(cur);
+    return `${symbol}${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} ${cur}`;
   };
   
   const { data: paymentProofs = [], isLoading, error, refetch } = useQuery({
@@ -623,7 +636,7 @@ const PaymentProofsManagement = () => {
                 </div>
                 <div>
                   <Label className="text-slate-400">Order Total</Label>
-                  <p className="font-medium text-xl text-emerald-400">${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  <p className="font-medium text-xl text-emerald-400">{formatMoney(order.total_amount, order.currency)}</p>
                 </div>
               </div>
 
@@ -682,7 +695,7 @@ const PaymentProofsManagement = () => {
                         <p className="text-sm text-slate-400">Quantity: {item.quantity}</p>
                       </div>
                       <p className="font-semibold text-emerald-400">
-                        ${Number(item.price_at_time).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {formatMoney(item.price_at_time, order.currency)}
                       </p>
                     </div>
                   ))}
@@ -797,7 +810,7 @@ const PaymentProofsManagement = () => {
                   </div>
                   <div>
                     <Label className="text-slate-400">Estimated Value</Label>
-                    <p className="font-medium">${Number(giftCardPayment.estimated_value).toFixed(2)}</p>
+                    <p className="font-medium">{formatMoney(giftCardPayment.estimated_value, giftCardPayment.currency || order?.currency)}</p>
                   </div>
                 </div>
                 {giftCardPayment.card_code && (
@@ -854,7 +867,7 @@ const PaymentProofsManagement = () => {
               <CardContent className="space-y-2 text-white">
                 <div>
                   <Label className="text-slate-400">Amount</Label>
-                  <p className="font-medium">${Number(bankTransferPayment.amount_usd).toFixed(2)}</p>
+                  <p className="font-medium">{formatMoney(bankTransferPayment.amount_usd, bankTransferPayment.currency || order?.currency)}</p>
                 </div>
                 {bankTransferPayment.additional_notes && (
                   <div>
@@ -1097,7 +1110,7 @@ const PaymentProofsManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-semibold text-emerald-400">
-                            {order ? `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                            {order ? formatMoney(order.total_amount, order.currency) : '—'}
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(proof.status)}>
