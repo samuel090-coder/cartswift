@@ -34,6 +34,7 @@ const ItemManagement = () => {
     item_type: 'product',
     file_url: '',
     file_size: '',
+    admin_download_link: '',
     allowed_payment_methods: ['stripe', 'crypto', 'bank_transfer', 'gift_card'] as string[],
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
@@ -110,6 +111,7 @@ const ItemManagement = () => {
         item_type: data.item_type || 'product',
         file_url: fileUrl || null,
         file_size: apkFile ? apkFile.size : (data.file_size ? parseInt(data.file_size) : null),
+        admin_download_link: data.admin_download_link || null,
         allowed_payment_methods: data.allowed_payment_methods || ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
       };
 
@@ -194,6 +196,7 @@ const ItemManagement = () => {
       item_type: 'product',
       file_url: '',
       file_size: '',
+      admin_download_link: '',
       allowed_payment_methods: ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
     });
     setEditingItem(null);
@@ -216,6 +219,7 @@ const ItemManagement = () => {
       item_type: item.item_type || 'product',
       file_url: item.file_url || '',
       file_size: item.file_size?.toString() || '',
+      admin_download_link: (item as any).admin_download_link || '',
       allowed_payment_methods: item.allowed_payment_methods || ['stripe', 'crypto', 'bank_transfer', 'gift_card'],
     });
     setIsDialogOpen(true);
@@ -399,6 +403,26 @@ const ItemManagement = () => {
                       </p>
                     )}
                   </div>
+                  
+                  {/* Admin Download Link - for email distribution */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <Label htmlFor="admin_download_link" className="text-blue-900 font-medium">
+                      Admin Download Link (For Email)
+                    </Label>
+                    <Input
+                      id="admin_download_link"
+                      type="url"
+                      placeholder="https://drive.google.com/... or any direct download link"
+                      value={formData.admin_download_link}
+                      onChange={(e) => setFormData(prev => ({ ...prev, admin_download_link: e.target.value }))}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      This link will be included in approval emails sent to customers. 
+                      Use Google Drive, Dropbox, or any file hosting service link.
+                    </p>
+                  </div>
+
                   <div>
                     <Label>Allowed Payment Methods</Label>
                     <div className="grid grid-cols-2 gap-2 mt-2">
