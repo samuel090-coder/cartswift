@@ -83,6 +83,14 @@ const Checkout = () => {
   const orderMutation = useMutation({
     mutationFn: async (paymentReference?: string) => {
       const sessionId = getSessionId();
+      console.log('Starting order creation with items:', items);
+      console.log('Session ID:', sessionId);
+      console.log('Form data:', formData);
+
+      // Validate items exist
+      if (!items || items.length === 0) {
+        throw new Error('No items in cart');
+      }
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -106,7 +114,12 @@ const Checkout = () => {
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw new Error(`Failed to create order: ${orderError.message}`);
+      }
+
+      console.log('Order created successfully:', order.id);
 
       // Create order items
       const orderItems = items.map((item) => ({
@@ -116,14 +129,22 @@ const Checkout = () => {
         price_at_time: item.price,
       }));
 
+      console.log('Inserting order items:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Order items insertion error:', itemsError);
+        throw new Error(`Failed to add items to order: ${itemsError.message}`);
+      }
+
+      console.log('Order items inserted successfully');
 
       // Link uploaded payment proofs to the created order
       if (pendingProofsRef.current.length > 0) {
+        console.log('Linking payment proofs to order:', pendingProofsRef.current);
         const proofRows = pendingProofsRef.current.map((p) => ({
           order_id: order.id,
           payment_method: formData.paymentMethod as any,
@@ -139,6 +160,9 @@ const Checkout = () => {
 
         if (proofError) {
           console.error('Payment proof insert error:', proofError);
+          // Don't throw here - order was successful, just log the error
+        } else {
+          console.log('Payment proofs linked successfully');
         }
 
         pendingProofsRef.current = [];
@@ -242,11 +266,12 @@ const Checkout = () => {
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Order error:', error);
+      const errorMessage = error?.message || 'Unknown error occurred';
       toast({
         title: "Order failed",
-        description: "Please try again or contact support.",
+        description: errorMessage.includes('Failed to') ? errorMessage : "Please try again or contact support.",
         variant: "destructive",
       });
     },

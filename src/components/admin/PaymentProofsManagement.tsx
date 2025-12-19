@@ -11,6 +11,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Eye, ExternalLink, CheckCircle, XCircle, Bell, Clock, Loader2, DollarSign, FileCheck, Mail, AlertTriangle, RefreshCw } from 'lucide-react';
 
+type OrderItem = {
+  id: string;
+  quantity: number;
+  price_at_time: number;
+  items: {
+    title: string;
+    images: string[] | null;
+  } | null;
+};
+
 type PaymentProof = {
   id: string;
   order_id: string | null;
@@ -25,10 +35,18 @@ type PaymentProof = {
   orders: {
     id: string;
     full_name: string;
-    email: string;
+    email: string | null;
+    phone_number: string | null;
+    address_line1: string;
+    address_line2: string | null;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
     payment_reference: string | null;
     total_amount: number;
     session_id: string;
+    order_items: OrderItem[];
   } | null;
 };
 
@@ -60,38 +78,57 @@ type BankTransferPayment = {
 // Email Templates
 const emailTemplates = {
   approved: {
-    subject: "✅ Payment Approved - Your Order is Being Processed!",
-    body: `Hi {customerName}! 🎉
+    subject: "🎉 CONGRATULATIONS! Your Payment Has Been Approved - Order #{orderId}",
+    body: `🎉 CONGRATULATIONS {customerName}! 🎉
 
-Great news! Your payment for Order #{orderId} has been verified and approved.
+We are thrilled to inform you that your payment has been APPROVED!
 
-💰 Amount: {amount}
-📦 Status: Processing
+═══════════════════════════════════════
+📦 ORDER DETAILS
+═══════════════════════════════════════
+Order ID: #{orderId}
+Product(s): {productNames}
+Amount Paid: {amount}
 
-Your order is now being prepared and will be shipped soon. You'll receive a tracking number once it's on its way!
+═══════════════════════════════════════
+✅ PAYMENT STATUS: VERIFIED & APPROVED
+═══════════════════════════════════════
 
-Thank you for shopping with us! 🛒✨
+Your order is now being processed and will be delivered to you shortly!
 
-If you have any questions, feel free to reply to this email.
+📲 DOWNLOAD YOUR PRODUCT HERE:
+{downloadLink}
 
-Best regards,
-CARTSWIFT Team 💫`
+Thank you for choosing CARTSWIFT! We truly appreciate your business and trust in us.
+
+If you have any questions or need assistance, please don't hesitate to reach out to us.
+
+Warm regards,
+The CARTSWIFT Team 💫
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
   },
   declined: {
-    subject: "❌ Payment Issue - Action Required for Order #{orderId}",
-    body: `Hi {customerName},
+    subject: "⚠️ Payment Issue - Action Required for Order #{orderId}",
+    body: `Dear {customerName},
 
 We've reviewed your payment for Order #{orderId}, but unfortunately, we couldn't verify it.
 
-💰 Amount: {amount}
-⚠️ Status: Payment Declined
+═══════════════════════════════════════
+📦 ORDER DETAILS
+═══════════════════════════════════════
+Order ID: #{orderId}
+Product(s): {productNames}
+Amount: {amount}
+Status: ❌ Payment Could Not Be Verified
+
+═══════════════════════════════════════
 
 Common reasons for payment issues:
 • Payment proof image is unclear or incomplete
 • Transaction amount doesn't match order total
 • Payment was not completed successfully
 
-📌 What you can do:
+📌 WHAT YOU CAN DO:
 1. Double-check your payment was successful
 2. Submit a clearer payment proof screenshot
 3. Contact us if you need assistance
@@ -102,13 +139,20 @@ Best regards,
 CARTSWIFT Support Team 🙏`
   },
   issue: {
-    subject: "⚠️ We Need More Information About Your Payment",
-    body: `Hi {customerName},
+    subject: "📋 We Need More Information About Your Payment - Order #{orderId}",
+    body: `Dear {customerName},
 
 We're reviewing your payment for Order #{orderId} and need some additional information.
 
-💰 Amount: {amount}
-📋 Status: Under Review
+═══════════════════════════════════════
+📦 ORDER DETAILS
+═══════════════════════════════════════
+Order ID: #{orderId}
+Product(s): {productNames}
+Amount: {amount}
+Status: 🔍 Under Review
+
+═══════════════════════════════════════
 
 Could you please provide:
 • A clearer image of your payment confirmation
@@ -123,17 +167,23 @@ Best regards,
 CARTSWIFT Team`
   },
   thankYou: {
-    subject: "🙏 Thank You for Your Order - #{orderId}",
+    subject: "🙏 Thank You for Your Order #{orderId} - Payment Under Review",
     body: `Dear {customerName},
 
 Thank you so much for your order! 🎉
 
-📦 Order ID: #{orderId}
-💰 Total: {amount}
+═══════════════════════════════════════
+📦 ORDER DETAILS
+═══════════════════════════════════════
+Order ID: #{orderId}
+Product(s): {productNames}
+Total: {amount}
+
+═══════════════════════════════════════
 
 We've received your payment proof and it's currently being reviewed. You'll receive a confirmation email once verified.
 
-Estimated processing time: 24-48 hours
+⏱️ Estimated processing time: 24-48 hours
 
 If you have any questions, don't hesitate to reach out!
 
@@ -166,9 +216,25 @@ const PaymentProofsManagement = () => {
             id,
             full_name,
             email,
+            phone_number,
+            address_line1,
+            address_line2,
+            city,
+            state,
+            postal_code,
+            country,
             payment_reference,
             total_amount,
-            session_id
+            session_id,
+            order_items (
+              id,
+              quantity,
+              price_at_time,
+              items (
+                title,
+                images
+              )
+            )
           )
         `)
         .order('uploaded_at', { ascending: false });
@@ -313,32 +379,50 @@ const PaymentProofsManagement = () => {
   // Open email client with template
   const openEmailTemplate = (proof: PaymentProof, templateKey: keyof typeof emailTemplates) => {
     const order = proof.orders;
-    if (!order) {
+    if (!order || !order.email) {
       toast({
         title: 'Missing customer email',
-        description: 'This payment proof is not linked to an order email.',
+        description: 'This payment proof is not linked to an order with an email address.',
         variant: 'destructive',
       });
       return;
     }
 
+    // Get product names from order items
+    const productNames = order.order_items && order.order_items.length > 0
+      ? order.order_items.map(item => item.items?.title || 'Unknown Product').join(', ')
+      : 'Your ordered items';
+
     const template = emailTemplates[templateKey];
     const email = order.email;
     const customerName = order.full_name;
-    const orderId = proof.order_id.slice(0, 8).toUpperCase();
+    const orderId = proof.order_id?.slice(0, 8).toUpperCase() || 'N/A';
     const amount = `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    
+    // Generate download link placeholder - admin can customize this
+    const downloadLink = window.location.origin + '/orders';
 
-    const subject = template.subject.replace('{orderId}', orderId);
+    const subject = template.subject.replace(/{orderId}/g, orderId);
     const body = template.body
       .replace(/{customerName}/g, customerName)
       .replace(/{orderId}/g, orderId)
-      .replace(/{amount}/g, amount);
+      .replace(/{amount}/g, amount)
+      .replace(/{productNames}/g, productNames)
+      .replace(/{downloadLink}/g, downloadLink);
 
     const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink, '_blank');
   };
 
   const handleApprove = async (proof: PaymentProof) => {
+    if (!proof.order_id || !proof.orders) {
+      toast({
+        title: 'Cannot approve',
+        description: 'This payment proof is not linked to an order.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const notes = adminNotes[proof.id] || '';
     await updateProofStatus.mutateAsync({ proofId: proof.id, status: 'verified', notes });
     await updateOrderStatus.mutateAsync({ orderId: proof.order_id, status: 'processing' });
@@ -350,6 +434,14 @@ const PaymentProofsManagement = () => {
   };
 
   const handleDecline = async (proof: PaymentProof) => {
+    if (!proof.order_id || !proof.orders) {
+      toast({
+        title: 'Cannot decline',
+        description: 'This payment proof is not linked to an order.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const notes = adminNotes[proof.id] || '';
     await updateProofStatus.mutateAsync({ proofId: proof.id, status: 'rejected', notes });
     await sendNotificationToUser(proof, 'declined');
@@ -440,27 +532,49 @@ const PaymentProofsManagement = () => {
             </div>
           </div>
 
-          {/* Order Information */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
-                  <DollarSign className="h-5 w-5" />
-                  Order Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4 text-white">
+          {/* Customer Information */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
+                <DollarSign className="h-5 w-5" />
+                Customer & Order Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-white">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-400">Customer</Label>
-                  <p className="font-medium">{order.full_name}</p>
+                  <Label className="text-slate-400">Customer Name</Label>
+                  <p className="font-medium text-lg">{order.full_name}</p>
                 </div>
                 <div>
                   <Label className="text-slate-400">Email</Label>
-                  <p className="font-medium text-amber-300">{order.email}</p>
+                  <p className="font-medium text-amber-300">{order.email || 'Not provided'}</p>
+                </div>
+                <div>
+                  <Label className="text-slate-400">Phone Number</Label>
+                  <p className="font-medium">{order.phone_number || 'Not provided'}</p>
                 </div>
                 <div>
                   <Label className="text-slate-400">Order Total</Label>
-                  <p className="font-medium text-lg text-emerald-400">${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  <p className="font-medium text-xl text-emerald-400">${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                 </div>
+              </div>
+
+              {/* Shipping Address */}
+              <div className="pt-2 border-t border-slate-700">
+                <Label className="text-slate-400">Shipping Address</Label>
+                <p className="font-medium mt-1">
+                  {order.address_line1}
+                  {order.address_line2 && <>, {order.address_line2}</>}
+                  <br />
+                  {order.city}, {order.state} {order.postal_code}
+                  <br />
+                  {order.country}
+                </p>
+              </div>
+
+              {/* Payment Method */}
+              <div className="flex items-center gap-4 pt-2 border-t border-slate-700">
                 <div>
                   <Label className="text-slate-400">Payment Method</Label>
                   <Badge variant="outline" className="mt-1 border-amber-500/50 text-amber-300">
@@ -468,13 +582,47 @@ const PaymentProofsManagement = () => {
                   </Badge>
                 </div>
                 {order.payment_reference && (
-                  <div className="col-span-2">
+                  <div>
                     <Label className="text-slate-400">Payment Reference</Label>
                     <p className="font-mono text-sm bg-slate-900/50 p-2 rounded border border-slate-700">{order.payment_reference}</p>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Products Purchased */}
+          {order.order_items && order.order_items.length > 0 && (
+            <Card className="bg-slate-800/50 border-emerald-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-emerald-400">
+                  📦 Products Purchased
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {order.order_items.map((item, index) => (
+                    <div key={item.id || index} className="flex items-center gap-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                      {item.items?.images && item.items.images[0] && (
+                        <img 
+                          src={item.items.images[0]} 
+                          alt={item.items?.title || 'Product'} 
+                          className="w-16 h-16 rounded-lg object-cover border border-slate-600"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-white">{item.items?.title || 'Unknown Product'}</p>
+                        <p className="text-sm text-slate-400">Quantity: {item.quantity}</p>
+                      </div>
+                      <p className="font-semibold text-emerald-400">
+                        ${Number(item.price_at_time).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+          )}
 
           {/* Email Templates */}
           <Card className="bg-slate-800/50 border-amber-500/30">
@@ -860,7 +1008,20 @@ const PaymentProofsManagement = () => {
                           <TableCell>
                             <div>
                               <p className="font-medium text-white">{order?.full_name ?? 'Unlinked payment proof'}</p>
-                              <p className="text-sm text-amber-300/70">{order?.email ?? `Proof ID: ${proof.id.slice(0, 8)}`}</p>
+                              {order?.email ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEmailTemplate(proof, 'approved');
+                                  }}
+                                  className="text-sm text-amber-300 hover:text-amber-200 hover:underline cursor-pointer"
+                                  title="Click to send approval email"
+                                >
+                                  📧 {order.email}
+                                </button>
+                              ) : (
+                                <p className="text-sm text-slate-500">{`Proof ID: ${proof.id.slice(0, 8)}`}</p>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
