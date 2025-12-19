@@ -16,7 +16,7 @@ interface PaymentMethodProps {
   method: string;
   total: number;
   currency?: string;
-  onPaymentSuccess: (reference?: string, giftCardData?: any) => void;
+  onPaymentSuccess: (reference?: string, giftCardData?: any, proofUrl?: string) => void;
   onFileUpload: (file: File, type: string, orderId?: string) => Promise<string>;
 }
 
@@ -205,7 +205,8 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
     }
 
     console.log('Gift card submission started with data:', giftCardData, 'Files:', uploadedFiles);
-    onPaymentSuccess(undefined, giftCardData);
+    // Pass the first uploaded file as proof URL
+    onPaymentSuccess(undefined, giftCardData, uploadedFiles[0]);
   };
 
   const copyToClipboard = (text: string) => {
@@ -345,7 +346,8 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                   });
                   return;
                 }
-                onPaymentSuccess();
+                // Pass the uploaded proof URL
+                onPaymentSuccess(undefined, undefined, uploadedFiles[0]);
               }}
               disabled={loading}
               className="w-full"
@@ -585,8 +587,8 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             </div>
 
             <Button 
-              onClick={() => onPaymentSuccess()}
-              disabled={loading}
+              onClick={() => onPaymentSuccess(cryptoNotes || undefined, undefined, uploadedFiles[0])}
+              disabled={loading || uploadedFiles.length === 0}
               className="w-full"
               size="lg"
             >

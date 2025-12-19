@@ -18,6 +18,8 @@ type OrderItem = {
   items: {
     title: string;
     images: string[] | null;
+    item_type: string | null;
+    file_url: string | null;
   } | null;
 };
 
@@ -232,7 +234,9 @@ const PaymentProofsManagement = () => {
               price_at_time,
               items (
                 title,
-                images
+                images,
+                item_type,
+                file_url
               )
             )
           )
@@ -388,10 +392,23 @@ const PaymentProofsManagement = () => {
       return;
     }
 
-    // Get product names from order items
-    const productNames = order.order_items && order.order_items.length > 0
-      ? order.order_items.map(item => item.items?.title || 'Unknown Product').join(', ')
-      : 'Your ordered items';
+    // Get product names and check for APK/file items
+    let productNames = 'Your ordered items';
+    let downloadLinks: string[] = [];
+    
+    if (order.order_items && order.order_items.length > 0) {
+      productNames = order.order_items.map(item => item.items?.title || 'Unknown Product').join(', ');
+      
+      // Check for APK/file items and get their download URLs
+      order.order_items.forEach(item => {
+        const itemData = item.items;
+        if (itemData && (itemData.item_type === 'apk' || itemData.item_type === 'file')) {
+          if (itemData.file_url) {
+            downloadLinks.push(`📥 ${itemData.title}: ${itemData.file_url}`);
+          }
+        }
+      });
+    }
 
     const template = emailTemplates[templateKey];
     const email = order.email;
@@ -399,8 +416,13 @@ const PaymentProofsManagement = () => {
     const orderId = proof.order_id?.slice(0, 8).toUpperCase() || 'N/A';
     const amount = `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
     
-    // Generate download link placeholder - admin can customize this
-    const downloadLink = window.location.origin + '/orders';
+    // Generate download link - use actual file URLs for APK/file items, or orders page for physical items
+    let downloadLink = '';
+    if (downloadLinks.length > 0) {
+      downloadLink = downloadLinks.join('\n');
+    } else {
+      downloadLink = 'Your physical order will be shipped to your address shortly.';
+    }
 
     const subject = template.subject.replace(/{orderId}/g, orderId);
     const body = template.body
