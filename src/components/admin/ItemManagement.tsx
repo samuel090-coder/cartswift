@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +20,15 @@ const ItemManagement = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const dialogContentRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    requestAnimationFrame(() => {
+      dialogContentRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    });
+  }, [isDialogOpen]);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -241,7 +249,7 @@ const ItemManagement = () => {
               Add New Item
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent ref={dialogContentRef} className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingItem ? 'Edit Item' : 'Add New Item'}
@@ -386,6 +394,25 @@ const ItemManagement = () => {
                 )}
               </div>
 
+              {/* Digital delivery link (used in approval email) */}
+              <div className="rounded-lg border border-border bg-muted/40 p-4">
+                <Label htmlFor="admin_download_link" className="font-medium">
+                  Download Link (sent in approval email)
+                </Label>
+                <Input
+                  id="admin_download_link"
+                  type="url"
+                  placeholder="https://drive.google.com/... (or any direct download link)"
+                  value={formData.admin_download_link}
+                  onChange={(e) => setFormData(prev => ({ ...prev, admin_download_link: e.target.value }))}
+                  className="mt-2"
+                  disabled={!(formData.item_type === 'apk' || formData.item_type === 'file')}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  To enable this field, set <span className="font-medium">Item Type</span> to APK File or Digital File.
+                </p>
+              </div>
+
               {/* APK/File specific fields */}
               {(formData.item_type === 'apk' || formData.item_type === 'file') && (
                 <>
@@ -398,29 +425,10 @@ const ItemManagement = () => {
                       onChange={(e) => setApkFile(e.target.files?.[0] || null)}
                     />
                     {formData.file_url && (
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         Current file: {formData.file_url.split('/').pop()}
                       </p>
                     )}
-                  </div>
-                  
-                  {/* Admin Download Link - for email distribution */}
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <Label htmlFor="admin_download_link" className="text-blue-900 font-medium">
-                      Admin Download Link (For Email)
-                    </Label>
-                    <Input
-                      id="admin_download_link"
-                      type="url"
-                      placeholder="https://drive.google.com/... or any direct download link"
-                      value={formData.admin_download_link}
-                      onChange={(e) => setFormData(prev => ({ ...prev, admin_download_link: e.target.value }))}
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-blue-600 mt-1">
-                      This link will be included in approval emails sent to customers. 
-                      Use Google Drive, Dropbox, or any file hosting service link.
-                    </p>
                   </div>
 
                   <div>
