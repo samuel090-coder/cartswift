@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -61,6 +61,17 @@ const categoryLabels: Record<string, string> = {
   seasonal: 'Seasonal',
 };
 
+// Helper to convert base64 to Blob
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
 export const AINotificationAssistant = ({ onSelectNotification }: AINotificationAssistantProps) => {
   const [topic, setTopic] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -93,21 +104,46 @@ export const AINotificationAssistant = ({ onSelectNotification }: AINotification
     },
   });
 
-  // Image generation mutation
+  // Image generation mutation - uploads to storage
   const generateImageMutation = useMutation({
-    mutationFn: async (topic: string) => {
+    mutationFn: async (topicText: string) => {
+      // Get AI-generated image
       const { data, error } = await supabase.functions.invoke('ai-notification-assistant', {
-        body: { action: 'generateImage', topic },
+        body: { action: 'generateImage', topic: topicText },
       });
       if (error) throw error;
-      return data;
+      
+      const imageUrl = data.imageUrl;
+      if (!imageUrl) {
+        throw new Error('No image generated');
+      }
+
+      // If it's a base64 image, upload it to storage
+      if (imageUrl.startsWith('data:image')) {
+        const [meta, base64Data] = imageUrl.split(',');
+        const mimeMatch = meta.match(/data:(image\/\w+);/);
+        const mimeType = mimeMatch?.[1] || 'image/png';
+        const ext = mimeType.split('/')[1] || 'png';
+
+        const blob = base64ToBlob(base64Data, mimeType);
+        const filePath = `ai-notifications/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('media-files')
+          .upload(filePath, blob, { contentType: mimeType });
+        
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrl } = supabase.storage.from('media-files').getPublicUrl(filePath);
+        return { imageUrl: publicUrl.publicUrl };
+      }
+
+      return { imageUrl };
     },
-    onSuccess: (data, topic) => {
+    onSuccess: (data, topicText) => {
       if (data.imageUrl) {
-        setGeneratedImages(prev => ({ ...prev, [topic]: data.imageUrl }));
-        toast({ title: 'Image Generated', description: 'AI image created successfully!' });
-      } else {
-        toast({ title: 'No Image', description: 'Image generation returned no result.', variant: 'destructive' });
+        setGeneratedImages(prev => ({ ...prev, [topicText]: data.imageUrl }));
+        toast({ title: 'Image Generated', description: 'AI image created and saved!' });
       }
     },
     onError: (error: any) => {
