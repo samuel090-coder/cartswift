@@ -13,20 +13,20 @@ import { Eye, ExternalLink, CheckCircle, XCircle, Bell, Clock, Loader2, DollarSi
 
 type PaymentProof = {
   id: string;
-  order_id: string;
+  order_id: string | null;
   payment_method: string;
   proof_type: string;
   file_url: string;
-  file_name: string;
-  file_size: number;
+  file_name: string | null;
+  file_size: number | null;
   status: string;
-  admin_notes: string;
+  admin_notes: string | null;
   uploaded_at: string;
   orders: {
     id: string;
     full_name: string;
     email: string;
-    payment_reference: string;
+    payment_reference: string | null;
     total_amount: number;
     session_id: string;
   } | null;
@@ -381,12 +381,11 @@ const PaymentProofsManagement = () => {
     return bankTransferPayments.find(payment => payment.order_id === orderId);
   };
 
-  const validProofs = paymentProofs.filter((p) => Boolean(p.orders));
-  const missingOrderCount = paymentProofs.length - validProofs.length;
+  const missingOrderCount = paymentProofs.filter((p) => !p.orders).length;
 
-  const pendingCount = validProofs.filter(p => p.status === 'pending').length;
-  const verifiedCount = validProofs.filter(p => p.status === 'verified').length;
-  const rejectedCount = validProofs.filter(p => p.status === 'rejected').length;
+  const pendingCount = paymentProofs.filter((p) => p.status === 'pending').length;
+  const verifiedCount = paymentProofs.filter((p) => p.status === 'verified').length;
+  const rejectedCount = paymentProofs.filter((p) => p.status === 'rejected').length;
 
   const PaymentDetailsDialog = ({ proof }: { proof: PaymentProof }) => {
     const order = proof.orders;
@@ -764,7 +763,7 @@ const PaymentProofsManagement = () => {
             <div className="flex items-center gap-3">
               <FileCheck className="h-8 w-8 text-amber-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{validProofs.length}</p>
+                <p className="text-2xl font-bold text-white">{paymentProofs.length}</p>
                 <p className="text-sm text-amber-300/70">Total Proofs</p>
               </div>
             </div>
@@ -821,83 +820,104 @@ const PaymentProofsManagement = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
             </div>
-          ) : validProofs.length === 0 ? (
+          ) : paymentProofs.length === 0 ? (
             <div className="text-center py-12">
               <FileCheck className="h-12 w-12 mx-auto mb-4 text-slate-600" />
               <p className="text-slate-400">No payment proofs submitted yet</p>
-              {missingOrderCount > 0 && (
-                <p className="text-xs text-amber-300/70 mt-2">
-                  {missingOrderCount} proof(s) are missing order details and were hidden.
-                </p>
-              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                    <TableHead className="text-amber-300">Customer</TableHead>
-                    <TableHead className="text-amber-300">Payment Method</TableHead>
-                    <TableHead className="text-amber-300">Amount</TableHead>
-                    <TableHead className="text-amber-300">Status</TableHead>
-                    <TableHead className="text-amber-300">Submitted</TableHead>
-                    <TableHead className="text-right text-amber-300">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {validProofs.map((proof) => (
-                    <TableRow 
-                      key={proof.id} 
-                      className={`border-slate-700 hover:bg-slate-800/50 ${proof.status === 'pending' ? 'bg-amber-950/20' : ''}`}
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-white">{proof.orders!.full_name}</p>
-                          <p className="text-sm text-amber-300/70">{proof.orders!.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize border-amber-500/50 text-amber-300">
-                          {proof.payment_method.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold text-emerald-400">
-                        ${Number(proof.orders!.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(proof.status)}>
-                          {proof.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
-                          {proof.status === 'verified' && <CheckCircle className="h-3 w-3 mr-1" />}
-                          {proof.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
-                          {proof.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        {new Date(proof.uploaded_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant={proof.status === 'pending' ? 'default' : 'outline'} 
-                              size="sm"
-                              className={proof.status === 'pending' 
-                                ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                                : 'border-amber-500/50 text-amber-300 hover:bg-amber-950/50'}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              {proof.status === 'pending' ? 'Review' : 'View'}
-                            </Button>
-                          </DialogTrigger>
-                          <PaymentDetailsDialog proof={proof} />
-                        </Dialog>
-                      </TableCell>
+            <div className="space-y-3">
+              {missingOrderCount > 0 && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-950/20 p-3 text-sm text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-400" />
+                  <div>
+                    <p className="font-medium">{missingOrderCount} proof(s) have no linked order yet.</p>
+                    <p className="text-amber-200/80">You can still open them and view the image; email templates require an order email.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-amber-300">Customer</TableHead>
+                      <TableHead className="text-amber-300">Payment Method</TableHead>
+                      <TableHead className="text-amber-300">Amount</TableHead>
+                      <TableHead className="text-amber-300">Status</TableHead>
+                      <TableHead className="text-amber-300">Submitted</TableHead>
+                      <TableHead className="text-right text-amber-300">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentProofs.map((proof) => {
+                      const order = proof.orders;
+                      return (
+                        <TableRow
+                          key={proof.id}
+                          className={`border-slate-700 hover:bg-slate-800/50 ${proof.status === 'pending' ? 'bg-amber-950/20' : ''}`}
+                        >
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-white">{order?.full_name ?? 'Unlinked payment proof'}</p>
+                              <p className="text-sm text-amber-300/70">{order?.email ?? `Proof ID: ${proof.id.slice(0, 8)}`}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize border-amber-500/50 text-amber-300">
+                              {proof.payment_method.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold text-emerald-400">
+                            {order ? `$${Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(proof.status)}>
+                              {proof.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                              {proof.status === 'verified' && <CheckCircle className="h-3 w-3 mr-1" />}
+                              {proof.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
+                              {proof.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-400">
+                            {new Date(proof.uploaded_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant={proof.status === 'pending' ? 'default' : 'outline'}
+                                  size="sm"
+                                  className={
+                                    proof.status === 'pending'
+                                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                      : 'border-amber-500/50 text-amber-300 hover:bg-amber-950/50'
+                                  }
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  {proof.status === 'pending' ? 'Review' : 'View'}
+                                </Button>
+                              </DialogTrigger>
+                              <PaymentDetailsDialog proof={proof} />
+                            </Dialog>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
+
+          {error && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-red-300">
+              <AlertTriangle className="h-4 w-4" />
+              Failed to load payment proofs: {(error as any).message}
+            </div>
+          )}
+        </CardContent>
+      </Card>
         </CardContent>
       </Card>
     </div>

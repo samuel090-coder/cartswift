@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,13 @@ import PaymentProcessingPopup from '@/components/PaymentProcessingPopup';
 import OrderPreviewAnimation from '@/components/OrderPreviewAnimation';
 import { motion } from 'framer-motion';
 
+type PendingPaymentProof = {
+  proof_type: string;
+  file_url: string;
+  file_name: string;
+  file_size: number;
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, total, clearCart, getCurrencySymbol } = useCart();
@@ -27,6 +34,7 @@ const Checkout = () => {
   const [targetCurrency, setTargetCurrency] = useState('');
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const pendingProofsRef = useRef<PendingPaymentProof[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -75,7 +83,7 @@ const Checkout = () => {
   const orderMutation = useMutation({
     mutationFn: async (paymentReference?: string) => {
       const sessionId = getSessionId();
-      
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -101,7 +109,7 @@ const Checkout = () => {
       if (orderError) throw orderError;
 
       // Create order items
-      const orderItems = items.map(item => ({
+      const orderItems = items.map((item) => ({
         order_id: order.id,
         item_id: item.id,
         quantity: item.quantity,
@@ -113,6 +121,28 @@ const Checkout = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Link uploaded payment proofs to the created order
+      if (pendingProofsRef.current.length > 0) {
+        const proofRows = pendingProofsRef.current.map((p) => ({
+          order_id: order.id,
+          payment_method: formData.paymentMethod as any,
+          proof_type: p.proof_type,
+          file_url: p.file_url,
+          file_name: p.file_name,
+          file_size: p.file_size,
+        }));
+
+        const { error: proofError } = await supabase
+          .from('payment_proofs')
+          .insert(proofRows);
+
+        if (proofError) {
+          console.error('Payment proof insert error:', proofError);
+        }
+
+        pendingProofsRef.current = [];
+      }
 
       // Handle specific payment method data
       if (formData.paymentMethod === 'bank_transfer') {
@@ -222,7 +252,7 @@ const Checkout = () => {
     },
   });
 
-  const handleFileUpload = async (file: File, type: string, orderId?: string): Promise<string> => {
+  const handleFileUpload = async (file: File, type: string, _orderId?: string): Promise<string> => {
     try {
       // Generate a unique filename
       const fileExt = file.name.split('.').pop();
@@ -232,7 +262,7 @@ const Checkout = () => {
       console.log('Uploading file to payment-proofs bucket:', filePath);
 
       // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(filePath, file);
 
@@ -248,23 +278,18 @@ const Checkout = () => {
 
       const fileUrl = urlData.publicUrl;
       console.log('File uploaded successfully, URL:', fileUrl);
-      
-      // Store payment proof information with the order ID if available
-      const { error: proofError } = await supabase
-        .from('payment_proofs')
-        .insert({
-          order_id: orderId || null,
-          payment_method: formData.paymentMethod as any,
+
+      // Save temporarily; we will attach these proofs to the order after the order is created
+      pendingProofsRef.current = [
+        ...pendingProofsRef.current,
+        {
           proof_type: type,
           file_url: fileUrl,
           file_name: file.name,
           file_size: file.size,
-        });
+        },
+      ];
 
-      if (proofError) {
-        console.error('Payment proof error:', proofError);
-      }
-      
       return fileUrl;
     } catch (error) {
       console.error('File upload error:', error);

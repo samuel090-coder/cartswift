@@ -319,7 +319,6 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                 id="bank-proof"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'bank_receipt')}
                 className="mt-1"
               />
@@ -477,7 +476,6 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                 id="gift-image"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'gift_card_image')}
               />
             </div>
@@ -488,7 +486,6 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                 id="gift-receipt"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'gift_card_receipt')}
               />
             </div>
@@ -572,7 +569,6 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
                 id="crypto-proof"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={(e) => handleFileUpload(e, 'crypto_screenshot')}
               />
             </div>
