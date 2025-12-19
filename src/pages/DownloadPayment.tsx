@@ -83,7 +83,7 @@ const DownloadPayment = () => {
     return sessionId;
   };
 
-  const handlePaymentComplete = async (paymentReference?: string, giftCardData?: any) => {
+  const handlePaymentComplete = async (paymentReference?: string, giftCardData?: any, proofUrl?: string) => {
     setShowPaymentDialog(false);
     
     if (!email) {
@@ -98,7 +98,7 @@ const DownloadPayment = () => {
     try {
       const sessionId = getSessionId();
       
-      // Generate download token and create download record
+      // Generate download token
       const { data: tokenData, error: tokenError } = await supabase
         .rpc('generate_download_token');
       
@@ -106,7 +106,69 @@ const DownloadPayment = () => {
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
-      
+
+      // Create an order for this APK/file purchase (digital download - use placeholder address)
+      console.log('Creating order for APK/file purchase...');
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          session_id: sessionId,
+          total_amount: Number(item?.price || 0),
+          payment_method: selectedPaymentMethod as any,
+          status: 'pending',
+          email: email,
+          full_name: email.split('@')[0], // Use email prefix as name
+          address_line1: 'Digital Download',
+          city: 'Digital',
+          state: 'N/A',
+          postal_code: '00000',
+          country: 'Digital',
+          payment_reference: paymentReference || tokenData,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw orderError;
+      }
+      console.log('Order created:', orderData);
+
+      // Add order item
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: orderData.id,
+          item_id: itemId,
+          quantity: 1,
+          price_at_time: Number(item?.price || 0),
+        });
+
+      if (itemError) {
+        console.error('Order item error:', itemError);
+        throw itemError;
+      }
+
+      // Create payment proof record if we have a proof URL
+      if (proofUrl) {
+        console.log('Creating payment proof with URL:', proofUrl);
+        const { error: proofError } = await supabase
+          .from('payment_proofs')
+          .insert({
+            order_id: orderData.id,
+            file_url: proofUrl,
+            payment_method: selectedPaymentMethod as any,
+            proof_type: selectedPaymentMethod === 'gift_card' ? 'gift_card' : 'screenshot',
+            status: 'pending',
+          });
+
+        if (proofError) {
+          console.error('Payment proof error:', proofError);
+          // Don't throw - order is created, proof is optional
+        }
+      }
+
+      // Create download record
       const { error: downloadError } = await supabase
         .from('downloads')
         .insert({
@@ -118,15 +180,23 @@ const DownloadPayment = () => {
           expires_at: expiresAt.toISOString(),
         });
 
-      if (downloadError) throw downloadError;
+      if (downloadError) {
+        console.error('Download record error:', downloadError);
+        // Don't throw - order is created
+      }
 
-      // Navigate directly to confirmation page
+      toast({
+        title: "Payment Submitted!",
+        description: "Your payment is being verified. You'll receive download link via email once approved.",
+      });
+
+      // Navigate to confirmation page
       navigate(`/download/${itemId}/confirmation`);
     } catch (error) {
-      console.error('Error creating download record:', error);
+      console.error('Error creating download order:', error);
       toast({
         title: "Error",
-        description: "Failed to process your request. Please contact support.",
+        description: "Failed to process your request. Please try again or contact support.",
         variant: "destructive",
       });
     }
