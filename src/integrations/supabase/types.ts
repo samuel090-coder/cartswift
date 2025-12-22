@@ -569,6 +569,27 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_emails: {
+        Row: {
+          country: string
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       media_files: {
         Row: {
           created_at: string
