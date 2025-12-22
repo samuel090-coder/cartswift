@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { NotificationBanner } from "@/components/NotificationBanner";
+import { CookieConsent } from "@/components/CookieConsent";
 import Index from "./pages/Index";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -28,6 +29,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <NotificationBanner />
+        <CookieConsent />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

@@ -22,8 +22,10 @@ import {
   ImagePlus,
   Loader2,
   Check,
-  Copy
+  Copy,
+  MessageCircle
 } from 'lucide-react';
+import { NotificationChatAssistant } from './NotificationChatAssistant';
 
 interface NotificationSuggestion {
   title: string;
@@ -232,15 +234,22 @@ export const AINotificationAssistant = ({ onSelectNotification }: AINotification
         <Badge variant="secondary" className="ml-auto">Premium</Badge>
       </div>
 
-      <Tabs defaultValue="templates" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="chat" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="chat" className="text-xs">
+            <MessageCircle className="h-3 w-3 mr-1" /> Chat
+          </TabsTrigger>
           <TabsTrigger value="templates" className="text-xs">
             <Gift className="h-3 w-3 mr-1" /> Templates
           </TabsTrigger>
           <TabsTrigger value="ai" className="text-xs">
-            <Wand2 className="h-3 w-3 mr-1" /> AI Generate
+            <Wand2 className="h-3 w-3 mr-1" /> Generate
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="chat" className="mt-4">
+          <NotificationChatAssistant onSelectNotification={onSelectNotification} />
+        </TabsContent>
 
         <TabsContent value="templates" className="space-y-4 mt-4">
           {/* Category Pills */}

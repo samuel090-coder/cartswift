@@ -59,6 +59,24 @@ const notificationTemplates = {
   ],
 };
 
+// Common first names for email generation
+const firstNames = ['james', 'john', 'robert', 'michael', 'david', 'william', 'richard', 'joseph', 'thomas', 'charles', 'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen', 'alex', 'chris', 'sam', 'jordan', 'taylor', 'casey', 'morgan', 'riley', 'drew', 'jamie', 'max', 'leo', 'emma', 'olivia', 'ava', 'sophia', 'mia', 'luna', 'chloe', 'ella'];
+const lastNames = ['smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis', 'rodriguez', 'martinez', 'wilson', 'anderson', 'thomas', 'taylor', 'moore', 'jackson', 'martin', 'lee', 'perez', 'white', 'harris', 'clark', 'lewis', 'walker', 'hall', 'allen', 'young', 'king', 'wright', 'scott'];
+
+const generateRandomEmail = (): string => {
+  const patterns = [
+    () => `${randomChoice(firstNames)}${randomChoice(lastNames)}${randomNum(100, 9999)}@gmail.com`,
+    () => `${randomChoice(firstNames)}.${randomChoice(lastNames)}${randomNum(1, 99)}@gmail.com`,
+    () => `${randomChoice(firstNames)}${randomNum(1990, 2005)}@gmail.com`,
+    () => `${randomChoice(lastNames)}.${randomChoice(firstNames)}${randomNum(1, 999)}@gmail.com`,
+    () => `${randomChoice(firstNames)[0]}${randomChoice(lastNames)}${randomNum(10, 9999)}@gmail.com`,
+  ];
+  return randomChoice(patterns)();
+};
+
+const randomChoice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const randomNum = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -70,18 +88,95 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { action, topic, category, customPrompt } = await req.json();
+    const { action, topic, category, customPrompt, message, history, count } = await req.json();
     console.log("AI Notification Assistant request:", { action, topic, category });
 
     if (action === 'getTemplates') {
-      // Return all premium templates
       return new Response(JSON.stringify({ templates: notificationTemplates }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    if (action === 'generateEmails') {
+      const emailCount = Math.min(count || 100, 500);
+      const emails: string[] = [];
+      const usedEmails = new Set<string>();
+      
+      while (emails.length < emailCount) {
+        const email = generateRandomEmail();
+        if (!usedEmails.has(email)) {
+          usedEmails.add(email);
+          emails.push(email);
+        }
+      }
+      
+      return new Response(JSON.stringify({ emails }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'chat') {
+      const systemPrompt = `You are a helpful AI assistant for creating push notifications for an e-commerce store called CARTSWIFT.
+
+Your job is to:
+1. Understand what kind of notification the user wants
+2. Create engaging, concise notification content
+3. Keep titles under 50 characters and body under 100 characters
+4. Use appropriate emojis
+5. Make content feel urgent but not spammy
+
+When you create a notification, ALWAYS include it in your response using this exact JSON format at the END of your message:
+---NOTIFICATION---
+{"title": "Your Title Here", "body": "Your message here", "icon_emoji": "🔔"}
+---END---
+
+Be conversational and helpful. Ask clarifying questions if needed.`;
+
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...(history || []),
+        { role: "user", content: message }
+      ];
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Chat error:", response.status, errorText);
+        throw new Error(`Chat failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      let responseText = data.choices?.[0]?.message?.content || "I couldn't generate a response.";
+      
+      // Extract notification if present
+      let notification = null;
+      const notificationMatch = responseText.match(/---NOTIFICATION---\s*([\s\S]*?)\s*---END---/);
+      if (notificationMatch) {
+        try {
+          notification = JSON.parse(notificationMatch[1].trim());
+          responseText = responseText.replace(/---NOTIFICATION---[\s\S]*?---END---/, '').trim();
+        } catch (e) {
+          console.error("Failed to parse notification:", e);
+        }
+      }
+
+      return new Response(JSON.stringify({ response: responseText, notification }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'generateImage') {
-      // Generate notification image using Gemini image model
       const imagePrompt = customPrompt || `Create a professional, eye-catching notification banner image for: ${topic}. Style: modern, clean, vibrant colors, suitable for mobile push notification. No text in the image, just visual elements.`;
       
       console.log("Generating image with prompt:", imagePrompt);
@@ -125,7 +220,6 @@ serve(async (req) => {
     }
 
     if (action === 'suggest') {
-      // Generate AI suggestions based on topic
       const systemPrompt = `You are a professional push notification copywriter for an e-commerce store called CARTSWIFT. 
 Generate engaging, concise push notification content that drives user engagement and clicks.
 Keep titles under 50 characters and body under 100 characters.
@@ -201,7 +295,6 @@ Return as JSON array with objects containing: title, body, icon_emoji`;
       const data = await response.json();
       console.log("AI response:", JSON.stringify(data));
       
-      // Extract suggestions from tool call
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       let suggestions = [];
       
