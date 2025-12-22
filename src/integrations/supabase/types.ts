@@ -1098,6 +1098,63 @@ export type Database = {
         }
         Relationships: []
       }
+      site_visitors: {
+        Row: {
+          browser: string | null
+          city: string | null
+          consent_given_at: string | null
+          cookie_consent_given: boolean | null
+          country: string | null
+          device_type: string | null
+          first_visit: string
+          id: string
+          language: string | null
+          last_visit: string
+          operating_system: string | null
+          referrer: string | null
+          screen_resolution: string | null
+          user_agent: string | null
+          visit_count: number
+          visitor_id: string
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          consent_given_at?: string | null
+          cookie_consent_given?: boolean | null
+          country?: string | null
+          device_type?: string | null
+          first_visit?: string
+          id?: string
+          language?: string | null
+          last_visit?: string
+          operating_system?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          user_agent?: string | null
+          visit_count?: number
+          visitor_id: string
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          consent_given_at?: string | null
+          cookie_consent_given?: boolean | null
+          country?: string | null
+          device_type?: string | null
+          first_visit?: string
+          id?: string
+          language?: string | null
+          last_visit?: string
+          operating_system?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          user_agent?: string | null
+          visit_count?: number
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       social_shares: {
         Row: {
           created_at: string
