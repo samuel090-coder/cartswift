@@ -208,35 +208,33 @@ export const MarketAdvert = () => {
     }
 
     const { subject, body } = getEmailContent();
-    const bcc = selectedEmails.join(',');
-    
-    // Create Gmail compose URL
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(bcc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    // Open in new window/tab with specific dimensions for better compatibility
-    const newWindow = window.open(gmailUrl, '_blank', 'noopener,noreferrer');
-    
-    if (!newWindow) {
-      // If popup was blocked, try direct navigation
-      toast({ 
-        title: 'Popup Blocked', 
-        description: 'Please allow popups or click the link below',
-        variant: 'destructive'
-      });
-      // Fallback: create a clickable link
-      const link = document.createElement('a');
-      link.href = gmailUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      toast({ 
-        title: 'Gmail Opened!', 
-        description: 'Complete sending in the Gmail tab' 
-      });
+
+    // Gmail compose behaves more reliably when `to` is present.
+    // We'll put the first recipient in `to`, and the rest in `bcc`.
+    const [firstTo, ...restBcc] = selectedEmails;
+
+    const params = new URLSearchParams({
+      view: 'cm',
+      fs: '1',
+      to: firstTo,
+      su: subject,
+      body,
+    });
+
+    if (restBcc.length > 0) params.set('bcc', restBcc.join(','));
+
+    const gmailUrl = `https://mail.google.com/mail/?${params.toString()}`;
+
+    // Prefer a new tab, but if blocked (or fails), fall back to same-tab navigation.
+    const opened = window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      window.location.assign(gmailUrl);
     }
+
+    toast({
+      title: 'Gmail opened',
+      description: 'Review the draft and click Send in Gmail.',
+    });
   };
 
   return (

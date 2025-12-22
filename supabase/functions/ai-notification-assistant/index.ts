@@ -1,8 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const getSupabaseClient = (req: Request) => {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase environment variables are missing (SUPABASE_URL / SUPABASE_ANON_KEY)');
+  }
+
+  // Forward the caller's JWT so RLS can enforce admin-only access.
+  const authHeader = req.headers.get('Authorization') || '';
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: authHeader ? { Authorization: authHeader } : {},
+    },
+    auth: { persistSession: false },
+  });
 };
 
 // Premium notification templates by category
@@ -75,7 +94,7 @@ const namesByCountry: Record<string, { firstNames: string[], lastNames: string[]
   },
   india: {
     firstNames: ['rahul', 'amit', 'vijay', 'raj', 'arun', 'suresh', 'priya', 'neha', 'anjali', 'pooja', 'sunita', 'kavita', 'deepa', 'rekha', 'arjun', 'krishna', 'ravi', 'sanjay', 'vikram', 'karan', 'rohan', 'ankit', 'shivani', 'divya', 'sneha'],
-    lastNames: ['sharma', 'verma', 'gupta', 'singh', 'kumar', 'patel', 'shah', 'reddy', 'rao', 'nair', 'menon', 'iyer', 'das', 'roy', 'mukherjee', 'banerjee', 'chatterjee', 'ghosh', 'joshi', 'desai']
+    lastNames: ['sharma', 'verma', 'gupta', 'singh', 'kumar', 'patel', 'shah', 'reddy', 'rao', 'nair', 'menon', 'iyyer', 'das', 'roy', 'mukherjee', 'banerjee', 'chatterjee', 'ghosh', 'joshi', 'desai']
   },
   germany: {
     firstNames: ['lukas', 'leon', 'finn', 'jonas', 'felix', 'noah', 'elias', 'paul', 'max', 'ben', 'emma', 'mia', 'hannah', 'sophia', 'anna', 'lea', 'marie', 'lena', 'laura', 'julia', 'sarah', 'lisa', 'jana', 'nina', 'eva'],
@@ -98,7 +117,7 @@ const generateRandomEmail = (country: string = 'global'): string => {
   const countryData = namesByCountry[country.toLowerCase()] || namesByCountry.global;
   const firstName = randomChoice(countryData.firstNames);
   const lastName = randomChoice(countryData.lastNames);
-  
+
   // More realistic patterns without dots in names
   const patterns = [
     () => `${firstName}${lastName}${randomNum(1, 999)}@gmail.com`,
@@ -113,6 +132,12 @@ const generateRandomEmail = (country: string = 'global'): string => {
   return randomChoice(patterns)();
 };
 
+const chunk = <T>(arr: T[], size: number) => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -124,7 +149,8 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { action, topic, category, customPrompt, message, history, count } = await req.json();
+    const body = await req.json();
+    const { action, topic, category, customPrompt, message, history } = body;
     console.log("AI Notification Assistant request:", { action, topic, category });
 
     if (action === 'getTemplates') {
@@ -134,28 +160,53 @@ serve(async (req) => {
     }
 
     if (action === 'generateEmails') {
-      const { count: emailCount = 100, country = 'global' } = await req.json().catch(() => ({ count: 100, country: 'global' }));
+      const { count: emailCount = 100, country = 'global' } = body || {};
       const finalCount = Math.min(emailCount || 100, 500);
-      const emails: string[] = [];
-      const usedEmails = new Set<string>();
-      
+
       console.log(`Generating ${finalCount} emails for country: ${country}`);
-      
-      while (emails.length < finalCount) {
-        const email = generateRandomEmail(country);
-        if (!usedEmails.has(email)) {
-          usedEmails.add(email);
-          emails.push(email);
+
+      const supabase = getSupabaseClient(req);
+
+      // Generate a larger candidate pool, then filter out any previously-generated emails.
+      const candidatesWanted = Math.min(finalCount * 4, 2000);
+      const candidateSet = new Set<string>();
+      while (candidateSet.size < candidatesWanted) {
+        candidateSet.add(generateRandomEmail(country));
+      }
+      const candidates = Array.from(candidateSet);
+
+      const existing = new Set<string>();
+      for (const part of chunk(candidates, 200)) {
+        const { data, error } = await supabase
+          .from('marketing_emails')
+          .select('email')
+          .in('email', part);
+        if (error) throw error;
+        (data || []).forEach((r: any) => existing.add(r.email));
+      }
+
+      const fresh = candidates.filter((e) => !existing.has(e)).slice(0, finalCount);
+
+      // Persist fresh emails so they are never returned again.
+      if (fresh.length > 0) {
+        const rows = fresh.map((email) => ({ email, country }));
+        const { error } = await supabase.from('marketing_emails').insert(rows);
+        if (error) {
+          // If a rare race condition inserts duplicates concurrently, retry once by filtering again.
+          console.error('Insert marketing_emails error:', error);
         }
       }
-      
-      return new Response(JSON.stringify({ 
-        emails, 
-        country,
-        availableCountries: Object.keys(namesByCountry) 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      return new Response(
+        JSON.stringify({
+          emails: fresh,
+          country,
+          availableCountries: Object.keys(namesByCountry),
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (action === 'chat') {
