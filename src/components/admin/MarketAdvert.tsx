@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -21,8 +22,19 @@ import {
   Sparkles,
   FileText,
   Users,
-  ExternalLink
+  ExternalLink,
+  Globe
 } from 'lucide-react';
+
+const countries = [
+  { value: 'global', label: '🌍 Global Mix' },
+  { value: 'usa', label: '🇺🇸 United States' },
+  { value: 'uk', label: '🇬🇧 United Kingdom' },
+  { value: 'nigeria', label: '🇳🇬 Nigeria' },
+  { value: 'india', label: '🇮🇳 India' },
+  { value: 'germany', label: '🇩🇪 Germany' },
+  { value: 'brazil', label: '🇧🇷 Brazil' },
+];
 
 // Marketing email templates
 const emailTemplates = [
@@ -126,6 +138,7 @@ CARTSWIFT Team`
 
 export const MarketAdvert = () => {
   const [emailCount, setEmailCount] = useState(100);
+  const [selectedCountry, setSelectedCountry] = useState('global');
   const [generatedEmails, setGeneratedEmails] = useState<string[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState(emailTemplates[0]);
@@ -136,11 +149,12 @@ export const MarketAdvert = () => {
 
   // Generate random Gmail addresses using AI
   const generateEmailsMutation = useMutation({
-    mutationFn: async (count: number) => {
+    mutationFn: async ({ count, country }: { count: number; country: string }) => {
       const { data, error } = await supabase.functions.invoke('ai-notification-assistant', {
         body: { 
           action: 'generateEmails',
-          count: Math.min(count, 500) // Limit to 500
+          count: Math.min(count, 500),
+          country
         },
       });
       if (error) throw error;
@@ -149,7 +163,7 @@ export const MarketAdvert = () => {
     onSuccess: (emails) => {
       setGeneratedEmails(emails);
       setSelectedEmails([]);
-      toast({ title: 'Emails Generated', description: `${emails.length} email addresses generated!` });
+      toast({ title: 'Emails Generated', description: `${emails.length} realistic email addresses generated!` });
     },
     onError: (error: any) => {
       toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' });
@@ -195,8 +209,34 @@ export const MarketAdvert = () => {
 
     const { subject, body } = getEmailContent();
     const bcc = selectedEmails.join(',');
+    
+    // Create Gmail compose URL
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(bcc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(gmailUrl, '_blank');
+    
+    // Open in new window/tab with specific dimensions for better compatibility
+    const newWindow = window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+    
+    if (!newWindow) {
+      // If popup was blocked, try direct navigation
+      toast({ 
+        title: 'Popup Blocked', 
+        description: 'Please allow popups or click the link below',
+        variant: 'destructive'
+      });
+      // Fallback: create a clickable link
+      const link = document.createElement('a');
+      link.href = gmailUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      toast({ 
+        title: 'Gmail Opened!', 
+        description: 'Complete sending in the Gmail tab' 
+      });
+    }
   };
 
   return (
@@ -238,8 +278,26 @@ export const MarketAdvert = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4 items-end">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Target Country
+                  </Label>
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Number of Emails (max 500)</Label>
                   <Input
                     type="number"
@@ -250,7 +308,7 @@ export const MarketAdvert = () => {
                   />
                 </div>
                 <Button
-                  onClick={() => generateEmailsMutation.mutate(emailCount)}
+                  onClick={() => generateEmailsMutation.mutate({ count: emailCount, country: selectedCountry })}
                   disabled={generateEmailsMutation.isPending}
                   className="gap-2"
                 >

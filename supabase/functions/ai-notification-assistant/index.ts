@@ -59,23 +59,59 @@ const notificationTemplates = {
   ],
 };
 
-// Common first names for email generation
-const firstNames = ['james', 'john', 'robert', 'michael', 'david', 'william', 'richard', 'joseph', 'thomas', 'charles', 'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen', 'alex', 'chris', 'sam', 'jordan', 'taylor', 'casey', 'morgan', 'riley', 'drew', 'jamie', 'max', 'leo', 'emma', 'olivia', 'ava', 'sophia', 'mia', 'luna', 'chloe', 'ella'];
-const lastNames = ['smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis', 'rodriguez', 'martinez', 'wilson', 'anderson', 'thomas', 'taylor', 'moore', 'jackson', 'martin', 'lee', 'perez', 'white', 'harris', 'clark', 'lewis', 'walker', 'hall', 'allen', 'young', 'king', 'wright', 'scott'];
-
-const generateRandomEmail = (): string => {
-  const patterns = [
-    () => `${randomChoice(firstNames)}${randomChoice(lastNames)}${randomNum(100, 9999)}@gmail.com`,
-    () => `${randomChoice(firstNames)}.${randomChoice(lastNames)}${randomNum(1, 99)}@gmail.com`,
-    () => `${randomChoice(firstNames)}${randomNum(1990, 2005)}@gmail.com`,
-    () => `${randomChoice(lastNames)}.${randomChoice(firstNames)}${randomNum(1, 999)}@gmail.com`,
-    () => `${randomChoice(firstNames)[0]}${randomChoice(lastNames)}${randomNum(10, 9999)}@gmail.com`,
-  ];
-  return randomChoice(patterns)();
+// Country-based name data for realistic email generation
+const namesByCountry: Record<string, { firstNames: string[], lastNames: string[] }> = {
+  usa: {
+    firstNames: ['james', 'john', 'michael', 'david', 'william', 'joseph', 'charles', 'emma', 'olivia', 'sophia', 'ava', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'mason', 'liam', 'noah', 'ethan', 'lucas', 'aiden', 'jackson', 'logan', 'sebastian', 'caleb', 'benjamin', 'henry', 'alexander', 'daniel'],
+    lastNames: ['smith', 'johnson', 'williams', 'brown', 'jones', 'miller', 'davis', 'wilson', 'anderson', 'taylor', 'thomas', 'moore', 'martin', 'jackson', 'white', 'harris', 'clark', 'lewis', 'walker', 'hall']
+  },
+  uk: {
+    firstNames: ['oliver', 'george', 'harry', 'jack', 'charlie', 'thomas', 'jacob', 'alfie', 'oscar', 'james', 'amelia', 'isla', 'ava', 'emily', 'isabella', 'mia', 'poppy', 'ella', 'lily', 'grace', 'sophie', 'evie', 'scarlett', 'freya', 'chloe'],
+    lastNames: ['smith', 'jones', 'taylor', 'brown', 'williams', 'wilson', 'johnson', 'davies', 'robinson', 'wright', 'thompson', 'evans', 'walker', 'white', 'roberts', 'green', 'hall', 'wood', 'jackson', 'clarke']
+  },
+  nigeria: {
+    firstNames: ['chinedu', 'oluwaseun', 'emeka', 'adebayo', 'tunde', 'chioma', 'ngozi', 'funke', 'aisha', 'fatima', 'yusuf', 'ibrahim', 'musa', 'abdul', 'blessing', 'grace', 'peace', 'faith', 'joy', 'victor', 'emmanuel', 'samuel', 'daniel', 'david', 'peter', 'paul', 'mary', 'esther', 'ruth', 'deborah'],
+    lastNames: ['okonkwo', 'adeyemi', 'okafor', 'ibrahim', 'mohammed', 'abubakar', 'musa', 'suleiman', 'bello', 'usman', 'adebayo', 'olawale', 'ogundimu', 'eze', 'nnamdi', 'chukwu', 'igwe', 'okoro', 'nwosu', 'obiora']
+  },
+  india: {
+    firstNames: ['rahul', 'amit', 'vijay', 'raj', 'arun', 'suresh', 'priya', 'neha', 'anjali', 'pooja', 'sunita', 'kavita', 'deepa', 'rekha', 'arjun', 'krishna', 'ravi', 'sanjay', 'vikram', 'karan', 'rohan', 'ankit', 'shivani', 'divya', 'sneha'],
+    lastNames: ['sharma', 'verma', 'gupta', 'singh', 'kumar', 'patel', 'shah', 'reddy', 'rao', 'nair', 'menon', 'iyer', 'das', 'roy', 'mukherjee', 'banerjee', 'chatterjee', 'ghosh', 'joshi', 'desai']
+  },
+  germany: {
+    firstNames: ['lukas', 'leon', 'finn', 'jonas', 'felix', 'noah', 'elias', 'paul', 'max', 'ben', 'emma', 'mia', 'hannah', 'sophia', 'anna', 'lea', 'marie', 'lena', 'laura', 'julia', 'sarah', 'lisa', 'jana', 'nina', 'eva'],
+    lastNames: ['muller', 'schmidt', 'schneider', 'fischer', 'weber', 'meyer', 'wagner', 'becker', 'schulz', 'hoffmann', 'koch', 'richter', 'klein', 'wolf', 'schroder', 'neumann', 'schwarz', 'braun', 'hofmann', 'zimmermann']
+  },
+  brazil: {
+    firstNames: ['lucas', 'pedro', 'gabriel', 'rafael', 'mateus', 'gustavo', 'felipe', 'bruno', 'thiago', 'diego', 'ana', 'julia', 'beatriz', 'maria', 'larissa', 'camila', 'fernanda', 'isabela', 'leticia', 'carolina', 'paula', 'bruna', 'amanda', 'jessica', 'natalia'],
+    lastNames: ['silva', 'santos', 'oliveira', 'souza', 'rodrigues', 'ferreira', 'alves', 'pereira', 'lima', 'gomes', 'costa', 'ribeiro', 'martins', 'carvalho', 'almeida', 'lopes', 'soares', 'fernandes', 'vieira', 'barbosa']
+  },
+  global: {
+    firstNames: ['alex', 'sam', 'chris', 'jordan', 'taylor', 'jamie', 'morgan', 'casey', 'riley', 'drew', 'max', 'leo', 'sky', 'kai', 'avery', 'blake', 'cameron', 'dakota', 'eden', 'finley', 'hayden', 'jesse', 'kendall', 'logan', 'parker', 'quinn', 'reese', 'sage', 'sydney', 'terry'],
+    lastNames: ['wilson', 'moore', 'clark', 'king', 'wright', 'hill', 'scott', 'green', 'adams', 'baker', 'nelson', 'carter', 'mitchell', 'perez', 'roberts', 'turner', 'phillips', 'campbell', 'parker', 'evans']
+  }
 };
 
 const randomChoice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const randomNum = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
+
+const generateRandomEmail = (country: string = 'global'): string => {
+  const countryData = namesByCountry[country.toLowerCase()] || namesByCountry.global;
+  const firstName = randomChoice(countryData.firstNames);
+  const lastName = randomChoice(countryData.lastNames);
+  
+  // More realistic patterns without dots in names
+  const patterns = [
+    () => `${firstName}${lastName}${randomNum(1, 999)}@gmail.com`,
+    () => `${firstName}${randomNum(1985, 2005)}@gmail.com`,
+    () => `${lastName}${firstName}${randomNum(1, 99)}@gmail.com`,
+    () => `${firstName[0]}${lastName}${randomNum(10, 9999)}@gmail.com`,
+    () => `${firstName}${randomNum(100, 9999)}@gmail.com`,
+    () => `${firstName}_${lastName}${randomNum(1, 99)}@gmail.com`,
+    () => `${lastName}${randomNum(1990, 2006)}@gmail.com`,
+    () => `${firstName}${lastName[0]}${randomNum(1, 999)}@gmail.com`,
+  ];
+  return randomChoice(patterns)();
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -98,19 +134,26 @@ serve(async (req) => {
     }
 
     if (action === 'generateEmails') {
-      const emailCount = Math.min(count || 100, 500);
+      const { count: emailCount = 100, country = 'global' } = await req.json().catch(() => ({ count: 100, country: 'global' }));
+      const finalCount = Math.min(emailCount || 100, 500);
       const emails: string[] = [];
       const usedEmails = new Set<string>();
       
-      while (emails.length < emailCount) {
-        const email = generateRandomEmail();
+      console.log(`Generating ${finalCount} emails for country: ${country}`);
+      
+      while (emails.length < finalCount) {
+        const email = generateRandomEmail(country);
         if (!usedEmails.has(email)) {
           usedEmails.add(email);
           emails.push(email);
         }
       }
       
-      return new Response(JSON.stringify({ emails }), {
+      return new Response(JSON.stringify({ 
+        emails, 
+        country,
+        availableCountries: Object.keys(namesByCountry) 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
