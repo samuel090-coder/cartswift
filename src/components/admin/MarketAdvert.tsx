@@ -288,13 +288,13 @@ export const MarketAdvert = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Number of Emails (max 500)</Label>
+                  <Label>Number of Emails (max 5000)</Label>
                   <Input
                     type="number"
-                    min={10}
-                    max={500}
+                    min={100}
+                    max={5000}
                     value={emailCount}
-                    onChange={(e) => setEmailCount(Math.min(500, Math.max(10, parseInt(e.target.value) || 100)))}
+                    onChange={(e) => setEmailCount(Math.min(5000, Math.max(100, parseInt(e.target.value) || 1000)))}
                   />
                 </div>
                 <Button
