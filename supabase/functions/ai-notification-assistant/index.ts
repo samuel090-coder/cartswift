@@ -341,14 +341,36 @@ Be conversational and helpful. Ask clarifying questions if needed.`;
       }
 
       const imageData = await imageResponse.json();
-      console.log("Image response received");
+      console.log("Image response received:", JSON.stringify(imageData).substring(0, 500));
       
-      const generatedImage = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      // Check multiple possible paths for the generated image
+      let generatedImage = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      // Alternative path: direct image_url in message
+      if (!generatedImage) {
+        generatedImage = imageData.choices?.[0]?.message?.image_url?.url;
+      }
+      
+      // Alternative: images array at top level of message
+      if (!generatedImage && imageData.choices?.[0]?.message?.images?.length > 0) {
+        const img = imageData.choices[0].message.images[0];
+        generatedImage = typeof img === 'string' ? img : img?.url || img?.image_url?.url;
+      }
+      
+      // Alternative: content contains base64 image
+      if (!generatedImage) {
+        const content = imageData.choices?.[0]?.message?.content;
+        if (typeof content === 'string' && content.startsWith('data:image')) {
+          generatedImage = content;
+        }
+      }
+      
+      console.log("Extracted image URL:", generatedImage ? "Found (length: " + generatedImage.length + ")" : "Not found");
       
       return new Response(JSON.stringify({ 
         success: true,
         imageUrl: generatedImage || null,
-        message: generatedImage ? "Image generated successfully" : "No image generated"
+        message: generatedImage ? "Image generated successfully" : "No image in response"
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
