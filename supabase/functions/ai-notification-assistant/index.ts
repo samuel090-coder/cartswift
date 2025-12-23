@@ -190,10 +190,14 @@ serve(async (req) => {
       // Persist fresh emails so they are never returned again.
       if (fresh.length > 0) {
         const rows = fresh.map((email) => ({ email, country }));
-        const { error } = await supabase.from('marketing_emails').insert(rows);
+        const { error } = await supabase
+          .from('marketing_emails')
+          .upsert(rows, { onConflict: 'email', ignoreDuplicates: true });
+
+        // If this fails (usually admin auth/RLS), we must surface it; otherwise duplicates can reappear.
         if (error) {
-          // If a rare race condition inserts duplicates concurrently, retry once by filtering again.
-          console.error('Insert marketing_emails error:', error);
+          console.error('Upsert marketing_emails error:', error);
+          throw error;
         }
       }
 
