@@ -98,9 +98,10 @@ const Index = () => {
       <SEOHead 
         title="CartSwift - Fast & Reliable Online Shopping | Fashion, Books, Tools & More"
         description="Shop the latest products at CartSwift with viral deals, trending items, and rewards program. Browse fashion, books, tools, vehicles and more with secure checkout."
-        keywords="online shopping, fashion, books, tools, vehicles, fast delivery, secure checkout, deals, trending, rewards, referrals"
+        keywords="online shopping, fashion, books, tools, vehicles, fast delivery, secure checkout, deals, trending, rewards, referrals, CartSwift, e-commerce, digital products"
         canonical="https://cartswift.lovable.app/"
         structured_data={structuredData}
+        products={allItems}
       />
       <Header />
       <PromoBanner />

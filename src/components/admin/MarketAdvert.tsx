@@ -146,7 +146,7 @@ export const MarketAdvert = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(emailTemplates[0]);
   const [customSubject, setCustomSubject] = useState('');
   const [customBody, setCustomBody] = useState('');
-  const [siteUrl, setSiteUrl] = useState('');
+  const [siteUrl, setSiteUrl] = useState('https://cartswift.lovable.app');
   const [copied, setCopied] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
@@ -253,7 +253,7 @@ export const MarketAdvert = () => {
   const getEmailContent = () => {
     const subject = customSubject || selectedTemplate.subject;
     let body = customBody || selectedTemplate.body;
-    body = body.replace(/\[YOUR_SITE_URL\]/g, siteUrl || 'https://yoursite.com');
+    body = body.replace(/\[YOUR_SITE_URL\]/g, siteUrl || 'https://cartswift.lovable.app');
     return { subject, body };
   };
 
