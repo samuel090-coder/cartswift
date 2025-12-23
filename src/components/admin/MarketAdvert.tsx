@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,7 +23,9 @@ import {
   FileText,
   Users,
   ExternalLink,
-  Globe
+  Globe,
+  Upload,
+  X
 } from 'lucide-react';
 
 const countries = [
@@ -137,7 +139,7 @@ CARTSWIFT Team`
 ];
 
 export const MarketAdvert = () => {
-  const [emailCount, setEmailCount] = useState(100);
+  const [emailCount, setEmailCount] = useState(1000);
   const [selectedCountry, setSelectedCountry] = useState('global');
   const [generatedEmails, setGeneratedEmails] = useState<string[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
@@ -146,6 +148,9 @@ export const MarketAdvert = () => {
   const [customBody, setCustomBody] = useState('');
   const [siteUrl, setSiteUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Generate random Gmail addresses using AI
   const generateEmailsMutation = useMutation({
@@ -169,6 +174,65 @@ export const MarketAdvert = () => {
       toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' });
     },
   });
+
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsProcessingFiles(true);
+    const newFiles = Array.from(files);
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+
+    const allEmails: string[] = [...generatedEmails];
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+    for (const file of newFiles) {
+      try {
+        const text = await file.text();
+        const foundEmails = text.match(emailRegex) || [];
+        // Filter unique emails
+        foundEmails.forEach(email => {
+          const lowerEmail = email.toLowerCase();
+          if (!allEmails.includes(lowerEmail)) {
+            allEmails.push(lowerEmail);
+          }
+        });
+      } catch (error) {
+        console.error(`Error reading file ${file.name}:`, error);
+        toast({ 
+          title: 'File Read Error', 
+          description: `Could not read ${file.name}`, 
+          variant: 'destructive' 
+        });
+      }
+    }
+
+    setGeneratedEmails(allEmails);
+    setIsProcessingFiles(false);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    const newCount = allEmails.length - generatedEmails.length;
+    toast({ 
+      title: 'Files Processed', 
+      description: `Found ${newCount} new email addresses from ${newFiles.length} file(s). Total: ${allEmails.length}` 
+    });
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearAllEmails = () => {
+    setGeneratedEmails([]);
+    setSelectedEmails([]);
+    setUploadedFiles([]);
+    toast({ title: 'Cleared', description: 'All emails have been cleared' });
+  };
 
   const handleSelectAll = () => {
     if (selectedEmails.length === generatedEmails.length) {
@@ -309,6 +373,68 @@ export const MarketAdvert = () => {
                   )}
                   Generate Emails
                 </Button>
+              </div>
+
+              {/* File Upload Section */}
+              <div className="border-t pt-4">
+                <Label className="flex items-center gap-2 mb-2">
+                  <Upload className="h-4 w-4" />
+                  Or Upload Email Files
+                </Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Upload .txt or .csv files containing email addresses. Multiple files supported.
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.csv,.text"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isProcessingFiles}
+                    className="gap-2"
+                  >
+                    {isProcessingFiles ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Choose Files
+                  </Button>
+                  {generatedEmails.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearAllEmails}
+                      className="text-destructive hover:text-destructive gap-1"
+                    >
+                      <X className="h-4 w-4" />
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {uploadedFiles.map((file, index) => (
+                      <Badge key={index} variant="secondary" className="gap-1">
+                        <FileText className="h-3 w-3" />
+                        {file.name}
+                        <button
+                          onClick={() => handleRemoveFile(index)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {generatedEmails.length > 0 && (
