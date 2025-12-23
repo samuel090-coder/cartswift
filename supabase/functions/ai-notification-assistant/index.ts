@@ -117,18 +117,55 @@ const generateRandomEmail = (country: string = 'global'): string => {
   const countryData = namesByCountry[country.toLowerCase()] || namesByCountry.global;
   const firstName = randomChoice(countryData.firstNames);
   const lastName = randomChoice(countryData.lastNames);
-
-  // More realistic patterns without dots in names
-  const patterns = [
-    () => `${firstName}${lastName}${randomNum(1, 999)}@gmail.com`,
-    () => `${firstName}${randomNum(1985, 2005)}@gmail.com`,
-    () => `${lastName}${firstName}${randomNum(1, 99)}@gmail.com`,
-    () => `${firstName[0]}${lastName}${randomNum(10, 9999)}@gmail.com`,
-    () => `${firstName}${randomNum(100, 9999)}@gmail.com`,
-    () => `${firstName}_${lastName}${randomNum(1, 99)}@gmail.com`,
-    () => `${lastName}${randomNum(1990, 2006)}@gmail.com`,
-    () => `${firstName}${lastName[0]}${randomNum(1, 999)}@gmail.com`,
+  
+  // More realistic year suffixes (birth years, graduation years)
+  const yearSuffixes = [
+    () => String(randomNum(85, 99)), // 85-99 (birth years 1985-1999)
+    () => '0' + randomNum(0, 9), // 00-09 (birth years 2000-2009)
+    () => String(randomNum(10, 24)), // 10-24 (recent years)
+    () => String(randomNum(1985, 2005)), // Full birth year
   ];
+  
+  const getYear = () => randomChoice(yearSuffixes)();
+
+  // More realistic, human-like email patterns (like samuelsunday1234, jamesandrill)
+  const patterns = [
+    // firstname + lastname (most common)
+    () => `${firstName}${lastName}@gmail.com`,
+    // firstname + lastname + small number
+    () => `${firstName}${lastName}${randomNum(1, 99)}@gmail.com`,
+    // firstname + lastname + 3-4 digits (very common)
+    () => `${firstName}${lastName}${randomNum(100, 9999)}@gmail.com`,
+    // firstname + lastname + year
+    () => `${firstName}${lastName}${getYear()}@gmail.com`,
+    // lastname + firstname 
+    () => `${lastName}${firstName}@gmail.com`,
+    // lastname + firstname + digits
+    () => `${lastName}${firstName}${randomNum(1, 999)}@gmail.com`,
+    // firstname only + year (very common pattern)
+    () => `${firstName}${getYear()}@gmail.com`,
+    // firstname + digits (common)
+    () => `${firstName}${randomNum(1, 9999)}@gmail.com`,
+    // firstname + firstname (double name like jamesdavid)
+    () => `${firstName}${randomChoice(countryData.firstNames)}@gmail.com`,
+    // firstname + firstname + digits
+    () => `${firstName}${randomChoice(countryData.firstNames)}${randomNum(1, 999)}@gmail.com`,
+    // initial + lastname + digits
+    () => `${firstName[0]}${lastName}${randomNum(1, 999)}@gmail.com`,
+    // firstname underscore lastname (occasional)
+    () => `${firstName}_${lastName}@gmail.com`,
+    // firstname underscore lastname + digits
+    () => `${firstName}_${lastName}${randomNum(1, 99)}@gmail.com`,
+    // the + firstname + lastname (like thejamessmith)
+    () => `the${firstName}${lastName}@gmail.com`,
+    // firstname + lastname initial + digits
+    () => `${firstName}${lastName[0]}${randomNum(1, 999)}@gmail.com`,
+    // real + firstname (like realjames)
+    () => `real${firstName}${randomNum(1, 99)}@gmail.com`,
+    // firstname + official
+    () => `${firstName}official${randomNum(1, 99)}@gmail.com`,
+  ];
+  
   return randomChoice(patterns)();
 };
 
@@ -160,15 +197,15 @@ serve(async (req) => {
     }
 
     if (action === 'generateEmails') {
-      const { count: emailCount = 100, country = 'global' } = body || {};
-      const finalCount = Math.min(emailCount || 100, 500);
+      const { count: emailCount = 1000, country = 'global' } = body || {};
+      const finalCount = Math.min(emailCount || 1000, 5000);
 
       console.log(`Generating ${finalCount} emails for country: ${country}`);
 
       const supabase = getSupabaseClient(req);
 
       // Generate a larger candidate pool, then filter out any previously-generated emails.
-      const candidatesWanted = Math.min(finalCount * 4, 2000);
+      const candidatesWanted = Math.min(finalCount * 4, 20000);
       const candidateSet = new Set<string>();
       while (candidateSet.size < candidatesWanted) {
         candidateSet.add(generateRandomEmail(country));
