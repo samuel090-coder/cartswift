@@ -2,20 +2,57 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://cartswift.lovable.app/</loc>
-    <lastmod>2025-01-05</lastmod>
+    <lastmod>2025-12-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://cartswift.lovable.app/cart</loc>
-    <lastmod>2025-01-05</lastmod>
+    <lastmod>2025-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://cartswift.lovable.app/checkout</loc>
-    <lastmod>2025-01-05</lastmod>
+    <lastmod>2025-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://cartswift.lovable.app/orders</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <!-- Category Pages for SEO -->
+  <url>
+    <loc>https://cartswift.lovable.app/?category=Fashion</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://cartswift.lovable.app/?category=Books</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://cartswift.lovable.app/?category=Tools</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://cartswift.lovable.app/?category=Vehicles</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://cartswift.lovable.app/?category=Animals</loc>
+    <lastmod>2025-12-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
 </urlset>
