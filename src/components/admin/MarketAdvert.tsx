@@ -209,31 +209,23 @@ export const MarketAdvert = () => {
 
     const { subject, body } = getEmailContent();
 
-    // Gmail compose behaves more reliably when `to` is present.
-    // We'll put the first recipient in `to`, and the rest in `bcc`.
+    // On mobile, `mailto:` triggers the native app chooser (as in your screenshot).
+    // We put one recipient in `to` and the rest in `bcc`.
     const [firstTo, ...restBcc] = selectedEmails;
 
-    const params = new URLSearchParams({
-      view: 'cm',
-      fs: '1',
-      to: firstTo,
-      su: subject,
-      body,
-    });
-
+    const params = new URLSearchParams();
+    params.set('subject', subject);
+    params.set('body', body);
     if (restBcc.length > 0) params.set('bcc', restBcc.join(','));
 
-    const gmailUrl = `https://mail.google.com/mail/?${params.toString()}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(firstTo)}?${params.toString()}`;
 
-    // Prefer a new tab, but if blocked (or fails), fall back to same-tab navigation.
-    const opened = window.open(gmailUrl, '_blank', 'noopener,noreferrer');
-    if (!opened) {
-      window.location.assign(gmailUrl);
-    }
+    // Use same-tab navigation for best compatibility with native email apps.
+    window.location.href = mailtoUrl;
 
     toast({
-      title: 'Gmail opened',
-      description: 'Review the draft and click Send in Gmail.',
+      title: 'Opening email app…',
+      description: 'Choose Gmail (or any mail app), review, then tap Send.',
     });
   };
 
