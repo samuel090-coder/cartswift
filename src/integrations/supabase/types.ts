@@ -913,6 +913,72 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_seller: boolean | null
+          phone: string | null
+          seller_rating: number | null
+          seller_verified: boolean | null
+          store_description: string | null
+          store_logo_url: string | null
+          store_name: string | null
+          total_sales: number | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          is_seller?: boolean | null
+          phone?: string | null
+          seller_rating?: number | null
+          seller_verified?: boolean | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          total_sales?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_seller?: boolean | null
+          phone?: string | null
+          seller_rating?: number | null
+          seller_verified?: boolean | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          total_sales?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1214,6 +1280,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       wishlists: {
         Row: {
           created_at: string
@@ -1249,6 +1336,13 @@ export type Database = {
     }
     Functions: {
       generate_download_token: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin_user: { Args: { user_uuid: string }; Returns: boolean }
     }
     Enums: {
@@ -1267,6 +1361,7 @@ export type Database = {
         | "gift_card"
         | "cash_app"
         | "crypto_eth"
+      user_role: "buyer" | "seller" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1411,6 +1506,7 @@ export const Constants = {
         "cash_app",
         "crypto_eth",
       ],
+      user_role: ["buyer", "seller", "admin"],
     },
   },
 } as const

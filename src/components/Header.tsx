@@ -1,11 +1,27 @@
 
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Settings, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const Header = () => {
   const { itemCount } = useCart();
+  const { user, profile, signOut, loading } = useAuth();
+
+  const getInitials = (name: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-white/20 sticky top-0 z-40 mt-16">
@@ -15,7 +31,8 @@ const Header = () => {
             CARTSWIFT
           </Link>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            {/* Cart Button */}
             <Link to="/cart">
               <Button variant="outline" className="relative bg-white/80 backdrop-blur-sm hover:bg-white/90">
                 <ShoppingCart className="h-5 w-5" />
@@ -26,6 +43,67 @@ const Header = () => {
                 )}
               </Button>
             </Link>
+
+            {/* Auth Section */}
+            {!loading && (
+              <>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(profile?.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{profile?.full_name || 'User'}</p>
+                          <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/orders" className="cursor-pointer">
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          My Orders
+                        </Link>
+                      </DropdownMenuItem>
+                      {profile?.is_seller && (
+                        <DropdownMenuItem asChild>
+                          <Link to="/seller/dashboard" className="cursor-pointer">
+                            <Store className="mr-2 h-4 w-4" />
+                            Seller Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="default" size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <User className="h-4 w-4 mr-2" />
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
