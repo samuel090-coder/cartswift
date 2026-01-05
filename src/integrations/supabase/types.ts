@@ -70,6 +70,135 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_conversions: {
+        Row: {
+          affiliate_id: string
+          commission_earned: number
+          created_at: string
+          id: string
+          order_amount: number
+          order_id: string | null
+          status: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          commission_earned: number
+          created_at?: string
+          id?: string
+          order_amount: number
+          order_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          commission_earned?: number
+          created_at?: string
+          id?: string
+          order_amount?: number
+          order_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_conversions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          affiliate_code: string
+          commission_rate: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          payout_details: Json | null
+          payout_method: string | null
+          total_clicks: number | null
+          total_conversions: number | null
+          total_earnings: number | null
+          user_id: string
+        }
+        Insert: {
+          affiliate_code: string
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          payout_details?: Json | null
+          payout_method?: string | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_earnings?: number | null
+          user_id: string
+        }
+        Update: {
+          affiliate_code?: string
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          payout_details?: Json | null
+          payout_method?: string | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_earnings?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ambassadors: {
+        Row: {
+          ambassador_code: string
+          commission_rate: number | null
+          created_at: string
+          discount_percentage: number | null
+          follower_count: number | null
+          id: string
+          is_approved: boolean | null
+          social_handles: Json | null
+          tier: string | null
+          total_sales: number | null
+          user_id: string
+        }
+        Insert: {
+          ambassador_code: string
+          commission_rate?: number | null
+          created_at?: string
+          discount_percentage?: number | null
+          follower_count?: number | null
+          id?: string
+          is_approved?: boolean | null
+          social_handles?: Json | null
+          tier?: string | null
+          total_sales?: number | null
+          user_id: string
+        }
+        Update: {
+          ambassador_code?: string
+          commission_rate?: number | null
+          created_at?: string
+          discount_percentage?: number | null
+          follower_count?: number | null
+          id?: string
+          is_approved?: boolean | null
+          social_handles?: Json | null
+          tier?: string | null
+          total_sales?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       bank_transfer_payments: {
         Row: {
           additional_notes: string | null
@@ -104,6 +233,100 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      browsing_history: {
+        Row: {
+          id: string
+          item_id: string
+          session_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          session_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          session_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "browsing_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          chat_session_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_type: string
+        }
+        Insert: {
+          chat_session_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_type: string
+        }
+        Update: {
+          chat_session_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_chat_session_id_fkey"
+            columns: ["chat_session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       collection_items: {
         Row: {
@@ -261,6 +484,47 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          duration_days: number
+          id: string
+          payment_reference: string | null
+          product_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          duration_days?: number
+          id?: string
+          payment_reference?: string | null
+          product_id: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          duration_days?: number
+          id?: string
+          payment_reference?: string | null
+          product_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_payments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
             referencedColumns: ["id"]
           },
         ]
@@ -749,6 +1013,44 @@ export type Database = {
           },
         ]
       }
+      order_tracking: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_delivery: string | null
+          id: string
+          location: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          location?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          location?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address_line1: string
@@ -913,6 +1215,50 @@ export type Database = {
           },
         ]
       }
+      price_alerts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          item_id: string
+          notified_at: string | null
+          session_id: string
+          target_price: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_id: string
+          notified_at?: string | null
+          session_id: string
+          target_price?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_id?: string
+          notified_at?: string | null
+          session_id?: string
+          target_price?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -926,6 +1272,8 @@ export type Database = {
           id: string
           is_seller: boolean | null
           phone: string | null
+          preferred_currency: string | null
+          preferred_language: string | null
           seller_rating: number | null
           seller_verified: boolean | null
           store_description: string | null
@@ -947,6 +1295,8 @@ export type Database = {
           id: string
           is_seller?: boolean | null
           phone?: string | null
+          preferred_currency?: string | null
+          preferred_language?: string | null
           seller_rating?: number | null
           seller_verified?: boolean | null
           store_description?: string | null
@@ -968,6 +1318,8 @@ export type Database = {
           id?: string
           is_seller?: boolean | null
           phone?: string | null
+          preferred_currency?: string | null
+          preferred_language?: string | null
           seller_rating?: number | null
           seller_verified?: boolean | null
           store_description?: string | null
@@ -1094,6 +1446,116 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_orders: {
+        Row: {
+          buyer_email: string | null
+          buyer_session_id: string
+          commission_amount: number
+          created_at: string
+          id: string
+          price_at_purchase: number
+          quantity: number
+          seller_earnings: number
+          seller_id: string
+          seller_product_id: string
+          shipping_address: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_session_id: string
+          commission_amount: number
+          created_at?: string
+          id?: string
+          price_at_purchase: number
+          quantity?: number
+          seller_earnings: number
+          seller_id: string
+          seller_product_id: string
+          shipping_address?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_session_id?: string
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          price_at_purchase?: number
+          quantity?: number
+          seller_earnings?: number
+          seller_id?: string
+          seller_product_id?: string
+          shipping_address?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_orders_seller_product_id_fkey"
+            columns: ["seller_product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_products: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          commission_rate: number | null
+          created_at: string
+          currency: string
+          description: string | null
+          featured_until: string | null
+          id: string
+          images: string[] | null
+          is_approved: boolean | null
+          is_featured: boolean | null
+          price: number
+          seller_id: string
+          stock_quantity: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          featured_until?: string | null
+          id?: string
+          images?: string[] | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          price: number
+          seller_id: string
+          stock_quantity?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          featured_until?: string | null
+          id?: string
+          images?: string[] | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          price?: number
+          seller_id?: string
+          stock_quantity?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       share_analytics: {
         Row: {
@@ -1280,6 +1742,45 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          benefits: Json | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          payment_reference: string | null
+          starts_at: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          benefits?: Json | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_reference?: string | null
+          starts_at?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          benefits?: Json | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_reference?: string | null
+          starts_at?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1361,6 +1862,7 @@ export type Database = {
         | "gift_card"
         | "cash_app"
         | "crypto_eth"
+      subscription_tier: "free" | "vip" | "premium"
       user_role: "buyer" | "seller" | "admin"
     }
     CompositeTypes: {
@@ -1506,6 +2008,7 @@ export const Constants = {
         "cash_app",
         "crypto_eth",
       ],
+      subscription_tier: ["free", "vip", "premium"],
       user_role: ["buyer", "seller", "admin"],
     },
   },

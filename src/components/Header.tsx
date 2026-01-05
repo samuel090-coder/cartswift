@@ -1,9 +1,9 @@
-
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, Settings, Store } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Store, Crown, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import LanguageCurrencySelector from '@/components/LanguageCurrencySelector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,8 +31,9 @@ const Header = () => {
             CARTSWIFT
           </Link>
           
-          <div className="flex items-center space-x-3">
-            {/* Cart Button */}
+          <div className="flex items-center space-x-2">
+            <LanguageCurrencySelector />
+            
             <Link to="/cart">
               <Button variant="outline" className="relative bg-white/80 backdrop-blur-sm hover:bg-white/90">
                 <ShoppingCart className="h-5 w-5" />
@@ -44,7 +45,6 @@ const Header = () => {
               </Button>
             </Link>
 
-            {/* Auth Section */}
             {!loading && (
               <>
                 {user ? (
@@ -68,37 +68,35 @@ const Header = () => {
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link to="/profile" className="cursor-pointer">
-                          <User className="mr-2 h-4 w-4" />
-                          Profile
-                        </Link>
+                        <Link to="/profile" className="cursor-pointer"><User className="mr-2 h-4 w-4" />Profile</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/orders" className="cursor-pointer">
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                          My Orders
-                        </Link>
+                        <Link to="/orders" className="cursor-pointer"><ShoppingCart className="mr-2 h-4 w-4" />My Orders</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/subscriptions" className="cursor-pointer"><Crown className="mr-2 h-4 w-4" />VIP Membership</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/affiliate" className="cursor-pointer"><Users className="mr-2 h-4 w-4" />Affiliate Program</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/ambassador" className="cursor-pointer"><Sparkles className="mr-2 h-4 w-4" />Ambassador</Link>
                       </DropdownMenuItem>
                       {profile?.is_seller && (
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/dashboard" className="cursor-pointer">
-                            <Store className="mr-2 h-4 w-4" />
-                            Seller Dashboard
-                          </Link>
+                          <Link to="/seller" className="cursor-pointer"><Store className="mr-2 h-4 w-4" />Seller Dashboard</Link>
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
+                        <LogOut className="mr-2 h-4 w-4" />Sign Out
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
                   <Link to="/auth">
                     <Button variant="default" size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                      <User className="h-4 w-4 mr-2" />
-                      Sign In
+                      <User className="h-4 w-4 mr-2" />Sign In
                     </Button>
                   </Link>
                 )}
