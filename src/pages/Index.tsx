@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,8 @@ import WelcomeVoice from '@/components/WelcomeVoice';
 import VoiceAssistant from '@/components/VoiceAssistant';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
+import AIShoppingAssistant from '@/components/AIShoppingAssistant';
+import LiveChatSupport from '@/components/LiveChatSupport';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, TrendingUp, Gift, Users } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
@@ -108,6 +109,8 @@ const Index = () => {
       <WelcomePopup onCategorySelect={handleWelcomeCategorySelect} />
       <WelcomeVoice />
       <VoiceAssistant />
+      <AIShoppingAssistant />
+      <LiveChatSupport />
       
       <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="text-center mb-8">
