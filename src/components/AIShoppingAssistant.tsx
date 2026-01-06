@@ -22,7 +22,7 @@ const AIShoppingAssistant = () => {
     {
       id: '1',
       role: 'assistant',
-      content: "👋 Hi! I'm your AI shopping assistant. I can help you find products, compare items, or answer questions about our store. What are you looking for today?",
+      content: "👋 Hi! I'm your AI shopping assistant powered by advanced AI. I can help you find products, compare items, or answer questions about our store. What are you looking for today?",
     },
   ]);
   const [input, setInput] = useState('');
@@ -55,48 +55,136 @@ const AIShoppingAssistant = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const userInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
       // Search for relevant products based on user query
-      const products = await searchProducts(input);
+      const products = await searchProducts(userInput);
 
-      // Generate AI response
+      // Prepare messages for AI
+      const chatMessages = [...messages.filter(m => m.id !== '1'), userMessage].map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      // Call AI edge function with streaming
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          messages: chatMessages,
+          products: products,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get AI response');
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       let assistantContent = '';
-      
-      if (products.length > 0) {
-        assistantContent = `I found ${products.length} product${products.length > 1 ? 's' : ''} that might interest you! Here are some options:\n\n`;
-        products.forEach((p, i) => {
-          assistantContent += `**${i + 1}. ${p.title}** - $${p.price}\n`;
-        });
-        assistantContent += '\nWould you like me to add any of these to your cart, or would you like more details?';
-      } else {
-        // Fallback responses for common queries
-        const lowerInput = input.toLowerCase();
-        if (lowerInput.includes('shipping') || lowerInput.includes('delivery')) {
-          assistantContent = "🚚 We offer fast shipping! Standard delivery takes 3-5 business days. VIP and Premium members enjoy free shipping on orders over $25. Would you like to know more about our shipping options?";
-        } else if (lowerInput.includes('return') || lowerInput.includes('refund')) {
-          assistantContent = "📦 We have a 30-day return policy! If you're not satisfied, you can return most items for a full refund. Premium members also get free returns. How can I help you with your order?";
-        } else if (lowerInput.includes('discount') || lowerInput.includes('sale')) {
-          assistantContent = "🏷️ Check out our Flash Sales tab for the best deals! VIP members also get early access to exclusive discounts. Would you like me to show you today's trending deals?";
-        } else if (lowerInput.includes('help') || lowerInput.includes('support')) {
-          assistantContent = "I'm here to help! I can:\n• 🔍 Find products for you\n• 🛒 Add items to your cart\n• 📦 Answer shipping questions\n• 💰 Show you the best deals\n\nJust tell me what you need!";
-        } else {
-          assistantContent = `I couldn't find specific products matching "${input}", but I can help you browse our categories: Fashion, Books, Tools, Vehicles, and Animals. What type of product are you interested in?`;
+      let textBuffer = '';
+
+      // Add initial assistant message
+      const assistantId = (Date.now() + 1).toString();
+      setMessages((prev) => [...prev, {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        products: products.length > 0 ? products : undefined,
+      }]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          textBuffer += decoder.decode(value, { stream: true });
+
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages((prev) => 
+                  prev.map((m) => 
+                    m.id === assistantId ? { ...m, content: assistantContent } : m
+                  )
+                );
+              }
+            } catch {
+              // Incomplete JSON, will retry with more data
+              textBuffer = line + '\n' + textBuffer;
+              break;
+            }
+          }
         }
       }
 
-      const assistantMessage: Message = {
+      // If streaming failed or no content, use fallback
+      if (!assistantContent) {
+        const fallbackContent = products.length > 0
+          ? `I found ${products.length} product${products.length > 1 ? 's' : ''} that might interest you! Check them out below. Would you like more details about any of them?`
+          : `I couldn't find specific products matching "${userInput}", but I can help you browse our categories: Fashion, Books, Tools, Vehicles, and Animals. What type of product are you interested in?`;
+        
+        setMessages((prev) => 
+          prev.map((m) => 
+            m.id === assistantId ? { ...m, content: fallbackContent } : m
+          )
+        );
+      }
+    } catch (error) {
+      console.error('AI chat error:', error);
+      
+      // Fallback to local response
+      const products = await searchProducts(userInput);
+      let fallbackContent = '';
+      
+      if (products.length > 0) {
+        fallbackContent = `I found ${products.length} product${products.length > 1 ? 's' : ''} that might interest you! Here are some options:\n\n`;
+        products.forEach((p, i) => {
+          fallbackContent += `**${i + 1}. ${p.title}** - $${p.price}\n`;
+        });
+        fallbackContent += '\nWould you like me to add any of these to your cart?';
+      } else {
+        const lowerInput = userInput.toLowerCase();
+        if (lowerInput.includes('shipping') || lowerInput.includes('delivery')) {
+          fallbackContent = "🚚 We offer fast shipping! Standard delivery takes 3-5 business days. VIP and Premium members enjoy free shipping on orders over $25.";
+        } else if (lowerInput.includes('return') || lowerInput.includes('refund')) {
+          fallbackContent = "📦 We have a 30-day return policy! If you're not satisfied, you can return most items for a full refund.";
+        } else if (lowerInput.includes('discount') || lowerInput.includes('sale')) {
+          fallbackContent = "🏷️ Check out our Flash Sales for the best deals! VIP members also get early access to exclusive discounts.";
+        } else {
+          fallbackContent = `I'd be happy to help you find what you're looking for! Try searching for specific items or browse our categories: Fashion, Books, Tools, Vehicles, and Animals.`;
+        }
+      }
+
+      setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: assistantContent,
+        content: fallbackContent,
         products: products.length > 0 ? products : undefined,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +243,10 @@ const AIShoppingAssistant = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Bot className="w-6 h-6" />
-                    <CardTitle className="text-lg">AI Shopping Assistant</CardTitle>
+                    <div>
+                      <CardTitle className="text-lg">AI Shopping Assistant</CardTitle>
+                      <p className="text-xs text-white/70">Powered by Lovable AI</p>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

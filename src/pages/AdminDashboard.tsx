@@ -13,10 +13,11 @@ import GiftCardPaymentManagement from '@/components/admin/GiftCardPaymentManagem
 import ShareManagement from '@/components/admin/ShareManagement';
 import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagement';
+import SellerManagement from '@/components/admin/SellerManagement';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
@@ -42,33 +43,25 @@ const AdminDashboard = () => {
           return;
         }
 
-        // Check if user is admin
-        const { data: adminUser, error: adminError } = await supabase
-          .from('admin_users')
-          .select('is_admin, user_id')
-          .eq('user_id', user.id)
+        // Check if user email is in allowed_admins table
+        const { data: allowedAdmin, error: adminError } = await supabase
+          .from('allowed_admins')
+          .select('email')
+          .eq('email', user.email)
           .single();
 
-        if (adminError) {
-          console.error('Admin user fetch error:', adminError);
+        if (adminError || !allowedAdmin) {
+          console.error('Admin check error:', adminError);
           toast({
             title: "Access denied",
-            description: "Unable to verify admin privileges. Please try logging in again.",
+            description: "Your email is not authorized for admin access.",
             variant: "destructive",
           });
           navigate('/admin');
           return;
         }
 
-        if (!adminUser?.is_admin) {
-          toast({
-            title: "Access denied",
-            description: "You don't have admin privileges.",
-            variant: "destructive",
-          });
-          navigate('/admin');
-          return;
-        }
+        // Access granted
 
         setUser(user);
       } catch (error) {
@@ -239,6 +232,13 @@ const AdminDashboard = () => {
                 <Mail size={16} />
                 <span className="hidden sm:inline">Marketing</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="sellers" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Store size={16} />
+                <span className="hidden sm:inline">Sellers</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="items">
@@ -290,6 +290,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="market">
               <MarketAdvert />
+            </TabsContent>
+            
+            <TabsContent value="sellers">
+              <SellerManagement />
             </TabsContent>
           </Tabs>
         </div>
