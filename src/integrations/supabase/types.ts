@@ -157,6 +157,24 @@ export type Database = {
         }
         Relationships: []
       }
+      allowed_admins: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       ambassadors: {
         Row: {
           ambassador_code: string
@@ -1845,6 +1863,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin_user: { Args: { user_uuid: string }; Returns: boolean }
+      is_allowed_admin: { Args: { user_email: string }; Returns: boolean }
     }
     Enums: {
       item_category: "Fashion" | "Animals" | "Tools" | "Vehicles" | "Books"
