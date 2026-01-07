@@ -175,6 +175,105 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassador_applications: {
+        Row: {
+          admin_notes: string | null
+          agreed_to_terms: boolean
+          content_niche: string[] | null
+          country: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          extracted_photo_url: string | null
+          facebook_url: string | null
+          full_name: string | null
+          gender: string | null
+          id: string
+          id_document_url: string
+          id_scan_data: Json | null
+          id_type: string | null
+          instagram_followers: number | null
+          instagram_handle: string | null
+          motivation: string | null
+          promotion_plan: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tiktok_followers: number | null
+          tiktok_handle: string | null
+          total_followers: number | null
+          twitter_followers: number | null
+          twitter_handle: string | null
+          updated_at: string | null
+          user_id: string
+          youtube_channel: string | null
+          youtube_subscribers: number | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          agreed_to_terms?: boolean
+          content_niche?: string[] | null
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          extracted_photo_url?: string | null
+          facebook_url?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          id_document_url: string
+          id_scan_data?: Json | null
+          id_type?: string | null
+          instagram_followers?: number | null
+          instagram_handle?: string | null
+          motivation?: string | null
+          promotion_plan?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tiktok_followers?: number | null
+          tiktok_handle?: string | null
+          total_followers?: number | null
+          twitter_followers?: number | null
+          twitter_handle?: string | null
+          updated_at?: string | null
+          user_id: string
+          youtube_channel?: string | null
+          youtube_subscribers?: number | null
+        }
+        Update: {
+          admin_notes?: string | null
+          agreed_to_terms?: boolean
+          content_niche?: string[] | null
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          extracted_photo_url?: string | null
+          facebook_url?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          id_document_url?: string
+          id_scan_data?: Json | null
+          id_type?: string | null
+          instagram_followers?: number | null
+          instagram_handle?: string | null
+          motivation?: string | null
+          promotion_plan?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tiktok_followers?: number | null
+          tiktok_handle?: string | null
+          total_followers?: number | null
+          twitter_followers?: number | null
+          twitter_handle?: string | null
+          updated_at?: string | null
+          user_id?: string
+          youtube_channel?: string | null
+          youtube_subscribers?: number | null
+        }
+        Relationships: []
+      }
       ambassadors: {
         Row: {
           ambassador_code: string
@@ -1292,6 +1391,7 @@ export type Database = {
           phone: string | null
           preferred_currency: string | null
           preferred_language: string | null
+          seller_application_approved: boolean | null
           seller_rating: number | null
           seller_verified: boolean | null
           store_description: string | null
@@ -1315,6 +1415,7 @@ export type Database = {
           phone?: string | null
           preferred_currency?: string | null
           preferred_language?: string | null
+          seller_application_approved?: boolean | null
           seller_rating?: number | null
           seller_verified?: boolean | null
           store_description?: string | null
@@ -1338,6 +1439,7 @@ export type Database = {
           phone?: string | null
           preferred_currency?: string | null
           preferred_language?: string | null
+          seller_application_approved?: boolean | null
           seller_rating?: number | null
           seller_verified?: boolean | null
           store_description?: string | null
@@ -1464,6 +1566,135 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_applications: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          address: string
+          admin_notes: string | null
+          agreed_to_commission: boolean
+          agreed_to_terms: boolean
+          bank_name: string | null
+          business_document_url: string | null
+          business_registration_number: string | null
+          business_type: string
+          city: string
+          country: string
+          created_at: string | null
+          crypto_wallet: string | null
+          date_of_birth: string | null
+          email: string
+          estimated_monthly_products: number | null
+          facebook_url: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          id_document_url: string | null
+          instagram_handle: string | null
+          paypal_email: string | null
+          phone: string
+          postal_code: string | null
+          preferred_payout_method: string
+          product_categories: string[]
+          product_source: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          routing_number: string | null
+          state: string
+          status: string
+          store_description: string
+          store_name: string
+          tax_id: string | null
+          updated_at: string | null
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          address: string
+          admin_notes?: string | null
+          agreed_to_commission?: boolean
+          agreed_to_terms?: boolean
+          bank_name?: string | null
+          business_document_url?: string | null
+          business_registration_number?: string | null
+          business_type: string
+          city: string
+          country: string
+          created_at?: string | null
+          crypto_wallet?: string | null
+          date_of_birth?: string | null
+          email: string
+          estimated_monthly_products?: number | null
+          facebook_url?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          id_document_url?: string | null
+          instagram_handle?: string | null
+          paypal_email?: string | null
+          phone: string
+          postal_code?: string | null
+          preferred_payout_method: string
+          product_categories: string[]
+          product_source?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          routing_number?: string | null
+          state: string
+          status?: string
+          store_description: string
+          store_name: string
+          tax_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          address?: string
+          admin_notes?: string | null
+          agreed_to_commission?: boolean
+          agreed_to_terms?: boolean
+          bank_name?: string | null
+          business_document_url?: string | null
+          business_registration_number?: string | null
+          business_type?: string
+          city?: string
+          country?: string
+          created_at?: string | null
+          crypto_wallet?: string | null
+          date_of_birth?: string | null
+          email?: string
+          estimated_monthly_products?: number | null
+          facebook_url?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          id_document_url?: string | null
+          instagram_handle?: string | null
+          paypal_email?: string | null
+          phone?: string
+          postal_code?: string | null
+          preferred_payout_method?: string
+          product_categories?: string[]
+          product_source?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          routing_number?: string | null
+          state?: string
+          status?: string
+          store_description?: string
+          store_name?: string
+          tax_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
       }
       seller_orders: {
         Row: {
