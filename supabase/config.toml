@@ -1,5 +1,8 @@
 project_id = "qcfsnqumydfminvmqyfp"
 
+[functions.scan-id-document]
+verify_jwt = false
+
 [functions.send-order-notification]
 verify_jwt = false
 
