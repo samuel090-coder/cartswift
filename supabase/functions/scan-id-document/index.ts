@@ -11,9 +11,12 @@ serve(async (req) => {
   }
 
   try {
-    const { image_url } = await req.json();
+    const body = await req.json();
+    // Support both camelCase and snake_case for flexibility
+    const image_url = body.image_url || body.imageUrl;
     
     if (!image_url) {
+      console.error('Request body:', JSON.stringify(body));
       throw new Error('Image URL is required');
     }
 

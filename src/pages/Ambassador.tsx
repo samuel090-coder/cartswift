@@ -137,17 +137,21 @@ const Ambassador = () => {
       // Scan ID with AI
       const { data: scanResult, error: scanError } = await supabase.functions
         .invoke('scan-id-document', {
-          body: { imageUrl: publicUrl, idType }
+          body: { image_url: publicUrl }
         });
 
       if (scanError) throw scanError;
 
-      setScannedData({
-        ...scanResult,
-        documentUrl: publicUrl
-      });
-      
-      toast.success('ID scanned successfully! Please verify the extracted information.');
+      if (scanResult?.success && scanResult?.data) {
+        setScannedData({
+          ...scanResult.data,
+          documentUrl: publicUrl
+        });
+        toast.success('ID scanned successfully! Please verify the extracted information.');
+      } else {
+        setScannedData({ documentUrl: publicUrl });
+        toast.info('ID uploaded. Please fill in your details manually.');
+      }
     } catch (error: any) {
       console.error('Error:', error);
       toast.error(error.message || 'Failed to upload/scan ID');
