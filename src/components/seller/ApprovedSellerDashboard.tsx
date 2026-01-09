@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 const categories = ['Fashion', 'Animals', 'Tools', 'Vehicles', 'Books'] as const;
 
 interface ApprovedSellerDashboardProps {
-  application: any;
+  application?: any;
 }
 
 const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) => {
