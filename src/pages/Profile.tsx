@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,10 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, User, Store, Save, Camera } from 'lucide-react';
+import { ArrowLeft, User, Store, Save, Camera, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
+import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
+import ApprovedSellerDashboard from '@/components/seller/ApprovedSellerDashboard';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -25,9 +29,23 @@ const Profile = () => {
     country: '',
     city: '',
     address: '',
-    is_seller: false,
-    store_name: '',
-    store_description: '',
+  });
+
+  // Fetch seller application status
+  const { data: sellerApplication, isLoading: loadingApplication } = useQuery({
+    queryKey: ['seller-application', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('seller_applications')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   useEffect(() => {
@@ -46,9 +64,6 @@ const Profile = () => {
         country: profile.country || '',
         city: profile.city || '',
         address: profile.address || '',
-        is_seller: profile.is_seller || false,
-        store_name: profile.store_name || '',
-        store_description: profile.store_description || '',
       });
     }
   }, [profile]);
@@ -78,11 +93,83 @@ const Profile = () => {
     );
   }
 
+  // Render seller tab content based on application status
+  const renderSellerContent = () => {
+    if (loadingApplication) {
+      return (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            <p className="text-muted-foreground mt-4">Loading...</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Approved seller - show dashboard
+    if (sellerApplication?.status === 'approved' || profile?.is_seller) {
+      return <ApprovedSellerDashboard application={sellerApplication} />;
+    }
+
+    // Pending application - show status
+    if (sellerApplication?.status === 'pending') {
+      return (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-8 text-center">
+            <Clock className="w-16 h-16 mx-auto text-amber-500 mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Application Under Review</h2>
+            <Badge className="mb-4 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+              Pending Review
+            </Badge>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Your seller application is being reviewed by our team. We'll notify you within 24-48 hours.
+            </p>
+            <div className="mt-6 p-4 bg-background/80 rounded-lg text-left max-w-md mx-auto">
+              <p className="text-sm text-muted-foreground mb-2">Application Details:</p>
+              <p className="font-medium">{sellerApplication.store_name}</p>
+              <p className="text-sm text-muted-foreground">
+                Submitted: {new Date(sellerApplication.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Rejected application - show status with option to reapply
+    if (sellerApplication?.status === 'rejected') {
+      return (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-8 text-center">
+            <XCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Application Not Approved</h2>
+            <Badge variant="destructive" className="mb-4">Rejected</Badge>
+            <p className="text-muted-foreground max-w-md mx-auto mb-4">
+              Unfortunately, your seller application was not approved at this time.
+            </p>
+            {sellerApplication.admin_notes && (
+              <div className="p-4 bg-background/80 rounded-lg text-left max-w-md mx-auto mb-6">
+                <p className="text-sm font-medium mb-1">Reason:</p>
+                <p className="text-sm text-muted-foreground">{sellerApplication.admin_notes}</p>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground">
+              You may submit a new application addressing the concerns mentioned above.
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // No application - show application form
+    return <SellerApplicationForm />;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <Header />
       
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
@@ -111,11 +198,17 @@ const Profile = () => {
           <div>
             <h1 className="text-2xl font-bold">{profile?.full_name || 'Your Profile'}</h1>
             <p className="text-muted-foreground">{user?.email}</p>
-            {profile?.is_seller && (
-              <span className="inline-flex items-center px-2 py-1 mt-2 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+            {(sellerApplication?.status === 'approved' || profile?.is_seller) && (
+              <Badge className="mt-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                 <Store className="w-3 h-3 mr-1" />
-                Seller Account
-              </span>
+                Verified Seller
+              </Badge>
+            )}
+            {sellerApplication?.status === 'pending' && (
+              <Badge className="mt-2 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Seller Application Pending
+              </Badge>
             )}
           </div>
         </div>
@@ -222,65 +315,7 @@ const Profile = () => {
           </TabsContent>
 
           <TabsContent value="seller">
-            <Card>
-              <CardHeader>
-                <CardTitle>Seller Account</CardTitle>
-                <CardDescription>
-                  Enable selling to list your products on CartSwift
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div>
-                    <h3 className="font-medium">Enable Seller Account</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Become a seller to list and sell your own products
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData.is_seller}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_seller: checked })}
-                  />
-                </div>
-
-                {formData.is_seller && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="store_name">Store Name</Label>
-                      <Input
-                        id="store_name"
-                        value={formData.store_name}
-                        onChange={(e) => setFormData({ ...formData, store_name: e.target.value })}
-                        placeholder="My Awesome Store"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="store_description">Store Description</Label>
-                      <Textarea
-                        id="store_description"
-                        value={formData.store_description}
-                        onChange={(e) => setFormData({ ...formData, store_description: e.target.value })}
-                        placeholder="Describe what your store offers..."
-                        rows={4}
-                      />
-                    </div>
-
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> Your seller account will be reviewed before you can start listing products.
-                        This usually takes 1-2 business days.
-                      </p>
-                    </div>
-                  </>
-                )}
-
-                <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto">
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
+            {renderSellerContent()}
           </TabsContent>
         </Tabs>
       </div>

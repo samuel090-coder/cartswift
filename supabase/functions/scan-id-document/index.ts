@@ -27,8 +27,8 @@ serve(async (req) => {
 
     console.log('Scanning ID document from URL:', image_url);
 
-    // Call Lovable AI to analyze the ID document
-    const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
+    // Call Lovable AI Gateway to analyze the ID document
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
