@@ -22,6 +22,7 @@ import DownloadConfirmation from "./pages/DownloadConfirmation";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
 import SellerDashboard from "./pages/SellerDashboard";
+import SellerProfileView from "./pages/SellerProfileView";
 import Subscriptions from "./pages/Subscriptions";
 import Affiliate from "./pages/Affiliate";
 import Ambassador from "./pages/Ambassador";
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/seller" element={<SellerDashboard />} />
+                <Route path="/seller-profile/:sellerId" element={<SellerProfileView />} />
                 <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="/affiliate" element={<Affiliate />} />
                 <Route path="/ambassador" element={<Ambassador />} />

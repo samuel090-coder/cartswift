@@ -75,7 +75,13 @@ export default {
 				'indigo-light': 'hsl(var(--indigo-light))',
 				'blue-bright': 'hsl(var(--blue-bright))',
 				'purple-bright': 'hsl(var(--purple-bright))',
-				'cyan-bright': 'hsl(var(--cyan-bright))'
+				'cyan-bright': 'hsl(var(--cyan-bright))',
+				// Pinkish theme colors
+				'pink-soft': 'hsl(var(--pink-soft))',
+				'pink-medium': 'hsl(var(--pink-medium))',
+				'pink-vibrant': 'hsl(var(--pink-vibrant))',
+				'coral': 'hsl(var(--coral))',
+				'peach': 'hsl(var(--peach))'
 			},
 			backgroundImage: {
 				'premium-gradient': 'linear-gradient(135deg, hsl(var(--deep-blue)), hsl(var(--midnight-purple)), hsl(var(--indigo-dark)))',
