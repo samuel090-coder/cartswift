@@ -351,6 +351,80 @@ export type Database = {
           },
         ]
       }
+      boost_requests: {
+        Row: {
+          actual_views: number | null
+          admin_notes: string | null
+          admin_rating: number | null
+          amount_paid: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          duration_days: number
+          ends_at: string | null
+          expected_buyers: number | null
+          id: string
+          payment_reference: string | null
+          product_id: string
+          seller_id: string
+          starts_at: string | null
+          status: string
+          target_locations: string[] | null
+          target_views: number
+          updated_at: string
+        }
+        Insert: {
+          actual_views?: number | null
+          admin_notes?: string | null
+          admin_rating?: number | null
+          amount_paid?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_at?: string | null
+          expected_buyers?: number | null
+          id?: string
+          payment_reference?: string | null
+          product_id: string
+          seller_id: string
+          starts_at?: string | null
+          status?: string
+          target_locations?: string[] | null
+          target_views?: number
+          updated_at?: string
+        }
+        Update: {
+          actual_views?: number | null
+          admin_notes?: string | null
+          admin_rating?: number | null
+          amount_paid?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_at?: string | null
+          expected_buyers?: number | null
+          id?: string
+          payment_reference?: string | null
+          product_id?: string
+          seller_id?: string
+          starts_at?: string | null
+          status?: string
+          target_locations?: string[] | null
+          target_views?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boost_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       browsing_history: {
         Row: {
           id: string
@@ -1380,6 +1454,7 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          background_image_url: string | null
           bio: string | null
           city: string | null
           country: string | null
@@ -1404,6 +1479,7 @@ export type Database = {
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          background_image_url?: string | null
           bio?: string | null
           city?: string | null
           country?: string | null
@@ -1428,6 +1504,7 @@ export type Database = {
         Update: {
           address?: string | null
           avatar_url?: string | null
+          background_image_url?: string | null
           bio?: string | null
           city?: string | null
           country?: string | null
