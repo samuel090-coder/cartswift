@@ -3,9 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,10 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { 
   Rocket, Eye, MapPin, Users, Clock, Sparkles, 
-  TrendingUp, Target, DollarSign, ChevronRight, Check
+  ChevronRight, Check, CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import BoostPaymentFlow from './BoostPaymentFlow';
 
 interface ProductBoostModalProps {
   isOpen: boolean;
@@ -36,6 +36,8 @@ const locations = [
   { id: 'australia', label: '🇦🇺 Australia', popular: false },
   { id: 'germany', label: '🇩🇪 Germany', popular: false },
   { id: 'france', label: '🇫🇷 France', popular: false },
+  { id: 'nigeria', label: '🇳🇬 Nigeria', popular: true },
+  { id: 'south_africa', label: '🇿🇦 South Africa', popular: false },
   { id: 'worldwide', label: '🌍 Worldwide', popular: true },
 ];
 
@@ -62,10 +64,10 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
   const [selectedDuration, setSelectedDuration] = useState(durationOptions[1]);
   const [expectedBuyers, setExpectedBuyers] = useState([50]);
 
-  const totalPrice = (selectedPackage.price * selectedDuration.multiplier).toFixed(2);
+  const totalPrice = parseFloat((selectedPackage.price * selectedDuration.multiplier).toFixed(2));
 
   const createBoostRequest = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ paymentRef, proofUrl }: { paymentRef: string; proofUrl?: string }) => {
       const { error } = await supabase
         .from('boost_requests')
         .insert({
@@ -75,19 +77,37 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
           target_locations: selectedLocations,
           expected_buyers: expectedBuyers[0],
           duration_days: selectedDuration.days,
-          amount_paid: parseFloat(totalPrice),
+          amount_paid: totalPrice,
+          payment_reference: paymentRef,
           status: 'pending',
         });
       if (error) throw error;
+
+      // Store payment proof if provided
+      if (proofUrl) {
+        await supabase
+          .from('payment_proofs')
+          .insert({
+            order_id: null,
+            payment_method: 'cryptocurrency',
+            file_url: proofUrl,
+            proof_type: 'boost_payment',
+            status: 'pending',
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boost-requests'] });
-      toast.success('🚀 Boost request submitted! We\'ll notify you once approved.');
+      toast.success('🚀 Boost request submitted! We\'ll review your payment and notify you once approved.');
       onClose();
       setStep(1);
     },
     onError: () => toast.error('Failed to submit boost request'),
   });
+
+  const handlePaymentComplete = (paymentRef: string, proofUrl?: string) => {
+    createBoostRequest.mutate({ paymentRef, proofUrl });
+  };
 
   const toggleLocation = (locationId: string) => {
     setSelectedLocations(prev => 
@@ -95,6 +115,11 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
         ? prev.filter(l => l !== locationId)
         : [...prev, locationId]
     );
+  };
+
+  const handleClose = () => {
+    onClose();
+    setStep(1);
   };
 
   const renderStep = () => {
@@ -160,7 +185,7 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
               <p className="text-sm text-muted-foreground mt-1">Where do you want to show your product?</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto">
               {locations.map((location) => (
                 <div
                   key={location.id}
@@ -259,8 +284,8 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold">Confirm Your Boost ✨</h3>
-              <p className="text-sm text-muted-foreground mt-1">Review your boost details</p>
+              <h3 className="text-xl font-bold">Review Your Boost ✨</h3>
+              <p className="text-sm text-muted-foreground mt-1">Confirm details before payment</p>
             </div>
 
             <Card className="bg-gradient-to-br from-pink-soft to-peach/30 border-primary/20">
@@ -296,22 +321,37 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
               </div>
               <div className="flex justify-between py-3 text-lg">
                 <span className="font-bold">Total</span>
-                <span className="font-bold text-primary">${totalPrice}</span>
+                <span className="font-bold text-primary">${totalPrice.toFixed(2)}</span>
               </div>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg text-sm">
               <p className="text-amber-800 dark:text-amber-200">
-                💡 After payment, your boost will be reviewed and activated within 24 hours.
+                💡 Click "Proceed to Payment" to complete your boost purchase.
               </p>
             </div>
           </motion.div>
+        );
+      
+      case 5:
+        return (
+          <BoostPaymentFlow
+            totalAmount={totalPrice}
+            boostDetails={{
+              views: selectedPackage.views,
+              locations: selectedLocations,
+              duration: selectedDuration.days,
+              expectedBuyers: expectedBuyers[0],
+            }}
+            onPaymentComplete={handlePaymentComplete}
+            onBack={() => setStep(4)}
+          />
         );
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">
@@ -325,7 +365,7 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-2 py-4">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex items-center">
               <div 
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
@@ -336,10 +376,10 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {s < step ? <Check className="w-4 h-4" /> : s}
+                {s < step ? <Check className="w-4 h-4" /> : s === 5 ? <CreditCard className="w-4 h-4" /> : s}
               </div>
-              {s < 4 && (
-                <div className={`w-8 h-1 mx-1 rounded ${s < step ? 'bg-green-500' : 'bg-muted'}`} />
+              {s < 5 && (
+                <div className={`w-6 h-1 mx-1 rounded ${s < step ? 'bg-green-500' : 'bg-muted'}`} />
               )}
             </div>
           ))}
@@ -349,41 +389,36 @@ const ProductBoostModal = ({ isOpen, onClose, product }: ProductBoostModalProps)
           {renderStep()}
         </AnimatePresence>
 
-        <div className="flex gap-3 pt-4">
-          {step > 1 && (
-            <Button 
-              variant="outline" 
-              onClick={() => setStep(step - 1)}
-              className="flex-1"
-            >
-              Back
-            </Button>
-          )}
-          {step < 4 ? (
-            <Button 
-              onClick={() => setStep(step + 1)}
-              className="flex-1 bg-primary gap-2"
-              disabled={step === 2 && selectedLocations.length === 0}
-            >
-              Continue <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button 
-              onClick={() => createBoostRequest.mutate()}
-              disabled={createBoostRequest.isPending}
-              className="flex-1 bg-gradient-to-r from-primary to-pink-vibrant text-white gap-2"
-            >
-              {createBoostRequest.isPending ? (
-                <>Processing...</>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4" />
-                  Submit Boost Request
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+        {step < 5 && (
+          <div className="flex gap-3 pt-4">
+            {step > 1 && (
+              <Button 
+                variant="outline" 
+                onClick={() => setStep(step - 1)}
+                className="flex-1"
+              >
+                Back
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button 
+                onClick={() => setStep(step + 1)}
+                className="flex-1 bg-primary gap-2"
+                disabled={step === 2 && selectedLocations.length === 0}
+              >
+                Continue <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => setStep(5)}
+                className="flex-1 bg-gradient-to-r from-primary to-pink-vibrant text-white gap-2"
+              >
+                <CreditCard className="w-4 h-4" />
+                Proceed to Payment
+              </Button>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

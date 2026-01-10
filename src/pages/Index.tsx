@@ -45,34 +45,91 @@ const Index = () => {
     },
   });
 
-  // Fetch approved & boosted seller products
+  // Fetch approved & boosted seller products (from active boost requests)
   const { data: boostedProducts = [] } = useQuery({
     queryKey: ['boosted-seller-products'],
     queryFn: async () => {
+      // First get active boost requests
+      const { data: boostData, error: boostError } = await supabase
+        .from('boost_requests')
+        .select('product_id')
+        .eq('status', 'active')
+        .gte('ends_at', new Date().toISOString());
+      
+      if (boostError) throw boostError;
+      
+      if (!boostData || boostData.length === 0) {
+        // Fallback to featured products
+        const { data, error } = await supabase
+          .from('seller_products')
+          .select('*')
+          .eq('is_approved', true)
+          .eq('is_featured', true)
+          .order('created_at', { ascending: false })
+          .limit(8);
+        if (error) throw error;
+        
+        // Fetch seller profiles separately
+        const sellerIds = [...new Set(data?.map(p => p.seller_id) || [])];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, store_name, avatar_url, seller_verified')
+          .in('id', sellerIds);
+        
+        return data?.map(p => ({
+          ...p,
+          profiles: profiles?.find(pr => pr.id === p.seller_id)
+        })) || [];
+      }
+      
+      const productIds = boostData.map(b => b.product_id);
+      
       const { data, error } = await supabase
         .from('seller_products')
-        .select('*, profiles!seller_products_seller_id_fkey(store_name, avatar_url, seller_verified)')
+        .select('*')
         .eq('is_approved', true)
-        .eq('is_featured', true)
+        .in('id', productIds)
         .order('created_at', { ascending: false })
         .limit(8);
       if (error) throw error;
-      return data;
+      
+      // Fetch seller profiles separately
+      const sellerIds = [...new Set(data?.map(p => p.seller_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, store_name, avatar_url, seller_verified')
+        .in('id', sellerIds);
+      
+      return data?.map(p => ({
+        ...p,
+        profiles: profiles?.find(pr => pr.id === p.seller_id)
+      })) || [];
     },
   });
 
-  // Fetch regular approved seller products
+  // Fetch regular approved seller products (non-boosted)
   const { data: sellerProducts = [] } = useQuery({
     queryKey: ['approved-seller-products'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('seller_products')
-        .select('*, profiles!seller_products_seller_id_fkey(store_name, avatar_url, seller_verified)')
+        .select('*')
         .eq('is_approved', true)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      return data;
+      
+      // Fetch seller profiles separately
+      const sellerIds = [...new Set(data?.map(p => p.seller_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, store_name, avatar_url, seller_verified')
+        .in('id', sellerIds);
+      
+      return data?.map(p => ({
+        ...p,
+        profiles: profiles?.find(pr => pr.id === p.seller_id)
+      })) || [];
     },
   });
 
