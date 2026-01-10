@@ -14,10 +14,11 @@ import { toast } from 'sonner';
 import { 
   Plus, Package, DollarSign, TrendingUp, Star, Edit, Trash2, 
   Image, BarChart3, ShoppingBag, CreditCard, CheckCircle, Clock,
-  XCircle, Eye, Upload, Loader2, Sparkles, Award, Wallet
+  XCircle, Eye, Upload, Loader2, Sparkles, Award, Wallet, Rocket
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
+import ProductBoostModal from './ProductBoostModal';
 
 const categories = ['Fashion', 'Animals', 'Tools', 'Vehicles', 'Books'] as const;
 
@@ -31,6 +32,7 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [boostProduct, setBoostProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -38,6 +40,21 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
     category: 'Fashion' as typeof categories[number],
     stock_quantity: '',
     images: [] as string[],
+  });
+
+  // Fetch boost requests for this seller
+  const { data: boostRequests = [] } = useQuery({
+    queryKey: ['seller-boost-requests', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('boost_requests')
+        .select('*')
+        .eq('seller_id', user?.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   // Fetch seller's products
@@ -558,6 +575,15 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
                         <Button size="sm" variant="secondary" onClick={() => handleEdit(product)}>
                           <Edit className="w-4 h-4" />
                         </Button>
+                        {product.is_approved && (
+                          <Button 
+                            size="sm" 
+                            className="bg-gradient-to-r from-primary to-pink-vibrant"
+                            onClick={() => setBoostProduct(product)}
+                          >
+                            <Rocket className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button size="sm" variant="destructive" onClick={() => deleteProduct.mutate(product.id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -575,6 +601,14 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
                           <span className="text-xs text-muted-foreground">{product.commission_rate}% commission</span>
                         )}
                       </div>
+                      {/* Boost Status Badge */}
+                      {boostRequests.some((br: any) => br.product_id === product.id && br.status === 'active') && (
+                        <div className="absolute bottom-2 left-2">
+                          <Badge className="bg-gradient-to-r from-primary to-pink-vibrant text-white text-[10px] gap-1">
+                            <Rocket className="w-3 h-3" /> Boosted
+                          </Badge>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -749,6 +783,13 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Product Boost Modal */}
+      <ProductBoostModal
+        isOpen={!!boostProduct}
+        onClose={() => setBoostProduct(null)}
+        product={boostProduct}
+      />
     </div>
   );
 };
