@@ -9,19 +9,38 @@ import { Store, Star, ShoppingBag, Verified, ChevronRight, Sparkles } from 'luci
 import { motion } from 'framer-motion';
 
 const SuggestedSellers = () => {
-  // Fetch approved sellers with their products
+  // Fetch approved sellers - sellers who have approved products or is_seller = true
   const { data: sellers = [], isLoading } = useQuery({
     queryKey: ['suggested-sellers'],
     queryFn: async () => {
+      // First try to get sellers with approved products
+      const { data: productsData } = await supabase
+        .from('seller_products')
+        .select('seller_id')
+        .eq('is_approved', true);
+      
+      const sellerIds = [...new Set(productsData?.map(p => p.seller_id) || [])];
+      
+      if (sellerIds.length === 0) {
+        // Fallback: get all sellers
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('is_seller', true)
+          .not('store_name', 'is', null)
+          .limit(10);
+        if (error) throw error;
+        return data || [];
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('is_seller', true)
-        .eq('seller_verified', true)
+        .in('id', sellerIds)
         .not('store_name', 'is', null)
         .limit(10);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
