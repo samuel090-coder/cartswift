@@ -1460,6 +1460,8 @@ export type Database = {
           country: string | null
           created_at: string | null
           email: string | null
+          followers_count: number | null
+          following_count: number | null
           full_name: string | null
           id: string
           is_seller: boolean | null
@@ -1485,6 +1487,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email?: string | null
+          followers_count?: number | null
+          following_count?: number | null
           full_name?: string | null
           id: string
           is_seller?: boolean | null
@@ -1510,6 +1514,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email?: string | null
+          followers_count?: number | null
+          following_count?: number | null
           full_name?: string | null
           id?: string
           is_seller?: boolean | null
@@ -2068,6 +2074,73 @@ export type Database = {
           },
         ]
       }
+      status_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          reaction_type: string
+          status_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          reaction_type: string
+          status_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          reaction_type?: string
+          status_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_views: {
+        Row: {
+          id: string
+          reacted_with: string | null
+          status_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          reacted_with?: string | null
+          status_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          reacted_with?: string | null
+          status_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_views_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           benefits: Json | null
@@ -2107,6 +2180,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2125,6 +2219,54 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_statuses: {
+        Row: {
+          background_color: string | null
+          caption: string | null
+          content_type: string
+          content_url: string | null
+          created_at: string
+          expires_at: string
+          hidden_from: string[] | null
+          id: string
+          text_content: string | null
+          user_id: string
+          view_count: number | null
+          visibility: string | null
+          visible_to: string[] | null
+        }
+        Insert: {
+          background_color?: string | null
+          caption?: string | null
+          content_type: string
+          content_url?: string | null
+          created_at?: string
+          expires_at?: string
+          hidden_from?: string[] | null
+          id?: string
+          text_content?: string | null
+          user_id: string
+          view_count?: number | null
+          visibility?: string | null
+          visible_to?: string[] | null
+        }
+        Update: {
+          background_color?: string | null
+          caption?: string | null
+          content_type?: string
+          content_url?: string | null
+          created_at?: string
+          expires_at?: string
+          hidden_from?: string[] | null
+          id?: string
+          text_content?: string | null
+          user_id?: string
+          view_count?: number | null
+          visibility?: string | null
+          visible_to?: string[] | null
         }
         Relationships: []
       }
