@@ -16,7 +16,8 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 import AIShoppingAssistant from '@/components/AIShoppingAssistant';
 import LiveChatSupport from '@/components/LiveChatSupport';
-import SuggestedSellers from '@/components/SuggestedSellers';
+import CircularSellersRow from '@/components/CircularSellersRow';
+import StatusBar from '@/components/StatusBar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -234,62 +235,13 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="shop" className="space-y-6">
-            <FlashSalesBanner />
+            {/* Status Bar - Stories like feature */}
+            <StatusBar />
             
-            {/* Boosted Products Section */}
-            {boostedProducts.length > 0 && (
-              <section className="py-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  <h2 className="text-xl font-bold text-white">🔥 Featured Products</h2>
-                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">Boosted</Badge>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {boostedProducts.map((product: any, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Card className="overflow-hidden hover:shadow-lg transition-all border-amber-500/30 hover:border-amber-500/50 bg-gradient-to-br from-background to-amber-50/10 group">
-                        <div className="aspect-square relative overflow-hidden">
-                          {product.images?.[0] ? (
-                            <img 
-                              src={product.images[0]} 
-                              alt={product.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                              <Package className="w-12 h-12 text-muted-foreground/30" />
-                            </div>
-                          )}
-                          <Badge className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-[10px]">
-                            <Sparkles className="w-3 h-3 mr-1" /> Featured
-                          </Badge>
-                        </div>
-                        <CardContent className="p-3">
-                          <h3 className="font-medium text-sm truncate text-white group-hover:text-amber-400 transition-colors">
-                            {product.title}
-                          </h3>
-                          <div className="flex items-center justify-between mt-1">
-                            <p className="text-lg font-bold text-amber-400">
-                              ${product.price.toFixed(2)}
-                            </p>
-                            {product.profiles?.store_name && (
-                              <Link to={`/seller-profile/${product.seller_id}`} className="text-xs text-muted-foreground hover:text-white">
-                                {product.profiles.store_name}
-                              </Link>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Circular Suggested Sellers at Top */}
+            <CircularSellersRow />
+            
+            <FlashSalesBanner />
 
             <CategoryTabs 
               selectedCategory={selectedCategory}
@@ -300,11 +252,8 @@ const Index = () => {
             />
             <ItemGrid items={items} isLoading={isLoading} />
 
-            {/* Suggested Sellers Section - Middle of page */}
-            <SuggestedSellers />
-
-            {/* Regular Seller Products - At the bottom */}
-            {sellerProducts.length > 0 && (
+            {/* All Seller Products (Boosted + Regular) - Mixed together at bottom */}
+            {(boostedProducts.length > 0 || sellerProducts.length > 0) && (
               <section className="py-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Package className="w-5 h-5 text-cyan-bright" />
