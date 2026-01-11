@@ -16,7 +16,7 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 import AIShoppingAssistant from '@/components/AIShoppingAssistant';
 import LiveChatSupport from '@/components/LiveChatSupport';
-import CircularSellersRow from '@/components/CircularSellersRow';
+import AllUsersRow from '@/components/AllUsersRow';
 import StatusBar from '@/components/StatusBar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -238,8 +238,8 @@ const Index = () => {
             {/* Status Bar - Stories like feature */}
             <StatusBar />
             
-            {/* Circular Suggested Sellers at Top */}
-            <CircularSellersRow />
+            {/* Circular User Profiles to Follow */}
+            <AllUsersRow />
             
             <FlashSalesBanner />
 

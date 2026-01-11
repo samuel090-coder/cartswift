@@ -16,10 +16,11 @@ import PaymentSettingsManagement from '@/components/admin/PaymentSettingsManagem
 import SellerManagement from '@/components/admin/SellerManagement';
 import ApplicationsManagement from '@/components/admin/ApplicationsManagement';
 import BoostRequestsManagement from '@/components/admin/BoostRequestsManagement';
+import DepositManagement from '@/components/admin/DepositManagement';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
