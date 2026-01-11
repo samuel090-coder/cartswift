@@ -21,6 +21,7 @@ import DownloadEmailSubmit from "./pages/DownloadEmailSubmit";
 import DownloadConfirmation from "./pages/DownloadConfirmation";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
 import SellerDashboard from "./pages/SellerDashboard";
 import SellerProfileView from "./pages/SellerProfileView";
 import Subscriptions from "./pages/Subscriptions";
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId" element={<UserProfile />} />
                 <Route path="/seller" element={<SellerDashboard />} />
                 <Route path="/seller-profile/:sellerId" element={<SellerProfileView />} />
                 <Route path="/subscriptions" element={<Subscriptions />} />

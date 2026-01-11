@@ -635,6 +635,51 @@ export type Database = {
           },
         ]
       }
+      deposit_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string
+          payment_reference: string | null
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method: string
+          payment_reference?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_reference?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       downloads: {
         Row: {
           created_at: string | null
@@ -2109,6 +2154,41 @@ export type Database = {
           },
         ]
       }
+      status_view_earnings: {
+        Row: {
+          amount: number
+          credited_at: string
+          id: string
+          owner_id: string
+          status_id: string
+          viewer_id: string
+        }
+        Insert: {
+          amount?: number
+          credited_at?: string
+          id?: string
+          owner_id: string
+          status_id: string
+          viewer_id: string
+        }
+        Update: {
+          amount?: number
+          credited_at?: string
+          id?: string
+          owner_id?: string
+          status_id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_view_earnings_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_views: {
         Row: {
           id: string
@@ -2267,6 +2347,36 @@ export type Database = {
           view_count?: number | null
           visibility?: string | null
           visible_to?: string[] | null
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          bonus_balance: number
+          created_at: string
+          id: string
+          total_earned: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          bonus_balance?: number
+          created_at?: string
+          id?: string
+          total_earned?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          bonus_balance?: number
+          created_at?: string
+          id?: string
+          total_earned?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
