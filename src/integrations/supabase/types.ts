@@ -635,11 +635,63 @@ export type Database = {
           },
         ]
       }
+      deposit_payment_methods: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          additional_info: Json | null
+          bank_name: string | null
+          created_at: string
+          email_address: string | null
+          id: string
+          instructions: string | null
+          is_enabled: boolean | null
+          method_name: string
+          method_type: string
+          supported_currencies: string[] | null
+          updated_at: string
+          wallet_address: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          additional_info?: Json | null
+          bank_name?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean | null
+          method_name: string
+          method_type: string
+          supported_currencies?: string[] | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          additional_info?: Json | null
+          bank_name?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean | null
+          method_name?: string
+          method_type?: string
+          supported_currencies?: string[] | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
       deposit_requests: {
         Row: {
           admin_notes: string | null
           amount: number
           created_at: string
+          currency: string | null
           id: string
           payment_method: string
           payment_reference: string | null
@@ -654,6 +706,7 @@ export type Database = {
           admin_notes?: string | null
           amount: number
           created_at?: string
+          currency?: string | null
           id?: string
           payment_method: string
           payment_reference?: string | null
@@ -668,6 +721,7 @@ export type Database = {
           admin_notes?: string | null
           amount?: number
           created_at?: string
+          currency?: string | null
           id?: string
           payment_method?: string
           payment_reference?: string | null

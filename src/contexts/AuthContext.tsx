@@ -101,6 +101,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
     
+    // Auto sign in after signup (no email verification required)
+    if (!error) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error: signInError };
+    }
+    
     return { error };
   };
 

@@ -16,8 +16,8 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 import AIShoppingAssistant from '@/components/AIShoppingAssistant';
 import LiveChatSupport from '@/components/LiveChatSupport';
-import AllUsersRow from '@/components/AllUsersRow';
 import StatusBar from '@/components/StatusBar';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -205,6 +205,7 @@ const Index = () => {
       <VoiceAssistant />
       <AIShoppingAssistant />
       <LiveChatSupport />
+      <PWAInstallPrompt />
       
       <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="text-center mb-8">
@@ -238,8 +239,7 @@ const Index = () => {
             {/* Status Bar - Stories like feature */}
             <StatusBar />
             
-            {/* Circular User Profiles to Follow */}
-            <AllUsersRow />
+            {/* Removed AllUsersRow as requested */}
             
             <FlashSalesBanner />
 
