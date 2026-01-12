@@ -256,6 +256,13 @@ const AdminDashboard = () => {
                 <Rocket size={16} />
                 <span className="hidden sm:inline">Boosts</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="deposits" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Wallet size={16} />
+                <span className="hidden sm:inline">Deposits</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="items">
@@ -319,6 +326,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="boosts">
               <BoostRequestsManagement />
+            </TabsContent>
+            
+            <TabsContent value="deposits">
+              <DepositManagement />
             </TabsContent>
           </Tabs>
         </div>

@@ -14,12 +14,14 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, User, Store, Save, Camera, Clock, CheckCircle, XCircle, 
-  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail
+  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users
 } from 'lucide-react';
 import Header from '@/components/Header';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import ApprovedSellerDashboard from '@/components/seller/ApprovedSellerDashboard';
 import { motion } from 'framer-motion';
+import StatusUploadModal from '@/components/StatusUploadModal';
+import WalletCard from '@/components/wallet/WalletCard';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ const Profile = () => {
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -338,15 +341,43 @@ const Profile = () => {
           </Card>
         </motion.div>
 
+        {/* Status Upload Section */}
+        {((profile as any)?.followers_count || 0) > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+            <Card className="border-primary/10 bg-gradient-to-br from-background to-pink-soft/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5 text-primary" />
+                  Your Status Updates
+                </CardTitle>
+                <CardDescription>Share updates with your {(profile as any)?.followers_count || 0} followers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => setShowStatusModal(true)}
+                  className="w-full gap-2 bg-gradient-to-r from-primary to-pink-vibrant hover:opacity-90"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create New Status
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 bg-background/80 backdrop-blur-sm border border-primary/20">
+          <TabsList className="grid w-full grid-cols-3 mb-6 bg-background/80 backdrop-blur-sm border border-primary/20">
             <TabsTrigger value="personal" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
               <User className="w-4 h-4" />
-              Personal Info
+              Personal
+            </TabsTrigger>
+            <TabsTrigger value="wallet" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Wallet className="w-4 h-4" />
+              Wallet
             </TabsTrigger>
             <TabsTrigger value="seller" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
               <Store className="w-4 h-4" />
-              Seller Settings
+              Seller
             </TabsTrigger>
           </TabsList>
 
@@ -470,10 +501,22 @@ const Profile = () => {
             </motion.div>
           </TabsContent>
 
+          <TabsContent value="wallet">
+            <WalletCard />
+          </TabsContent>
+
           <TabsContent value="seller">
             {renderSellerContent()}
           </TabsContent>
         </Tabs>
+
+        {/* Status Upload Modal */}
+        {showStatusModal && (
+          <StatusUploadModal 
+            onClose={() => setShowStatusModal(false)} 
+            onSuccess={() => setShowStatusModal(false)} 
+          />
+        )}
       </div>
     </div>
   );
