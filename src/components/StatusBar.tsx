@@ -92,7 +92,8 @@ const StatusBar = () => {
     enabled: !!user,
   });
 
-  const canPostStatus = profile?.followers_count && profile.followers_count > 0;
+  // Anyone can post status now (removed follower requirement)
+  const canPostStatus = !!user;
 
   const getInitials = (name: string | null) => {
     if (!name) return '?';
@@ -155,7 +156,7 @@ const StatusBar = () => {
                 </button>
               </div>
               <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
-                {myStatuses.length > 0 ? 'My Status' : canPostStatus ? 'Add Status' : 'Get Followers'}
+                {myStatuses.length > 0 ? 'My Status' : 'Add Status'}
               </span>
             </motion.div>
           )}

@@ -283,8 +283,8 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* Add Status Button for Own Profile */}
-                {isOwnProfile && (profile.followers_count || 0) > 0 && (
+                {/* Add Status Button for Own Profile - Anyone can post */}
+                {isOwnProfile && (
                   <Button
                     onClick={() => setShowStatusUpload(true)}
                     className="bg-gradient-to-r from-primary to-pink-vibrant gap-2"
@@ -352,9 +352,7 @@ const UserProfile = () => {
                 <h3 className="text-lg font-semibold mb-2">No active statuses</h3>
                 <p className="text-muted-foreground">
                   {isOwnProfile 
-                    ? (profile.followers_count || 0) > 0 
-                      ? 'Share your first status with your followers!'
-                      : 'Get followers to unlock status posting!'
+                    ? 'Share your first status! Only your followers can view them.'
                     : 'This user hasn\'t posted any statuses yet.'}
                 </p>
               </Card>

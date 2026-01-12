@@ -17,6 +17,7 @@ import SellerManagement from '@/components/admin/SellerManagement';
 import ApplicationsManagement from '@/components/admin/ApplicationsManagement';
 import BoostRequestsManagement from '@/components/admin/BoostRequestsManagement';
 import DepositManagement from '@/components/admin/DepositManagement';
+import DepositPaymentMethodsManagement from '@/components/admin/DepositPaymentMethodsManagement';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -329,7 +330,10 @@ const AdminDashboard = () => {
             </TabsContent>
             
             <TabsContent value="deposits">
-              <DepositManagement />
+              <div className="space-y-6">
+                <DepositPaymentMethodsManagement />
+                <DepositManagement />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
