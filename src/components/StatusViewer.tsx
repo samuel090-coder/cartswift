@@ -60,21 +60,73 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
     return () => clearInterval(timer);
   }, [currentIndex, isPaused, user.statuses.length, onNext]);
 
-  // Record view
+  // Record view and credit earnings
   useEffect(() => {
-    const recordView = async () => {
+    const recordViewAndEarnings = async () => {
       if (!currentUser || isOwner) return;
       try {
-        await supabase.from('status_views').upsert({
-          status_id: currentStatus.id,
-          viewer_id: currentUser.id
-        }, { onConflict: 'status_id,viewer_id' });
+        // Record the view
+        const { data: existingView } = await supabase
+          .from('status_views')
+          .select('id')
+          .eq('status_id', currentStatus.id)
+          .eq('viewer_id', currentUser.id)
+          .maybeSingle();
+
+        if (!existingView) {
+          // Insert the view
+          await supabase.from('status_views').insert({
+            status_id: currentStatus.id,
+            viewer_id: currentUser.id
+          });
+
+          // Credit $0.50 to status owner's wallet bonus
+          const { data: ownerWallet } = await supabase
+            .from('wallets')
+            .select('id, bonus_balance, total_earned')
+            .eq('user_id', user.user_id)
+            .maybeSingle();
+
+          if (ownerWallet) {
+            // Update wallet with earnings
+            await supabase
+              .from('wallets')
+              .update({
+                bonus_balance: (ownerWallet.bonus_balance || 0) + 0.50,
+                total_earned: (ownerWallet.total_earned || 0) + 0.50
+              })
+              .eq('id', ownerWallet.id);
+          } else {
+            // Create wallet with earnings
+            await supabase
+              .from('wallets')
+              .insert({
+                user_id: user.user_id,
+                bonus_balance: 0.50,
+                total_earned: 0.50
+              });
+          }
+
+          // Record the earning transaction
+          await supabase.from('status_view_earnings').insert({
+            status_id: currentStatus.id,
+            viewer_id: currentUser.id,
+            owner_id: user.user_id,
+            amount: 0.50
+          });
+
+          // Update view count on status
+          await supabase
+            .from('user_statuses')
+            .update({ view_count: (currentStatus.view_count || 0) + 1 })
+            .eq('id', currentStatus.id);
+        }
       } catch (error) {
         console.error('Error recording view:', error);
       }
     };
-    recordView();
-  }, [currentStatus?.id, currentUser, isOwner]);
+    recordViewAndEarnings();
+  }, [currentStatus?.id, currentUser, isOwner, user.user_id]);
 
   const handlePrev = () => {
     if (currentIndex > 0) {
