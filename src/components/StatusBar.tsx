@@ -117,35 +117,48 @@ const StatusBar = () => {
   if (statusUsers.length === 0 && myStatuses.length === 0) {
     // Show just the add status button
     return (
-      <div className="py-4 px-2">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-1.5"
-        >
-          <button
-            onClick={() => navigate('/profile')}
-            className="relative"
+      <>
+        <div className="py-4 px-2">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-1.5"
           >
-            <div className="w-16 h-16 rounded-full p-0.5 bg-muted">
-              <div className="w-full h-full rounded-full bg-background p-0.5">
-                <Avatar className="w-full h-full">
-                  <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-sm">
-                    {getInitials(profile?.full_name || 'You')}
-                  </AvatarFallback>
-                </Avatar>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="relative"
+            >
+              <div className="w-16 h-16 rounded-full p-0.5 bg-muted">
+                <div className="w-full h-full rounded-full bg-background p-0.5">
+                  <Avatar className="w-full h-full">
+                    <AvatarImage src={profile?.avatar_url || ''} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-sm">
+                      {getInitials(profile?.full_name || 'You')}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
               </div>
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
-              <Plus className="w-3 h-3 text-white" />
-            </div>
-          </button>
-          <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
-            Add Status
-          </span>
-        </motion.div>
-      </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                <Plus className="w-3 h-3 text-white" />
+              </div>
+            </button>
+            <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
+              Add Status
+            </span>
+          </motion.div>
+        </div>
+        
+        {/* Status Upload Modal */}
+        {showUploadModal && (
+          <StatusUploadModal
+            onClose={() => setShowUploadModal(false)}
+            onSuccess={() => {
+              setShowUploadModal(false);
+              refetch();
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -172,7 +185,7 @@ const StatusBar = () => {
                     hasUnviewed: false
                   });
                 } else {
-                  navigate('/profile');
+                  setShowUploadModal(true);
                 }
               }}
               className="relative"
