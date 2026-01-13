@@ -255,31 +255,45 @@ const UserProfile = () => {
                   </div>
                 </div>
                 
-                {/* Follow/Unfollow Button */}
-                {!isOwnProfile && user && (
+                {/* Follow/Unfollow Button - Always visible for other users */}
+                {!isOwnProfile && (
                   <div className="flex gap-2 w-full md:w-auto">
-                    <Button 
-                      onClick={() => isFollowing ? unfollowMutation.mutate() : followMutation.mutate()}
-                      disabled={followMutation.isPending || unfollowMutation.isPending}
-                      className={`flex-1 md:flex-none gap-2 ${isFollowing ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-primary text-white'}`}
-                      variant={isFollowing ? 'outline' : 'default'}
-                    >
-                      {isFollowing ? (
-                        <>
-                          <UserMinus className="w-4 h-4" />
-                          Unfollow
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          Follow
-                        </>
-                      )}
-                    </Button>
-                    <Button variant="outline" className="flex-1 md:flex-none gap-2 border-primary/30 text-primary">
-                      <MessageCircle className="w-4 h-4" />
-                      Message
-                    </Button>
+                    {user ? (
+                      <>
+                        <Button 
+                          onClick={() => isFollowing ? unfollowMutation.mutate() : followMutation.mutate()}
+                          disabled={followMutation.isPending || unfollowMutation.isPending}
+                          className={`flex-1 md:flex-none gap-2 ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80' : 'bg-gradient-to-r from-primary to-pink-vibrant text-white hover:opacity-90'}`}
+                          variant={isFollowing ? 'secondary' : 'default'}
+                        >
+                          {followMutation.isPending || unfollowMutation.isPending ? (
+                            <span className="animate-pulse">...</span>
+                          ) : isFollowing ? (
+                            <>
+                              <UserMinus className="w-4 h-4" />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4" />
+                              Follow
+                            </>
+                          )}
+                        </Button>
+                        <Button variant="outline" className="flex-1 md:flex-none gap-2 border-primary/30 text-primary hover:bg-primary/10">
+                          <MessageCircle className="w-4 h-4" />
+                          Message
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        onClick={() => navigate('/auth')}
+                        className="flex-1 md:flex-none gap-2 bg-gradient-to-r from-primary to-pink-vibrant text-white"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Login to Follow
+                      </Button>
+                    )}
                   </div>
                 )}
 
