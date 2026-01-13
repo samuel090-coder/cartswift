@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Image, Video, Mic, Type, Upload, Palette, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { 
+  Camera, Image, Video, Mic, Type, X, Check, 
+  Sparkles, Palette, Send, ChevronLeft
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface StatusUploadModalProps {
   onClose: () => void;
@@ -17,17 +17,24 @@ interface StatusUploadModalProps {
 }
 
 const BACKGROUND_COLORS = [
-  '#FF69B4', '#FF1493', '#DB7093', '#FFB6C1',
-  '#8B5CF6', '#A855F7', '#C084FC', '#E879F9',
-  '#3B82F6', '#06B6D4', '#22D3EE', '#67E8F9',
-  '#10B981', '#34D399', '#6EE7B7', '#A7F3D0',
-  '#F59E0B', '#FBBF24', '#FDE047', '#FEF08A',
-  '#EF4444', '#F87171', '#FCA5A5', '#FECACA',
-  '#1F2937', '#374151', '#4B5563', '#6B7280',
+  '#FF69B4', '#FF1493', '#DB7093', '#C71585',
+  '#8B5CF6', '#7C3AED', '#6D28D9', '#5B21B6',
+  '#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF',
+  '#06B6D4', '#0891B2', '#0E7490', '#155E75',
+  '#10B981', '#059669', '#047857', '#065F46',
+  '#F59E0B', '#D97706', '#B45309', '#92400E',
+  '#EF4444', '#DC2626', '#B91C1C', '#991B1B',
+  '#EC4899', '#DB2777', '#BE185D', '#9D174D',
+  '#1F2937', '#111827', '#374151', '#4B5563',
+  'linear-gradient(135deg, #FF69B4, #8B5CF6)',
+  'linear-gradient(135deg, #3B82F6, #06B6D4)',
+  'linear-gradient(135deg, #10B981, #3B82F6)',
+  'linear-gradient(135deg, #F59E0B, #EF4444)',
 ];
 
 const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
   const { user } = useAuth();
+  const [step, setStep] = useState<'type' | 'content' | 'preview'>('type');
   const [contentType, setContentType] = useState<'text' | 'image' | 'video' | 'voice'>('text');
   const [textContent, setTextContent] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('#FF69B4');
@@ -35,17 +42,33 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [visibility, setVisibility] = useState<'all' | 'selected' | 'except'>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      // Check file size (max 50MB)
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        toast.error('File is too large. Max size is 50MB');
+        return;
+      }
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onload = (event) => {
         setFilePreview(event.target?.result as string);
+        setStep('preview');
       };
       reader.readAsDataURL(selectedFile);
+    }
+  };
+
+  const selectType = (type: 'text' | 'image' | 'video' | 'voice') => {
+    setContentType(type);
+    if (type === 'text') {
+      setStep('content');
+    } else {
+      // Trigger file input
+      setTimeout(() => fileInputRef.current?.click(), 100);
     }
   };
 
@@ -75,14 +98,13 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('status-media')
           .upload(fileName, file);
 
         if (uploadError) {
-          // Try creating bucket if it doesn't exist
           console.error('Upload error:', uploadError);
-          throw new Error('Failed to upload file');
+          throw new Error('Failed to upload file. Please try again.');
         }
 
         const { data: { publicUrl } } = supabase.storage
@@ -102,12 +124,12 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
           text_content: contentType === 'text' ? textContent : null,
           background_color: contentType === 'text' ? backgroundColor : null,
           caption: caption || null,
-          visibility: visibility
+          visibility: 'all'
         });
 
       if (statusError) throw statusError;
 
-      toast.success('Status posted! It will be visible for 24 hours');
+      toast.success('Status posted! ✨ Only your followers can see it.');
       onSuccess();
     } catch (error: any) {
       console.error('Error posting status:', error);
@@ -117,196 +139,232 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
     }
   };
 
+  const getAcceptType = () => {
+    switch (contentType) {
+      case 'image': return 'image/*';
+      case 'video': return 'video/*';
+      case 'voice': return 'audio/*';
+      default: return '*/*';
+    }
+  };
+
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-background to-pink-soft/30 border-primary/20">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-pink-vibrant bg-clip-text text-transparent">
-            ✨ Create Status
-          </DialogTitle>
-        </DialogHeader>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black flex flex-col"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={getAcceptType()}
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
-        <Tabs value={contentType} onValueChange={(v) => setContentType(v as any)}>
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="text" className="gap-1.5">
-              <Type className="h-4 w-4" />
-              Text
-            </TabsTrigger>
-            <TabsTrigger value="image" className="gap-1.5">
-              <Image className="h-4 w-4" />
-              Image
-            </TabsTrigger>
-            <TabsTrigger value="video" className="gap-1.5">
-              <Video className="h-4 w-4" />
-              Video
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="gap-1.5">
-              <Mic className="h-4 w-4" />
-              Voice
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="text" className="space-y-4 mt-4">
-            {/* Text Status Preview */}
-            <div 
-              className="aspect-[9/16] max-h-[300px] rounded-xl flex items-center justify-center p-6 transition-colors"
-              style={{ backgroundColor }}
-            >
-              <p className="text-white text-xl font-bold text-center leading-relaxed">
-                {textContent || 'Your status text...'}
-              </p>
-            </div>
-
-            <Textarea
-              value={textContent}
-              onChange={(e) => setTextContent(e.target.value)}
-              placeholder="What's on your mind?"
-              className="resize-none"
-              maxLength={500}
-            />
-
-            {/* Color Picker */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                Background Color
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {BACKGROUND_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-8 h-8 rounded-full transition-transform ${
-                      backgroundColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : ''
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setBackgroundColor(color)}
-                  />
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="image" className="space-y-4 mt-4">
-            {filePreview ? (
-              <div className="relative aspect-[9/16] max-h-[300px] rounded-xl overflow-hidden bg-black">
-                <img src={filePreview} alt="Preview" className="w-full h-full object-contain" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                  onClick={() => { setFile(null); setFilePreview(null); }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <label className="aspect-[9/16] max-h-[300px] rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3 bg-muted/50">
-                <Camera className="h-12 w-12 text-primary/50" />
-                <span className="text-sm text-muted-foreground">Click to upload image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-            )}
-
-            <Input
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption..."
-            />
-          </TabsContent>
-
-          <TabsContent value="video" className="space-y-4 mt-4">
-            {filePreview ? (
-              <div className="relative aspect-[9/16] max-h-[300px] rounded-xl overflow-hidden bg-black">
-                <video src={filePreview} className="w-full h-full object-contain" controls />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                  onClick={() => { setFile(null); setFilePreview(null); }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <label className="aspect-[9/16] max-h-[300px] rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3 bg-muted/50">
-                <Video className="h-12 w-12 text-primary/50" />
-                <span className="text-sm text-muted-foreground">Click to upload video (max 30s)</span>
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-            )}
-
-            <Input
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption..."
-            />
-          </TabsContent>
-
-          <TabsContent value="voice" className="space-y-4 mt-4">
-            {filePreview ? (
-              <div className="relative aspect-[9/16] max-h-[300px] rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-pink-vibrant/20 flex items-center justify-center">
-                <audio src={filePreview} controls className="w-4/5" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                  onClick={() => { setFile(null); setFilePreview(null); }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <label className="aspect-[9/16] max-h-[300px] rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3 bg-muted/50">
-                <Mic className="h-12 w-12 text-primary/50" />
-                <span className="text-sm text-muted-foreground">Click to upload voice clip</span>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-            )}
-
-            <Input
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption..."
-            />
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex gap-3 pt-4">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            className="flex-1 bg-gradient-to-r from-primary to-pink-vibrant"
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (step === 'type') onClose();
+            else if (step === 'content') setStep('type');
+            else setStep('content');
+          }}
+          className="text-white hover:bg-white/10"
+        >
+          {step === 'type' ? <X className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
+        </Button>
+        <h2 className="text-white font-semibold text-lg">
+          {step === 'type' && 'Create Status'}
+          {step === 'content' && 'Text Status'}
+          {step === 'preview' && 'Preview'}
+        </h2>
+        {(step === 'content' || step === 'preview') && (
+          <Button
+            onClick={handleSubmit}
             disabled={isUploading}
+            className="bg-primary hover:bg-primary/90 text-white rounded-full px-6"
           >
             {isUploading ? (
               <span className="animate-pulse">Posting...</span>
             ) : (
               <>
-                <Upload className="h-4 w-4 mr-2" />
-                Post Status
+                <Send className="h-4 w-4 mr-2" />
+                Post
               </>
             )}
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+        {step === 'type' && <div className="w-10" />}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* Step 1: Select Type */}
+        {step === 'type' && (
+          <motion.div
+            key="type"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="flex-1 flex flex-col items-center justify-center gap-6 p-6"
+          >
+            <div className="text-center mb-8">
+              <Sparkles className="h-16 w-16 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">What would you like to share?</h3>
+              <p className="text-white/60">Your status will be visible for 24 hours</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => selectType('text')}
+                className="aspect-square rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex flex-col items-center justify-center gap-3 p-4"
+              >
+                <Type className="h-12 w-12 text-white" />
+                <span className="text-white font-semibold">Text</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => selectType('image')}
+                className="aspect-square rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex flex-col items-center justify-center gap-3 p-4"
+              >
+                <Image className="h-12 w-12 text-white" />
+                <span className="text-white font-semibold">Photo</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => selectType('video')}
+                className="aspect-square rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex flex-col items-center justify-center gap-3 p-4"
+              >
+                <Video className="h-12 w-12 text-white" />
+                <span className="text-white font-semibold">Video</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => selectType('voice')}
+                className="aspect-square rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex flex-col items-center justify-center gap-3 p-4"
+              >
+                <Mic className="h-12 w-12 text-white" />
+                <span className="text-white font-semibold">Voice</span>
+              </motion.button>
+            </div>
+
+            <p className="text-white/40 text-sm text-center mt-4">
+              Only your followers can view your status
+            </p>
+          </motion.div>
+        )}
+
+        {/* Step 2: Text Content */}
+        {step === 'content' && contentType === 'text' && (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex-1 flex flex-col"
+          >
+            {/* Preview */}
+            <div 
+              className="flex-1 flex items-center justify-center p-6 min-h-[50vh]"
+              style={{ 
+                background: backgroundColor.startsWith('linear') ? backgroundColor : undefined,
+                backgroundColor: !backgroundColor.startsWith('linear') ? backgroundColor : undefined
+              }}
+            >
+              <Textarea
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                placeholder="Type your status..."
+                className="bg-transparent border-none text-white text-2xl font-bold text-center resize-none placeholder:text-white/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                style={{ minHeight: '200px' }}
+                maxLength={500}
+              />
+            </div>
+
+            {/* Color Picker */}
+            <div className="p-4 bg-black">
+              <div className="flex items-center gap-2 mb-3">
+                <Palette className="h-5 w-5 text-white/60" />
+                <span className="text-white/60 text-sm">Background</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {BACKGROUND_COLORS.map((color, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-10 h-10 rounded-full flex-shrink-0 transition-transform ${
+                      backgroundColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-110' : ''
+                    }`}
+                    style={{ 
+                      background: color.startsWith('linear') ? color : undefined,
+                      backgroundColor: !color.startsWith('linear') ? color : undefined
+                    }}
+                    onClick={() => setBackgroundColor(color)}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Media Preview */}
+        {step === 'preview' && (
+          <motion.div
+            key="preview"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="flex-1 flex flex-col bg-black"
+          >
+            {/* Media Preview */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              {contentType === 'image' && filePreview && (
+                <img 
+                  src={filePreview} 
+                  alt="Preview" 
+                  className="max-h-[60vh] max-w-full object-contain rounded-2xl"
+                />
+              )}
+              {contentType === 'video' && filePreview && (
+                <video 
+                  src={filePreview} 
+                  controls 
+                  className="max-h-[60vh] max-w-full rounded-2xl"
+                />
+              )}
+              {contentType === 'voice' && filePreview && (
+                <div className="w-full max-w-sm p-6 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-white/10">
+                  <Mic className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                  <audio src={filePreview} controls className="w-full" />
+                </div>
+              )}
+            </div>
+
+            {/* Caption Input */}
+            <div className="p-4 bg-black border-t border-white/10">
+              <Input
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Add a caption..."
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

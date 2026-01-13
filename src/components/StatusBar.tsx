@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Plus, Eye } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import StatusViewer from './StatusViewer';
 import StatusUploadModal from './StatusUploadModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface StatusUser {
   id: string;
@@ -21,17 +21,31 @@ interface StatusUser {
 
 const StatusBar = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState<StatusUser | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Fetch users with active statuses (from people the user follows or all if not logged in)
+  // Fetch statuses from people the user follows
   const { data: statusUsers = [], refetch } = useQuery({
-    queryKey: ['status-users', user?.id],
+    queryKey: ['status-users-following', user?.id],
     queryFn: async () => {
-      // Get active statuses from users
+      if (!user) return [];
+
+      // Get users the current user follows
+      const { data: following } = await supabase
+        .from('user_followers')
+        .select('following_id')
+        .eq('follower_id', user.id);
+
+      const followingIds = following?.map(f => f.following_id) || [];
+      
+      if (followingIds.length === 0) return [];
+
+      // Get active statuses from followed users
       const { data: statuses, error } = await supabase
         .from('user_statuses')
         .select('*, profiles:user_id(id, full_name, store_name, avatar_url)')
+        .in('user_id', followingIds)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
@@ -58,6 +72,7 @@ const StatusBar = () => {
 
       return Array.from(userMap.values());
     },
+    enabled: !!user,
   });
 
   // Check if current user has statuses
@@ -77,14 +92,14 @@ const StatusBar = () => {
     enabled: !!user,
   });
 
-  // Check if user has followers (can post status)
+  // Get user profile for avatar
   const { data: profile } = useQuery({
-    queryKey: ['my-profile-followers', user?.id],
+    queryKey: ['my-profile-avatar', user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('followers_count, avatar_url')
+        .select('avatar_url, full_name')
         .eq('id', user.id)
         .single();
       return data;
@@ -92,77 +107,108 @@ const StatusBar = () => {
     enabled: !!user,
   });
 
-  // Anyone can post status now (removed follower requirement)
-  const canPostStatus = !!user;
-
   const getInitials = (name: string | null) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  if (statusUsers.length === 0 && !user) return null;
+  // Don't show if not logged in or no statuses to show
+  if (!user) return null;
+  if (statusUsers.length === 0 && myStatuses.length === 0) {
+    // Show just the add status button
+    return (
+      <div className="py-4 px-2">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-1.5"
+        >
+          <button
+            onClick={() => navigate('/profile')}
+            className="relative"
+          >
+            <div className="w-16 h-16 rounded-full p-0.5 bg-muted">
+              <div className="w-full h-full rounded-full bg-background p-0.5">
+                <Avatar className="w-full h-full">
+                  <AvatarImage src={profile?.avatar_url || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-sm">
+                    {getInitials(profile?.full_name || 'You')}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+              <Plus className="w-3 h-3 text-white" />
+            </div>
+          </button>
+          <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
+            Add Status
+          </span>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="py-4 overflow-x-auto scrollbar-hide">
         <div className="flex gap-4 px-2">
-          {/* Add Status Button (for users with followers) */}
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center gap-1.5 flex-shrink-0"
+          {/* My Status */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-1.5 flex-shrink-0"
+          >
+            <button
+              onClick={() => {
+                if (myStatuses.length > 0) {
+                  setSelectedUser({
+                    id: user.id,
+                    user_id: user.id,
+                    avatar_url: profile?.avatar_url || null,
+                    full_name: profile?.full_name || 'My Status',
+                    store_name: null,
+                    statuses: myStatuses,
+                    hasUnviewed: false
+                  });
+                } else {
+                  navigate('/profile');
+                }
+              }}
+              className="relative"
             >
-              <div className="relative">
-                <button
-                  onClick={() => myStatuses.length > 0 
-                    ? setSelectedUser({
-                        id: user.id,
-                        user_id: user.id,
-                        avatar_url: null,
-                        full_name: 'My Status',
-                        store_name: null,
-                        statuses: myStatuses,
-                        hasUnviewed: false
-                      })
-                    : canPostStatus && setShowUploadModal(true)
-                  }
-                  className="relative"
-                >
-                  <div className={`w-16 h-16 rounded-full p-0.5 ${
-                    myStatuses.length > 0 
-                      ? 'bg-gradient-to-tr from-primary via-pink-vibrant to-peach' 
-                      : 'bg-muted'
-                  }`}>
-                    <div className="w-full h-full rounded-full bg-background p-0.5">
-                      <Avatar className="w-full h-full">
-                        <AvatarImage src={profile?.avatar_url || ''} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-sm">
-                          {getInitials('You')}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
-                  {canPostStatus && myStatuses.length === 0 && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
-                      <Plus className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                  {myStatuses.length > 0 && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center border-2 border-background text-[10px] text-white font-bold">
-                      {myStatuses.length}
-                    </div>
-                  )}
-                </button>
+              <div className={`w-16 h-16 rounded-full p-0.5 ${
+                myStatuses.length > 0 
+                  ? 'bg-gradient-to-tr from-primary via-pink-vibrant to-peach' 
+                  : 'bg-muted'
+              }`}>
+                <div className="w-full h-full rounded-full bg-background p-0.5">
+                  <Avatar className="w-full h-full">
+                    <AvatarImage src={profile?.avatar_url || ''} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-sm">
+                      {getInitials(profile?.full_name || 'You')}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
               </div>
-              <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
-                {myStatuses.length > 0 ? 'My Status' : 'Add Status'}
-              </span>
-            </motion.div>
-          )}
+              {myStatuses.length === 0 && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                  <Plus className="w-3 h-3 text-white" />
+                </div>
+              )}
+              {myStatuses.length > 0 && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center border-2 border-background text-[10px] text-white font-bold">
+                  {myStatuses.length}
+                </div>
+              )}
+            </button>
+            <span className="text-[10px] text-muted-foreground truncate w-16 text-center">
+              {myStatuses.length > 0 ? 'My Status' : 'Add Status'}
+            </span>
+          </motion.div>
 
-          {/* Other Users' Statuses */}
-          {statusUsers.filter(u => u.user_id !== user?.id).map((statusUser, index) => (
+          {/* Followed Users' Statuses */}
+          {statusUsers.map((statusUser, index) => (
             <motion.div
               key={statusUser.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -176,7 +222,7 @@ const StatusBar = () => {
               >
                 <div className={`w-16 h-16 rounded-full p-0.5 ${
                   statusUser.hasUnviewed 
-                    ? 'bg-gradient-to-tr from-primary via-pink-vibrant to-peach animate-pulse' 
+                    ? 'bg-gradient-to-tr from-primary via-pink-vibrant to-peach' 
                     : 'bg-muted/50'
                 }`}>
                   <div className="w-full h-full rounded-full bg-background p-0.5">
