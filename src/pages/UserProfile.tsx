@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, User, MapPin, Globe, Calendar, Users,
   Verified, Package, MessageCircle, Heart, Share2, 
-  UserPlus, UserMinus, Image, Plus
+  UserPlus, UserMinus, Image, Plus, Settings
 } from 'lucide-react';
 import Header from '@/components/Header';
 import StatusUploadModal from '@/components/StatusUploadModal';
@@ -297,15 +297,25 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* Add Status Button for Own Profile - Anyone can post */}
+                {/* Manage Status & Followers for Own Profile */}
                 {isOwnProfile && (
-                  <Button
-                    onClick={() => setShowStatusUpload(true)}
-                    className="bg-gradient-to-r from-primary to-pink-vibrant gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Status
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setShowStatusUpload(true)}
+                      className="bg-gradient-to-r from-primary to-pink-vibrant gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Status
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/status-management')}
+                      variant="outline"
+                      className="gap-2 border-primary/30"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Manage
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardContent>
