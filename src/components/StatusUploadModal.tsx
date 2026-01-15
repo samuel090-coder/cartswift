@@ -5,11 +5,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { 
   Camera, Image, Video, Mic, Type, X, Check, 
-  Sparkles, Palette, Send, ChevronLeft
+  Sparkles, Palette, Send, ChevronLeft, Music, ShoppingBag, Smile
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import MusicSelector from './status/MusicSelector';
+import ProductLinker from './status/ProductLinker';
+import StickerSelector from './status/StickerSelector';
 
 interface StatusUploadModalProps {
   onClose: () => void;
@@ -42,6 +45,14 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // New marketplace features
+  const [showMusicSelector, setShowMusicSelector] = useState(false);
+  const [showProductLinker, setShowProductLinker] = useState(false);
+  const [showStickerSelector, setShowStickerSelector] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState<{ url: string; title: string; artist: string } | null>(null);
+  const [linkedProduct, setLinkedProduct] = useState<any>(null);
+  const [stickers, setStickers] = useState<Array<{ id: string; emoji: string; name: string; x: number; y: number }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +125,7 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
         contentUrl = publicUrl;
       }
 
-      // Create status
+      // Create status with marketplace features
       const { error: statusError } = await supabase
         .from('user_statuses')
         .insert({
@@ -124,7 +135,14 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
           text_content: contentType === 'text' ? textContent : null,
           background_color: contentType === 'text' ? backgroundColor : null,
           caption: caption || null,
-          visibility: 'all'
+          visibility: 'all',
+          music_url: selectedMusic?.url || null,
+          music_title: selectedMusic?.title || null,
+          music_artist: selectedMusic?.artist || null,
+          linked_product_id: linkedProduct?.type === 'seller_product' ? linkedProduct.id : null,
+          linked_item_id: linkedProduct?.type === 'item' ? linkedProduct.id : null,
+          stickers: stickers.length > 0 ? stickers : null,
+          call_to_action: linkedProduct ? 'Buy Now' : null
         });
 
       if (statusError) throw statusError;
@@ -353,17 +371,83 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
             </div>
 
             {/* Caption Input */}
-            <div className="p-4 bg-black border-t border-white/10">
+            <div className="p-4 bg-black border-t border-white/10 space-y-3">
               <Input
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Add a caption..."
                 className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
               />
+              
+              {/* Marketplace Enhancement Buttons */}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowMusicSelector(true)}
+                  className={`flex-shrink-0 ${selectedMusic ? 'border-primary text-primary' : 'border-white/20 text-white'}`}
+                >
+                  <Music className="w-4 h-4 mr-1" />
+                  {selectedMusic ? selectedMusic.title.slice(0, 10) + '...' : 'Music'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowProductLinker(true)}
+                  className={`flex-shrink-0 ${linkedProduct ? 'border-green-500 text-green-400' : 'border-white/20 text-white'}`}
+                >
+                  <ShoppingBag className="w-4 h-4 mr-1" />
+                  {linkedProduct ? 'Linked!' : 'Link Product'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowStickerSelector(true)}
+                  className={`flex-shrink-0 ${stickers.length > 0 ? 'border-yellow-500 text-yellow-400' : 'border-white/20 text-white'}`}
+                >
+                  <Smile className="w-4 h-4 mr-1" />
+                  Stickers {stickers.length > 0 && `(${stickers.length})`}
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Music Selector Modal */}
+      {showMusicSelector && (
+        <MusicSelector
+          onSelect={(music) => {
+            setSelectedMusic(music);
+            setShowMusicSelector(false);
+          }}
+          onClose={() => setShowMusicSelector(false)}
+          selectedMusic={selectedMusic}
+        />
+      )}
+      
+      {/* Product Linker Modal */}
+      {showProductLinker && (
+        <ProductLinker
+          onSelect={(product) => {
+            setLinkedProduct(product);
+            setShowProductLinker(false);
+          }}
+          onClose={() => setShowProductLinker(false)}
+          selectedProduct={linkedProduct}
+        />
+      )}
+      
+      {/* Sticker Selector Modal */}
+      {showStickerSelector && (
+        <StickerSelector
+          onSelect={(sticker) => {
+            setStickers(prev => [...prev, { ...sticker, x: 50, y: 50 }]);
+          }}
+          onClose={() => setShowStickerSelector(false)}
+          selectedStickers={stickers}
+        />
+      )}
     </motion.div>
   );
 };

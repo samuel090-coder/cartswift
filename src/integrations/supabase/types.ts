@@ -2173,6 +2173,101 @@ export type Database = {
           },
         ]
       }
+      status_music_library: {
+        Row: {
+          artist: string | null
+          audio_url: string
+          cover_image_url: string | null
+          created_at: string
+          duration_seconds: number | null
+          genre: string | null
+          id: string
+          is_trending: boolean | null
+          play_count: number | null
+          title: string
+        }
+        Insert: {
+          artist?: string | null
+          audio_url: string
+          cover_image_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          is_trending?: boolean | null
+          play_count?: number | null
+          title: string
+        }
+        Update: {
+          artist?: string | null
+          audio_url?: string
+          cover_image_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          is_trending?: boolean | null
+          play_count?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      status_purchases: {
+        Row: {
+          amount: number
+          buyer_id: string
+          commission_amount: number | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          payment_method: string | null
+          product_id: string | null
+          seller_id: string
+          shipping_address: Json | null
+          status: string | null
+          status_id: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          commission_amount?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          payment_method?: string | null
+          product_id?: string | null
+          seller_id: string
+          shipping_address?: Json | null
+          status?: string | null
+          status_id: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          commission_amount?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          payment_method?: string | null
+          product_id?: string | null
+          seller_id?: string
+          shipping_address?: Json | null
+          status?: string | null
+          status_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_purchases_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_reactions: {
         Row: {
           created_at: string
@@ -2204,6 +2299,71 @@ export type Database = {
             columns: ["status_id"]
             isOneToOne: false
             referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_sticker_packs: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          name: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          name: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      status_stickers: {
+        Row: {
+          created_at: string
+          emoji_code: string | null
+          id: string
+          image_url: string
+          is_animated: boolean | null
+          name: string
+          pack_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          emoji_code?: string | null
+          id?: string
+          image_url: string
+          is_animated?: boolean | null
+          name: string
+          pack_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          emoji_code?: string | null
+          id?: string
+          image_url?: string
+          is_animated?: boolean | null
+          name?: string
+          pack_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_stickers_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "status_sticker_packs"
             referencedColumns: ["id"]
           },
         ]
@@ -2359,13 +2519,21 @@ export type Database = {
       user_statuses: {
         Row: {
           background_color: string | null
+          call_to_action: string | null
           caption: string | null
           content_type: string
           content_url: string | null
           created_at: string
+          cta_link: string | null
           expires_at: string
           hidden_from: string[] | null
           id: string
+          linked_item_id: string | null
+          linked_product_id: string | null
+          music_artist: string | null
+          music_title: string | null
+          music_url: string | null
+          stickers: Json | null
           text_content: string | null
           user_id: string
           view_count: number | null
@@ -2374,13 +2542,21 @@ export type Database = {
         }
         Insert: {
           background_color?: string | null
+          call_to_action?: string | null
           caption?: string | null
           content_type: string
           content_url?: string | null
           created_at?: string
+          cta_link?: string | null
           expires_at?: string
           hidden_from?: string[] | null
           id?: string
+          linked_item_id?: string | null
+          linked_product_id?: string | null
+          music_artist?: string | null
+          music_title?: string | null
+          music_url?: string | null
+          stickers?: Json | null
           text_content?: string | null
           user_id: string
           view_count?: number | null
@@ -2389,20 +2565,43 @@ export type Database = {
         }
         Update: {
           background_color?: string | null
+          call_to_action?: string | null
           caption?: string | null
           content_type?: string
           content_url?: string | null
           created_at?: string
+          cta_link?: string | null
           expires_at?: string
           hidden_from?: string[] | null
           id?: string
+          linked_item_id?: string | null
+          linked_product_id?: string | null
+          music_artist?: string | null
+          music_title?: string | null
+          music_url?: string | null
+          stickers?: Json | null
           text_content?: string | null
           user_id?: string
           view_count?: number | null
           visibility?: string | null
           visible_to?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_statuses_linked_item_id_fkey"
+            columns: ["linked_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_statuses_linked_product_id_fkey"
+            columns: ["linked_product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallets: {
         Row: {
