@@ -385,28 +385,28 @@ const StatusUploadModal = ({ onClose, onSuccess }: StatusUploadModalProps) => {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowMusicSelector(true)}
-                  className={`flex-shrink-0 ${selectedMusic ? 'border-primary text-primary' : 'border-white/20 text-white'}`}
+                  className={`flex-shrink-0 ${selectedMusic ? 'border-primary bg-primary/20' : 'border-white/30 bg-white/10'}`}
                 >
-                  <Music className="w-4 h-4 mr-1" />
-                  {selectedMusic ? selectedMusic.title.slice(0, 10) + '...' : 'Music'}
+                  <Music className="w-4 h-4 mr-1 text-primary" />
+                  <span className="text-white">{selectedMusic ? selectedMusic.title.slice(0, 10) + '...' : 'Add Music'}</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowProductLinker(true)}
-                  className={`flex-shrink-0 ${linkedProduct ? 'border-green-500 text-green-400' : 'border-white/20 text-white'}`}
+                  className={`flex-shrink-0 ${linkedProduct ? 'border-green-500 bg-green-500/20' : 'border-white/30 bg-white/10'}`}
                 >
-                  <ShoppingBag className="w-4 h-4 mr-1" />
-                  {linkedProduct ? 'Linked!' : 'Link Product'}
+                  <ShoppingBag className="w-4 h-4 mr-1 text-green-400" />
+                  <span className="text-white">{linkedProduct ? 'Product Linked!' : 'Link Product'}</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowStickerSelector(true)}
-                  className={`flex-shrink-0 ${stickers.length > 0 ? 'border-yellow-500 text-yellow-400' : 'border-white/20 text-white'}`}
+                  className={`flex-shrink-0 ${stickers.length > 0 ? 'border-yellow-500 bg-yellow-500/20' : 'border-white/30 bg-white/10'}`}
                 >
-                  <Smile className="w-4 h-4 mr-1" />
-                  Stickers {stickers.length > 0 && `(${stickers.length})`}
+                  <Smile className="w-4 h-4 mr-1 text-yellow-400" />
+                  <span className="text-white">Stickers {stickers.length > 0 && `(${stickers.length})`}</span>
                 </Button>
               </div>
             </div>

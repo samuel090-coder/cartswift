@@ -10,10 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, Eye, Trash2, Users, UserPlus, UserMinus, 
-  Image, Clock, Heart, MessageCircle, BarChart3, Play, Volume2
+  Image, Clock, Heart, MessageCircle, BarChart3, Play, Volume2,
+  Search, DollarSign
 } from 'lucide-react';
 import StatusUploadModal from '@/components/StatusUploadModal';
 import StatusViewer from '@/components/StatusViewer';
+import UserSearchModal from '@/components/UserSearchModal';
+import StatusEarningsPanel from '@/components/status/StatusEarningsPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -26,6 +29,7 @@ const StatusTabContent = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<any>(null);
   const [viewingStatus, setViewingStatus] = useState<any>(null);
+  const [showUserSearch, setShowUserSearch] = useState(false);
 
   // Fetch user's statuses
   const { data: statuses = [], isLoading: loadingStatuses } = useQuery({
@@ -215,21 +219,35 @@ const StatusTabContent = () => {
         </div>
       </div>
 
-      {/* Add Status Button */}
-      <Button 
-        onClick={() => setShowUploadModal(true)}
-        className="w-full mb-6 gap-2 bg-gradient-to-r from-primary to-pink-vibrant hover:opacity-90 h-12"
-      >
-        <Plus className="w-5 h-5" />
-        Create New Status
-      </Button>
+      {/* Action Buttons */}
+      <div className="flex gap-3 mb-6">
+        <Button 
+          onClick={() => setShowUploadModal(true)}
+          className="flex-1 gap-2 bg-gradient-to-r from-primary to-pink-vibrant hover:opacity-90 h-12"
+        >
+          <Plus className="w-5 h-5" />
+          Create Status
+        </Button>
+        <Button 
+          onClick={() => setShowUserSearch(true)}
+          variant="outline"
+          className="gap-2 h-12 border-primary/30 hover:bg-primary/10"
+        >
+          <Search className="w-5 h-5" />
+          Find People
+        </Button>
+      </div>
 
       {/* Sub Tabs */}
       <Tabs defaultValue="my-statuses" className="space-y-4">
-        <TabsList className="bg-background/80 backdrop-blur-sm border border-primary/20 grid grid-cols-3 w-full">
+        <TabsList className="bg-background/80 backdrop-blur-sm border border-primary/20 grid grid-cols-4 w-full">
           <TabsTrigger value="my-statuses" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
             <Image className="w-3 h-3 mr-1" />
             Statuses
+          </TabsTrigger>
+          <TabsTrigger value="earnings" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+            <DollarSign className="w-3 h-3 mr-1" />
+            Earnings
           </TabsTrigger>
           <TabsTrigger value="followers" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
             <Users className="w-3 h-3 mr-1" />
@@ -240,6 +258,11 @@ const StatusTabContent = () => {
             Following
           </TabsTrigger>
         </TabsList>
+
+        {/* Earnings Tab */}
+        <TabsContent value="earnings">
+          <StatusEarningsPanel />
+        </TabsContent>
 
         {/* My Statuses Tab */}
         <TabsContent value="my-statuses">

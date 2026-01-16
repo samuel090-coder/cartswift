@@ -1574,6 +1574,7 @@ export type Database = {
           store_logo_url: string | null
           store_name: string | null
           total_sales: number | null
+          total_status_earnings: number | null
           updated_at: string | null
           website: string | null
         }
@@ -1601,6 +1602,7 @@ export type Database = {
           store_logo_url?: string | null
           store_name?: string | null
           total_sales?: number | null
+          total_status_earnings?: number | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1628,6 +1630,7 @@ export type Database = {
           store_logo_url?: string | null
           store_name?: string | null
           total_sales?: number | null
+          total_status_earnings?: number | null
           updated_at?: string | null
           website?: string | null
         }
@@ -2173,6 +2176,44 @@ export type Database = {
           },
         ]
       }
+      status_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          earning_type: string
+          from_user_id: string | null
+          id: string
+          status_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          earning_type: string
+          from_user_id?: string | null
+          id?: string
+          status_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          earning_type?: string
+          from_user_id?: string | null
+          id?: string
+          status_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_earnings_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "user_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_music_library: {
         Row: {
           artist: string | null
@@ -2182,9 +2223,12 @@ export type Database = {
           duration_seconds: number | null
           genre: string | null
           id: string
+          is_approved: boolean | null
+          is_public: boolean | null
           is_trending: boolean | null
           play_count: number | null
           title: string
+          uploaded_by: string | null
         }
         Insert: {
           artist?: string | null
@@ -2194,9 +2238,12 @@ export type Database = {
           duration_seconds?: number | null
           genre?: string | null
           id?: string
+          is_approved?: boolean | null
+          is_public?: boolean | null
           is_trending?: boolean | null
           play_count?: number | null
           title: string
+          uploaded_by?: string | null
         }
         Update: {
           artist?: string | null
@@ -2206,9 +2253,12 @@ export type Database = {
           duration_seconds?: number | null
           genre?: string | null
           id?: string
+          is_approved?: boolean | null
+          is_public?: boolean | null
           is_trending?: boolean | null
           play_count?: number | null
           title?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }

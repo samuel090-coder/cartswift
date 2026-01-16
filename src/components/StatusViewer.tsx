@@ -51,6 +51,8 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
   const [replyText, setReplyText] = useState('');
   const [showViewers, setShowViewers] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showLoveAnimation, setShowLoveAnimation] = useState(false);
+  const [lastTapTime, setLastTapTime] = useState(0);
 
   const currentStatus = user.statuses[currentIndex];
   const isOwner = currentUser?.id === user.user_id;
@@ -113,7 +115,7 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
     return () => clearInterval(timer);
   }, [currentIndex, isPaused, showViewers, user.statuses.length, onNext]);
 
-  // Record view and credit earnings
+  // Record view and credit earnings (updated rates: $0.023 per view)
   useEffect(() => {
     const recordViewAndEarnings = async () => {
       if (!currentUser || isOwner || !currentStatus) return;
@@ -133,37 +135,16 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
             viewer_id: currentUser.id
           });
 
-          // Credit $0.50 to status owner's wallet bonus
-          const { data: ownerWallet } = await supabase
-            .from('wallets')
-            .select('id, bonus_balance, total_earned')
-            .eq('user_id', user.user_id)
-            .maybeSingle();
-
-          if (ownerWallet) {
-            await supabase
-              .from('wallets')
-              .update({
-                bonus_balance: (ownerWallet.bonus_balance || 0) + 0.50,
-                total_earned: (ownerWallet.total_earned || 0) + 0.50
-              })
-              .eq('id', ownerWallet.id);
-          } else {
-            await supabase
-              .from('wallets')
-              .insert({
-                user_id: user.user_id,
-                bonus_balance: 0.50,
-                total_earned: 0.50
-              });
-          }
+          // Credit $0.023 for view earnings
+          const viewAmount = 0.023;
 
           // Record the earning
-          await supabase.from('status_view_earnings').insert({
+          await supabase.from('status_earnings').insert({
             status_id: currentStatus.id,
-            viewer_id: currentUser.id,
-            owner_id: user.user_id,
-            amount: 0.50
+            user_id: user.user_id,
+            earning_type: 'view',
+            amount: viewAmount,
+            from_user_id: currentUser.id
           });
 
           // Update view count
@@ -178,6 +159,44 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
     };
     recordViewAndEarnings();
   }, [currentStatus?.id, currentUser, isOwner, user.user_id]);
+
+  // Handle double tap for TikTok-style reaction
+  const handleDoubleTap = async (e: React.MouseEvent | React.TouchEvent) => {
+    const now = Date.now();
+    if (now - lastTapTime < 300) {
+      // Double tap detected!
+      if (!currentUser || isOwner) return;
+      
+      // Show love animation
+      setShowLoveAnimation(true);
+      setTimeout(() => setShowLoveAnimation(false), 1000);
+
+      try {
+        // Add reaction
+        await supabase.from('status_reactions').insert({
+          status_id: currentStatus.id,
+          user_id: currentUser.id,
+          reaction_type: '❤️'
+        });
+
+        // Credit $0.002 for reaction earnings
+        const reactionAmount = 0.002;
+
+        await supabase.from('status_earnings').insert({
+          status_id: currentStatus.id,
+          user_id: user.user_id,
+          earning_type: 'reaction',
+          amount: reactionAmount,
+          from_user_id: currentUser.id
+        });
+
+        toast.success('❤️ Loved!');
+      } catch (error) {
+        console.error('Error adding reaction:', error);
+      }
+    }
+    setLastTapTime(now);
+  };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
@@ -358,9 +377,9 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
               </div>
             </div>
 
-            {/* Content */}
+            {/* Content - with double tap handler */}
             <div 
-              className="h-full flex items-center justify-center"
+              className="h-full flex items-center justify-center relative"
               style={{ 
                 background: currentStatus.background_color?.startsWith('linear') 
                   ? currentStatus.background_color 
@@ -369,6 +388,8 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
                   ? (currentStatus.background_color || '#000') 
                   : undefined
               }}
+              onClick={handleDoubleTap}
+              onTouchEnd={handleDoubleTap}
             >
               {currentStatus.content_type === 'text' && (
                 <div className="p-8 text-center max-w-sm">
@@ -400,6 +421,28 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
                     <Volume2 className="w-12 h-12 text-white" />
                   </div>
                   <audio src={currentStatus.content_url} controls autoPlay className="w-64" />
+                </div>
+              )}
+
+              {/* TikTok-style Love Animation */}
+              <AnimatePresence>
+                {showLoveAnimation && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1.5, opacity: 1 }}
+                    exit={{ scale: 2, opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  >
+                    <Heart className="w-32 h-32 text-red-500 fill-red-500 drop-shadow-2xl" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Double tap hint */}
+              {!isOwner && (
+                <div className="absolute bottom-32 left-1/2 -translate-x-1/2 pointer-events-none">
+                  <p className="text-white/40 text-xs text-center">Double-tap to ❤️</p>
                 </div>
               )}
             </div>
