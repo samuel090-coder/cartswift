@@ -57,14 +57,18 @@ const MusicUploadModal = ({ onClose, onSuccess }: MusicUploadModalProps) => {
     try {
       // Upload audio file
       const fileExt = file.name.split('.').pop();
-      const fileName = `music/${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/music/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('status-media')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
-        throw new Error('Failed to upload audio file');
+        console.error('Upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload audio file');
       }
 
       const { data: { publicUrl } } = supabase.storage
