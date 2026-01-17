@@ -626,6 +626,13 @@ const StatusTabContent = () => {
           onNext={() => setViewingStatus(null)}
         />
       )}
+
+      {/* User Search Modal */}
+      {showUserSearch && (
+        <UserSearchModal
+          onClose={() => setShowUserSearch(false)}
+        />
+      )}
     </motion.div>
   );
 };
