@@ -366,8 +366,11 @@ const StatusTabContent = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setViewingStatus({
-                              id: user?.id,
-                              user_id: user?.id,
+                              id: user?.id || '',
+                              user_id: user?.id || '',
+                              avatar_url: null,
+                              full_name: 'My Status',
+                              store_name: null,
                               statuses: [status],
                               hasUnviewed: false
                             });
@@ -504,7 +507,7 @@ const StatusTabContent = () => {
                   >
                     <Avatar 
                       className="h-12 w-12 cursor-pointer ring-2 ring-primary/20"
-                      onClick={() => navigate(`/user/${follower.follower_id}`)}
+                      onClick={() => navigate(`/profile/${follower.follower_id}`)}
                     >
                       <AvatarImage src={follower.profile?.avatar_url || ''} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
@@ -514,9 +517,9 @@ const StatusTabContent = () => {
                     <div className="flex-1 min-w-0">
                       <p 
                         className="font-medium truncate cursor-pointer hover:text-primary"
-                        onClick={() => navigate(`/user/${follower.follower_id}`)}
+                        onClick={() => navigate(`/profile/${follower.follower_id}`)}
                       >
-                        {follower.profile?.full_name || 'Anonymous'}
+                        {follower.profile?.full_name || 'User'}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {follower.profile?.bio || 'No bio'}
@@ -569,7 +572,7 @@ const StatusTabContent = () => {
                   >
                     <Avatar 
                       className="h-12 w-12 cursor-pointer ring-2 ring-primary/20"
-                      onClick={() => navigate(`/user/${follow.following_id}`)}
+                      onClick={() => navigate(`/profile/${follow.following_id}`)}
                     >
                       <AvatarImage src={follow.profile?.avatar_url || ''} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
@@ -579,9 +582,9 @@ const StatusTabContent = () => {
                     <div className="flex-1 min-w-0">
                       <p 
                         className="font-medium truncate cursor-pointer hover:text-primary"
-                        onClick={() => navigate(`/user/${follow.following_id}`)}
+                        onClick={() => navigate(`/profile/${follow.following_id}`)}
                       >
-                        {follow.profile?.full_name || 'Anonymous'}
+                        {follow.profile?.full_name || 'User'}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {follow.profile?.bio || 'No bio'}

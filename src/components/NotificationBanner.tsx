@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface InAppNotification {
   id: string;
@@ -16,7 +19,20 @@ interface InAppNotification {
   created_at: string;
 }
 
+interface UserNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  icon_emoji: string;
+  link_url: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
 export const NotificationBanner = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isSubscribed, subscribe, isSupported, loading } = usePushNotifications();
   const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
@@ -24,7 +40,7 @@ export const NotificationBanner = () => {
 
   const sessionSupabase = createSessionSupabaseClient();
 
-  // Fetch unread in-app notifications
+  // Fetch unread in-app notifications (for non-authenticated users)
   const { data: notifications = [] } = useQuery({
     queryKey: ['in-app-notifications', getSessionId()],
     queryFn: async () => {
@@ -40,6 +56,44 @@ export const NotificationBanner = () => {
     },
     refetchInterval: 30000,
   });
+
+  // Subscribe to realtime user notifications (for authenticated users)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user-notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const notification = payload.new as UserNotification;
+          // Show toast notification
+          toast(notification.title, {
+            description: notification.body,
+            icon: notification.icon_emoji,
+            action: notification.link_url ? {
+              label: 'View',
+              onClick: () => {
+                window.location.href = notification.link_url!;
+              },
+            } : undefined,
+          });
+          // Invalidate notifications query
+          queryClient.invalidateQueries({ queryKey: ['user-notifications'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   // Mark as read mutation
   const markAsRead = useMutation({

@@ -2545,6 +2545,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          icon_emoji: string | null
+          id: string
+          is_read: boolean
+          link_url: string | null
+          read_at: string | null
+          related_item_id: string | null
+          related_status_id: string | null
+          related_user_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          related_item_id?: string | null
+          related_status_id?: string | null
+          related_user_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          icon_emoji?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          related_item_id?: string | null
+          related_status_id?: string | null
+          related_user_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2717,6 +2765,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_body: string
+          p_icon_emoji?: string
+          p_link_url?: string
+          p_related_item_id?: string
+          p_related_status_id?: string
+          p_related_user_id?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       generate_download_token: { Args: never; Returns: string }
       has_role: {
         Args: {
