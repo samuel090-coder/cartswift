@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import LanguageCurrencySelector from '@/components/LanguageCurrencySelector';
+import NotificationCenter from '@/components/NotificationCenter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,7 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             <LanguageCurrencySelector />
             
+            <NotificationCenter />
             <Link to="/cart">
               <Button variant="outline" className="relative bg-white/80 backdrop-blur-sm hover:bg-white/90">
                 <ShoppingCart className="h-5 w-5" />
