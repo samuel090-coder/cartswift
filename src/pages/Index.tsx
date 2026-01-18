@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import FlashSalesBanner from '@/components/FlashSalesBanner';
 import TrendingItems from '@/components/TrendingItems';
@@ -18,6 +19,7 @@ import AIShoppingAssistant from '@/components/AIShoppingAssistant';
 import LiveChatSupport from '@/components/LiveChatSupport';
 import StatusBar from '@/components/StatusBar';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +32,16 @@ type Item = Database['public']['Tables']['items']['Row'];
 type ItemCategory = Database['public']['Enums']['item_category'];
 
 const Index = () => {
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [welcomeCategory, setWelcomeCategory] = useState<string>('');
-  const [currentTab, setCurrentTab] = useState('shop');
+  const [currentTab, setCurrentTab] = useState(searchParams.get('tab') || 'shop');
+
+  // Sync tab with URL param
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setCurrentTab(tab);
+  }, [searchParams]);
 
   const { data: allItems = [], isLoading } = useQuery({
     queryKey: ['items'],
@@ -330,6 +339,9 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </AnimatedBackground>
   );
 };
