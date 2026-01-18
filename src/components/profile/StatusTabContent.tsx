@@ -22,6 +22,79 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+// Reusable component for displaying followers/following with status viewing capability
+interface FollowerCardProps {
+  follower: any;
+  type: 'follower' | 'following';
+  onViewStatus: (userId: string) => void;
+  onViewProfile: (userId: string) => void;
+  onRemove: () => void;
+  getInitials: (name: string | null) => string;
+}
+
+const FollowerCard = ({ follower, type, onViewStatus, onViewProfile, onRemove, getInitials }: FollowerCardProps) => {
+  const userId = type === 'follower' ? follower.follower_id : follower.following_id;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
+    >
+      {/* Avatar with Status Ring - Click to view status */}
+      <div className="relative">
+        <Avatar 
+          className="h-12 w-12 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/60 transition-all"
+          onClick={() => onViewStatus(userId)}
+        >
+          <AvatarImage src={follower.profile?.avatar_url || ''} />
+          <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
+            {getInitials(follower.profile?.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        {/* Status indicator dot */}
+        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <p 
+          className="font-medium truncate cursor-pointer hover:text-primary"
+          onClick={() => onViewProfile(userId)}
+        >
+          {follower.profile?.full_name || 'User'}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">
+          {follower.profile?.bio || 'No bio'}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 text-[10px] text-primary hover:bg-primary/10 px-2"
+            onClick={() => onViewStatus(userId)}
+          >
+            <Eye className="w-3 h-3 mr-1" />
+            View Status
+          </Button>
+          <span className="text-[10px] text-muted-foreground">
+            {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
+          </span>
+        </div>
+      </div>
+      
+      <Button
+        size="sm"
+        variant="outline"
+        className={`gap-1 ${type === 'follower' ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : ''}`}
+        onClick={onRemove}
+      >
+        <UserMinus className="w-3 h-3" />
+        {type === 'follower' ? 'Remove' : 'Unfollow'}
+      </Button>
+    </motion.div>
+  );
+};
+
 const StatusTabContent = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -499,45 +572,38 @@ const StatusTabContent = () => {
             <ScrollArea className="h-[400px]">
               <div className="space-y-3">
                 {followers.map((follower: any) => (
-                  <motion.div
+                  <FollowerCard 
                     key={follower.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <Avatar 
-                      className="h-12 w-12 cursor-pointer ring-2 ring-primary/20"
-                      onClick={() => navigate(`/profile/${follower.follower_id}`)}
-                    >
-                      <AvatarImage src={follower.profile?.avatar_url || ''} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
-                        {getInitials(follower.profile?.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p 
-                        className="font-medium truncate cursor-pointer hover:text-primary"
-                        onClick={() => navigate(`/profile/${follower.follower_id}`)}
-                      >
-                        {follower.profile?.full_name || 'User'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {follower.profile?.bio || 'No bio'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Followed {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => removeFollowerMutation.mutate(follower.follower_id)}
-                    >
-                      <UserMinus className="w-3 h-3" />
-                      Remove
-                    </Button>
-                  </motion.div>
+                    follower={follower}
+                    type="follower"
+                    onViewStatus={async (userId: string) => {
+                      // Fetch follower's statuses and open viewer
+                      const { data: userStatuses, error } = await supabase
+                        .from('user_statuses')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .gt('expires_at', new Date().toISOString())
+                        .order('created_at', { ascending: false });
+                      
+                      if (error || !userStatuses?.length) {
+                        toast.error('No active statuses');
+                        return;
+                      }
+
+                      setViewingStatus({
+                        id: userId,
+                        user_id: userId,
+                        avatar_url: follower.profile?.avatar_url || null,
+                        full_name: follower.profile?.full_name || 'User',
+                        store_name: null,
+                        statuses: userStatuses,
+                        hasUnviewed: true
+                      });
+                    }}
+                    onViewProfile={(userId: string) => navigate(`/profile/${userId}`)}
+                    onRemove={() => removeFollowerMutation.mutate(follower.follower_id)}
+                    getInitials={getInitials}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -564,45 +630,38 @@ const StatusTabContent = () => {
             <ScrollArea className="h-[400px]">
               <div className="space-y-3">
                 {following.map((follow: any) => (
-                  <motion.div
+                  <FollowerCard 
                     key={follow.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <Avatar 
-                      className="h-12 w-12 cursor-pointer ring-2 ring-primary/20"
-                      onClick={() => navigate(`/profile/${follow.following_id}`)}
-                    >
-                      <AvatarImage src={follow.profile?.avatar_url || ''} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
-                        {getInitials(follow.profile?.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p 
-                        className="font-medium truncate cursor-pointer hover:text-primary"
-                        onClick={() => navigate(`/profile/${follow.following_id}`)}
-                      >
-                        {follow.profile?.full_name || 'User'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {follow.profile?.bio || 'No bio'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Following since {formatDistanceToNow(new Date(follow.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={() => unfollowMutation.mutate(follow.following_id)}
-                    >
-                      <UserMinus className="w-3 h-3" />
-                      Unfollow
-                    </Button>
-                  </motion.div>
+                    follower={follow}
+                    type="following"
+                    onViewStatus={async (userId: string) => {
+                      // Fetch following user's statuses and open viewer
+                      const { data: userStatuses, error } = await supabase
+                        .from('user_statuses')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .gt('expires_at', new Date().toISOString())
+                        .order('created_at', { ascending: false });
+                      
+                      if (error || !userStatuses?.length) {
+                        toast.error('No active statuses');
+                        return;
+                      }
+
+                      setViewingStatus({
+                        id: userId,
+                        user_id: userId,
+                        avatar_url: follow.profile?.avatar_url || null,
+                        full_name: follow.profile?.full_name || 'User',
+                        store_name: null,
+                        statuses: userStatuses,
+                        hasUnviewed: true
+                      });
+                    }}
+                    onViewProfile={(userId: string) => navigate(`/profile/${userId}`)}
+                    onRemove={() => unfollowMutation.mutate(follow.following_id)}
+                    getInitials={getInitials}
+                  />
                 ))}
               </div>
             </ScrollArea>
