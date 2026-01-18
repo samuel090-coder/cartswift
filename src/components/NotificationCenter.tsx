@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +63,42 @@ const NotificationCenter = () => {
     enabled: !!user,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Real-time subscription for new notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user-notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const notification = payload.new as UserNotification;
+          // Show toast for new notification
+          toast(notification.title, {
+            description: notification.body,
+            icon: notification.icon_emoji,
+            action: notification.link_url ? {
+              label: 'View',
+              onClick: () => navigate(notification.link_url!)
+            } : undefined
+          });
+          // Invalidate query to refresh list
+          queryClient.invalidateQueries({ queryKey: ['user-notifications'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, navigate]);
 
   // Mark single notification as read
   const markAsReadMutation = useMutation({
