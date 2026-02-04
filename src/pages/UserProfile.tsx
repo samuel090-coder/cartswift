@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, User, MapPin, Globe, Calendar, Users,
   Verified, Package, MessageCircle, Heart, Share2, 
-  UserPlus, UserMinus, Image, Plus, Settings
+  UserPlus, UserMinus, Image, Plus, Settings, Play
 } from 'lucide-react';
 import Header from '@/components/Header';
 import StatusUploadModal from '@/components/StatusUploadModal';
+import StatusViewer from '@/components/StatusViewer';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -25,7 +26,7 @@ const UserProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showStatusUpload, setShowStatusUpload] = useState(false);
-
+  const [viewingStatus, setViewingStatus] = useState<any>(null);
   // Fetch user profile
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile', userId],
@@ -344,8 +345,19 @@ const UserProfile = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
-                    className="aspect-[9/16] rounded-xl overflow-hidden relative bg-muted cursor-pointer hover:ring-2 ring-primary transition-all"
+                    className="aspect-[9/16] rounded-xl overflow-hidden relative bg-muted cursor-pointer hover:ring-2 ring-primary transition-all group"
                     style={{ backgroundColor: status.background_color || undefined }}
+                    onClick={() => {
+                      setViewingStatus({
+                        id: userId,
+                        user_id: userId,
+                        avatar_url: profile?.avatar_url || null,
+                        full_name: profile?.full_name || 'User',
+                        store_name: profile?.store_name || null,
+                        statuses: statuses,
+                        hasUnviewed: false
+                      });
+                    }}
                   >
                     {status.content_type === 'text' ? (
                       <div className="w-full h-full flex items-center justify-center p-2">
@@ -359,11 +371,25 @@ const UserProfile = () => {
                         alt="Status" 
                         className="w-full h-full object-cover"
                       />
+                    ) : status.content_type === 'video' && status.content_url ? (
+                      <div className="relative w-full h-full">
+                        <video 
+                          src={status.content_url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Image className="w-8 h-8 text-muted-foreground/50" />
                       </div>
                     )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                     <div className="absolute bottom-1 left-1 right-1 text-[10px] text-white/80 bg-black/30 rounded px-1">
                       {status.view_count || 0} views
                     </div>
@@ -413,6 +439,15 @@ const UserProfile = () => {
             setShowStatusUpload(false);
             queryClient.invalidateQueries({ queryKey: ['user-statuses', userId] });
           }}
+        />
+      )}
+
+      {/* Status Viewer */}
+      {viewingStatus && (
+        <StatusViewer
+          user={viewingStatus}
+          onClose={() => setViewingStatus(null)}
+          onNext={() => setViewingStatus(null)}
         />
       )}
     </div>
