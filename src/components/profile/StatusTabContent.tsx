@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, Eye, Trash2, Users, UserPlus, UserMinus, 
   Image, Clock, Heart, MessageCircle, BarChart3, Play, Volume2,
-  Search, DollarSign
+  Search, DollarSign, ShoppingBag
 } from 'lucide-react';
 import StatusUploadModal from '@/components/StatusUploadModal';
 import StatusViewer from '@/components/StatusViewer';
@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
-// Reusable component for displaying followers/following with status viewing capability
+// Reusable component for displaying followers/following with WhatsApp-style status
 interface FollowerCardProps {
   follower: any;
   type: 'follower' | 'following';
@@ -34,6 +34,38 @@ interface FollowerCardProps {
 
 const FollowerCard = ({ follower, type, onViewStatus, onViewProfile, onRemove, getInitials }: FollowerCardProps) => {
   const userId = type === 'follower' ? follower.follower_id : follower.following_id;
+  const [hasActiveStatus, setHasActiveStatus] = useState(false);
+  const [latestStatusPreview, setLatestStatusPreview] = useState<{
+    type: string;
+    url?: string;
+    text?: string;
+    bgColor?: string;
+  } | null>(null);
+
+  // Check if user has active status
+  useEffect(() => {
+    const checkStatus = async () => {
+      const { data } = await supabase
+        .from('user_statuses')
+        .select('content_type, content_url, text_content, background_color')
+        .eq('user_id', userId)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        setHasActiveStatus(true);
+        setLatestStatusPreview({
+          type: data.content_type,
+          url: data.content_url,
+          text: data.text_content,
+          bgColor: data.background_color
+        });
+      }
+    };
+    checkStatus();
+  }, [userId]);
   
   return (
     <motion.div
@@ -41,19 +73,56 @@ const FollowerCard = ({ follower, type, onViewStatus, onViewProfile, onRemove, g
       animate={{ opacity: 1, x: 0 }}
       className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
     >
-      {/* Avatar with Status Ring - Click to view status */}
-      <div className="relative">
-        <Avatar 
-          className="h-12 w-12 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/60 transition-all"
-          onClick={() => onViewStatus(userId)}
+      {/* WhatsApp-style Status Avatar Ring */}
+      <div className="relative cursor-pointer" onClick={() => hasActiveStatus ? onViewStatus(userId) : onViewProfile(userId)}>
+        {/* Status Ring - gradient ring if has status */}
+        <div className={`absolute -inset-[3px] rounded-full ${
+          hasActiveStatus 
+            ? 'bg-gradient-to-tr from-primary via-pink-500 to-coral animate-pulse' 
+            : 'bg-transparent'
+        }`} />
+        
+        {/* Inner white ring for gap effect */}
+        <div className="absolute -inset-[2px] rounded-full bg-background" />
+        
+        {/* Status Preview Circle */}
+        <div 
+          className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-transparent"
+          style={latestStatusPreview?.bgColor ? { backgroundColor: latestStatusPreview.bgColor } : {}}
         >
-          <AvatarImage src={follower.profile?.avatar_url || ''} />
-          <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
-            {getInitials(follower.profile?.full_name)}
-          </AvatarFallback>
-        </Avatar>
-        {/* Status indicator dot */}
-        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+          {latestStatusPreview?.type === 'image' && latestStatusPreview.url ? (
+            <img 
+              src={latestStatusPreview.url} 
+              alt="Status" 
+              className="w-full h-full object-cover"
+            />
+          ) : latestStatusPreview?.type === 'video' && latestStatusPreview.url ? (
+            <div className="relative w-full h-full">
+              <video src={latestStatusPreview.url} className="w-full h-full object-cover" muted />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <Play className="w-4 h-4 text-white" />
+              </div>
+            </div>
+          ) : latestStatusPreview?.type === 'text' ? (
+            <div className="w-full h-full flex items-center justify-center p-1">
+              <p className="text-[8px] text-white text-center line-clamp-3">{latestStatusPreview.text}</p>
+            </div>
+          ) : (
+            <Avatar className="h-full w-full">
+              <AvatarImage src={follower.profile?.avatar_url || ''} />
+              <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
+                {getInitials(follower.profile?.full_name)}
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
+        
+        {/* Online indicator */}
+        {hasActiveStatus && (
+          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
+            <span className="text-[8px] text-white">✓</span>
+          </div>
+        )}
       </div>
       
       <div className="flex-1 min-w-0">
@@ -64,28 +133,21 @@ const FollowerCard = ({ follower, type, onViewStatus, onViewProfile, onRemove, g
           {follower.profile?.full_name || 'User'}
         </p>
         <p className="text-xs text-muted-foreground truncate">
-          {follower.profile?.bio || 'No bio'}
+          {hasActiveStatus ? (
+            <span className="text-primary font-medium">Tap to view status 👆</span>
+          ) : (
+            follower.profile?.bio || 'No bio'
+          )}
         </p>
-        <div className="flex items-center gap-2 mt-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 text-[10px] text-primary hover:bg-primary/10 px-2"
-            onClick={() => onViewStatus(userId)}
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            View Status
-          </Button>
-          <span className="text-[10px] text-muted-foreground">
-            {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
-          </span>
-        </div>
+        <span className="text-[10px] text-muted-foreground">
+          {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
+        </span>
       </div>
       
       <Button
         size="sm"
         variant="outline"
-        className={`gap-1 ${type === 'follower' ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : ''}`}
+        className={`gap-1 text-xs ${type === 'follower' ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : ''}`}
         onClick={onRemove}
       >
         <UserMinus className="w-3 h-3" />

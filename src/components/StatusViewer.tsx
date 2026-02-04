@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { 
   X, ChevronLeft, ChevronRight, Heart, Send, Eye, 
   Pause, Play, Volume2, VolumeX, MessageCircle, 
-  MoreVertical, Share2, Trash2, Users
+  MoreVertical, Share2, Trash2, Users, ShoppingBag, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +25,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useQuery } from '@tanstack/react-query';
+import StatusPurchaseModal from '@/components/status/StatusPurchaseModal';
 
 interface StatusViewerProps {
   user: {
@@ -53,9 +54,59 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
   const [showReactions, setShowReactions] = useState(false);
   const [showLoveAnimation, setShowLoveAnimation] = useState(false);
   const [lastTapTime, setLastTapTime] = useState(0);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const currentStatus = user.statuses[currentIndex];
   const isOwner = currentUser?.id === user.user_id;
+
+  // Fetch linked product/item for current status
+  const { data: linkedProduct } = useQuery({
+    queryKey: ['linked-product', currentStatus?.linked_product_id, currentStatus?.linked_item_id],
+    queryFn: async () => {
+      if (!currentStatus) return null;
+      
+      // Check for seller product
+      if (currentStatus.linked_product_id) {
+        const { data } = await supabase
+          .from('seller_products')
+          .select('id, title, price, currency, images')
+          .eq('id', currentStatus.linked_product_id)
+          .maybeSingle();
+        if (data) {
+          return {
+            id: data.id,
+            type: 'seller_product' as const,
+            title: data.title,
+            price: data.price,
+            currency: data.currency || 'USD',
+            image: data.images?.[0] || null
+          };
+        }
+      }
+      
+      // Check for item
+      if (currentStatus.linked_item_id) {
+        const { data } = await supabase
+          .from('items')
+          .select('id, title, price, currency, images')
+          .eq('id', currentStatus.linked_item_id)
+          .maybeSingle();
+        if (data) {
+          return {
+            id: data.id,
+            type: 'item' as const,
+            title: data.title,
+            price: data.price,
+            currency: data.currency || 'USD',
+            image: data.images?.[0] || null
+          };
+        }
+      }
+      
+      return null;
+    },
+    enabled: !!currentStatus && (!!currentStatus.linked_product_id || !!currentStatus.linked_item_id),
+  });
 
   // Fetch viewers for status owner
   const { data: viewers = [] } = useQuery({
@@ -447,9 +498,59 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
               )}
             </div>
 
+            {/* Linked Product Card */}
+            {linkedProduct && !isOwner && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute bottom-28 left-4 right-4 z-30"
+              >
+                <div 
+                  className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-primary/20 cursor-pointer hover:scale-[1.02] transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPaused(true);
+                    setShowPurchaseModal(true);
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {linkedProduct.image ? (
+                      <img 
+                        src={linkedProduct.image} 
+                        alt={linkedProduct.title}
+                        className="w-16 h-16 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                        <ShoppingBag className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm line-clamp-1">{linkedProduct.title}</p>
+                      <p className="text-primary font-bold text-lg">
+                        {linkedProduct.currency} {linkedProduct.price.toFixed(2)}
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90 gap-1 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPaused(true);
+                        setShowPurchaseModal(true);
+                      }}
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      Buy
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Caption */}
             {currentStatus.caption && (
-              <div className="absolute bottom-24 left-0 right-0 px-4">
+              <div className={`absolute ${linkedProduct && !isOwner ? 'bottom-48' : 'bottom-24'} left-0 right-0 px-4`}>
                 <p className="text-white text-center text-sm bg-black/50 backdrop-blur-sm rounded-xl p-3">
                   {currentStatus.caption}
                 </p>
@@ -636,6 +737,24 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Purchase Modal */}
+      {showPurchaseModal && linkedProduct && (
+        <StatusPurchaseModal
+          product={linkedProduct}
+          statusId={currentStatus.id}
+          sellerId={user.user_id}
+          onClose={() => {
+            setShowPurchaseModal(false);
+            setIsPaused(false);
+          }}
+          onSuccess={() => {
+            setShowPurchaseModal(false);
+            setIsPaused(false);
+            toast.success('Purchase successful! 🎉');
+          }}
+        />
+      )}
     </>
   );
 };
