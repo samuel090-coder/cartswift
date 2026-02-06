@@ -177,8 +177,8 @@ const BottomNavigation = () => {
       </AnimatePresence>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-primary/20 safe-area-bottom pb-2">
-        <div className="flex items-center justify-around py-2 px-2 max-w-lg mx-auto">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-primary/20 safe-area-bottom pb-6">
+        <div className="flex items-center justify-around py-1.5 px-2 max-w-lg mx-auto">
           {primaryNavItems.map((item) => {
             const active = item.path === '#more' ? showMore : isActive(item.path);
             
@@ -255,7 +255,7 @@ const BottomNavigation = () => {
       </nav>
 
       {/* Spacer for bottom nav - extra space to clear Edit with Lovable badge */}
-      <div className="h-28" />
+      <div className="h-36" />
     </>
   );
 };
