@@ -181,6 +181,58 @@ const StatusTabContent = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch statuses from people I follow (WhatsApp-style)
+  const { data: followingStatuses = [] } = useQuery({
+    queryKey: ['following-statuses', user?.id],
+    queryFn: async () => {
+      // First get who I follow
+      const { data: followingData, error: followErr } = await supabase
+        .from('user_followers')
+        .select('following_id')
+        .eq('follower_id', user?.id);
+      if (followErr || !followingData?.length) return [];
+
+      const followingIds = followingData.map(f => f.following_id);
+
+      // Get active statuses from followed users
+      const { data: statusData, error: statusErr } = await supabase
+        .from('user_statuses')
+        .select('*')
+        .in('user_id', followingIds)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+      if (statusErr) return [];
+
+      // Get profiles for those users
+      const userIds = [...new Set((statusData || []).map(s => s.user_id))];
+      if (!userIds.length) return [];
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, store_name')
+        .in('id', userIds);
+
+      // Group statuses by user
+      const grouped = userIds.map(uid => {
+        const userStatuses = (statusData || []).filter(s => s.user_id === uid);
+        const profile = profiles?.find(p => p.id === uid);
+        return {
+          id: uid,
+          user_id: uid,
+          avatar_url: profile?.avatar_url || null,
+          full_name: profile?.full_name || 'User',
+          store_name: profile?.store_name || null,
+          statuses: userStatuses,
+          hasUnviewed: true, // Could check status_views table for more accuracy
+          latestStatus: userStatuses[0],
+        };
+      });
+
+      return grouped;
+    },
+    enabled: !!user?.id,
+  });
+
   // Fetch followers
   const { data: followers = [], isLoading: loadingFollowers } = useQuery({
     queryKey: ['my-followers', user?.id],
@@ -401,6 +453,76 @@ const StatusTabContent = () => {
 
         {/* My Statuses Tab */}
         <TabsContent value="my-statuses">
+          {/* WhatsApp-style horizontal status row from people I follow */}
+          {followingStatuses.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Recent Updates
+              </h3>
+              <ScrollArea className="w-full">
+                <div className="flex gap-4 pb-3">
+                  {followingStatuses.map((userGroup: any) => (
+                    <div
+                      key={userGroup.id}
+                      className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0"
+                      onClick={() => setViewingStatus(userGroup)}
+                    >
+                      {/* Status ring */}
+                      <div className="relative">
+                        <div className={`absolute -inset-[3px] rounded-full ${
+                          userGroup.hasUnviewed
+                            ? 'bg-gradient-to-tr from-primary via-pink-500 to-amber-500'
+                            : 'bg-muted-foreground/30'
+                        }`} />
+                        <div className="absolute -inset-[1.5px] rounded-full bg-background" />
+                        <div className="relative h-16 w-16 rounded-full overflow-hidden">
+                          {userGroup.latestStatus?.content_type === 'image' && userGroup.latestStatus?.content_url ? (
+                            <img
+                              src={userGroup.latestStatus.content_url}
+                              alt="Status"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : userGroup.latestStatus?.content_type === 'video' && userGroup.latestStatus?.content_url ? (
+                            <div className="relative w-full h-full">
+                              <video src={userGroup.latestStatus.content_url} className="w-full h-full object-cover" muted />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Play className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                          ) : userGroup.latestStatus?.content_type === 'text' ? (
+                            <div
+                              className="w-full h-full flex items-center justify-center p-1"
+                              style={{ backgroundColor: userGroup.latestStatus.background_color || '#1a1a2e' }}
+                            >
+                              <p className="text-[7px] text-white text-center line-clamp-3">{userGroup.latestStatus.text_content}</p>
+                            </div>
+                          ) : (
+                            <Avatar className="h-full w-full">
+                              <AvatarImage src={userGroup.avatar_url || ''} />
+                              <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white">
+                                {getInitials(userGroup.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                        {/* Status count badge */}
+                        {userGroup.statuses.length > 1 && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center border-2 border-background font-bold">
+                            {userGroup.statuses.length}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[70px] text-center">
+                        {userGroup.full_name?.split(' ')[0] || 'User'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
           {loadingStatuses ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
