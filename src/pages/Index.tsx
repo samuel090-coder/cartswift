@@ -216,13 +216,7 @@ const Index = () => {
       <LiveChatSupport />
       <PWAInstallPrompt />
       
-      <div className="container mx-auto px-4 py-6 relative z-10">
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-light via-purple-light to-cyan-bright bg-clip-text text-transparent mb-2 animate-pulse">
-            CARTSWIFT
-          </h1>
-          <p className="text-lg text-white/80 font-medium">Fast delivery, amazing deals, viral rewards</p>
-        </div>
+      <div className="container mx-auto px-4 pt-3 pb-6 relative z-10">
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 max-w-md mx-auto">

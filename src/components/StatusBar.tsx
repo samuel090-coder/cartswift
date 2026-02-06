@@ -25,9 +25,9 @@ const StatusBar = () => {
   const [selectedUser, setSelectedUser] = useState<StatusUser | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Fetch statuses from people the user follows
+  // Fetch statuses from people the user follows + discover others
   const { data: statusUsers = [], refetch } = useQuery({
-    queryKey: ['status-users-following', user?.id],
+    queryKey: ['status-users-all', user?.id],
     queryFn: async () => {
       if (!user) return [];
 
@@ -38,21 +38,20 @@ const StatusBar = () => {
         .eq('follower_id', user.id);
 
       const followingIds = following?.map(f => f.following_id) || [];
-      
-      if (followingIds.length === 0) return [];
 
-      // Get active statuses from followed users
+      // Get ALL active statuses (followed users prioritized, then others)
       const { data: statuses, error } = await supabase
         .from('user_statuses')
         .select('*, profiles:user_id(id, full_name, store_name, avatar_url)')
-        .in('user_id', followingIds)
+        .neq('user_id', user.id)
         .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 
       // Group statuses by user
-      const userMap = new Map<string, StatusUser>();
+      const userMap = new Map<string, StatusUser & { isFollowing: boolean }>();
       
       statuses?.forEach((status: any) => {
         const userId = status.user_id;
@@ -64,13 +63,21 @@ const StatusBar = () => {
             full_name: status.profiles?.full_name,
             store_name: status.profiles?.store_name,
             statuses: [],
-            hasUnviewed: true
+            hasUnviewed: true,
+            isFollowing: followingIds.includes(userId)
           });
         }
         userMap.get(userId)!.statuses.push(status);
       });
 
-      return Array.from(userMap.values());
+      // Sort: followed users first, then others
+      const sorted = Array.from(userMap.values()).sort((a, b) => {
+        if (a.isFollowing && !b.isFollowing) return -1;
+        if (!a.isFollowing && b.isFollowing) return 1;
+        return 0;
+      });
+
+      return sorted;
     },
     enabled: !!user,
   });
@@ -112,7 +119,7 @@ const StatusBar = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Don't show if not logged in or no statuses to show
+  // Don't show if not logged in
   if (!user) return null;
   if (statusUsers.length === 0 && myStatuses.length === 0) {
     // Show just the add status button
