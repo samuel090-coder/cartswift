@@ -23,76 +23,19 @@ const BottomNavigation = () => {
   const [showMore, setShowMore] = useState(false);
 
   const primaryNavItems: NavItem[] = [
-    { 
-      icon: <Home className="w-5 h-5" />, 
-      label: 'Home', 
-      path: '/',
-      gradient: 'from-blue-500 to-cyan-500'
-    },
-    { 
-      icon: <ShoppingBag className="w-5 h-5" />, 
-      label: 'Shop', 
-      path: '/?tab=shop',
-      gradient: 'from-purple-500 to-pink-500'
-    },
-    { 
-      icon: <Gift className="w-5 h-5" />, 
-      label: 'Rewards', 
-      path: '/?tab=rewards',
-      gradient: 'from-amber-500 to-orange-500',
-      badge: 'NEW'
-    },
-    { 
-      icon: <LayoutGrid className="w-5 h-5" />, 
-      label: 'More', 
-      path: '#more',
-      gradient: 'from-gray-500 to-gray-600'
-    },
-    { 
-      icon: <User className="w-5 h-5" />, 
-      label: user ? 'Profile' : 'Login', 
-      path: user ? '/profile' : '/auth',
-      gradient: 'from-primary to-pink-vibrant'
-    },
+    { icon: <Home className="w-5 h-5" />, label: 'Home', path: '/', gradient: 'from-neon-cyan to-neon-blue' },
+    { icon: <ShoppingBag className="w-5 h-5" />, label: 'Shop', path: '/?tab=shop', gradient: 'from-neon-violet to-primary' },
+    { icon: <Gift className="w-5 h-5" />, label: 'Rewards', path: '/?tab=rewards', gradient: 'from-neon-amber to-coral', badge: 'NEW' },
+    { icon: <LayoutGrid className="w-5 h-5" />, label: 'More', path: '#more', gradient: 'from-muted-foreground to-muted-foreground' },
+    { icon: <User className="w-5 h-5" />, label: user ? 'Profile' : 'Login', path: user ? '/profile' : '/auth', gradient: 'from-primary to-neon-rose' },
   ];
 
   const moreItems: NavItem[] = [
-    { 
-      icon: <Sparkles className="w-5 h-5" />, 
-      label: 'Ambassador', 
-      path: '/ambassador',
-      gradient: 'from-pink-500 to-rose-500',
-      requiresAuth: true
-    },
-    { 
-      icon: <Crown className="w-5 h-5" />, 
-      label: 'VIP', 
-      path: '/subscriptions',
-      gradient: 'from-yellow-500 to-amber-500',
-      requiresAuth: true,
-      badge: 'PRO'
-    },
-    { 
-      icon: <Users className="w-5 h-5" />, 
-      label: 'Affiliate', 
-      path: '/affiliate',
-      gradient: 'from-green-500 to-emerald-500',
-      requiresAuth: true
-    },
-    { 
-      icon: <Store className="w-5 h-5" />, 
-      label: 'Sell', 
-      path: profile?.is_seller ? '/seller' : '/profile?tab=seller',
-      gradient: 'from-indigo-500 to-purple-500',
-      requiresAuth: true
-    },
-    { 
-      icon: <Heart className="w-5 h-5" />, 
-      label: 'Wishlist', 
-      path: '/profile?tab=wishlist',
-      gradient: 'from-red-500 to-pink-500',
-      requiresAuth: true
-    },
+    { icon: <Sparkles className="w-5 h-5" />, label: 'Ambassador', path: '/ambassador', gradient: 'from-neon-rose to-primary', requiresAuth: true },
+    { icon: <Crown className="w-5 h-5" />, label: 'VIP', path: '/subscriptions', gradient: 'from-neon-amber to-coral', requiresAuth: true, badge: 'PRO' },
+    { icon: <Users className="w-5 h-5" />, label: 'Affiliate', path: '/affiliate', gradient: 'from-neon-emerald to-neon-cyan', requiresAuth: true },
+    { icon: <Store className="w-5 h-5" />, label: 'Sell', path: profile?.is_seller ? '/seller' : '/profile?tab=seller', gradient: 'from-neon-violet to-neon-blue', requiresAuth: true },
+    { icon: <Heart className="w-5 h-5" />, label: 'Wishlist', path: '/profile?tab=wishlist', gradient: 'from-destructive to-neon-rose', requiresAuth: true },
   ];
 
   const isActive = (path: string) => {
@@ -104,35 +47,28 @@ const BottomNavigation = () => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  const handleMoreClick = () => {
-    setShowMore(!showMore);
-  };
-
   return (
     <>
       {/* More Items Panel */}
       <AnimatePresence>
         {showMore && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
               onClick={() => setShowMore(false)}
             />
-            
-            {/* Panel */}
             <motion.div
               initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-20 left-0 right-0 mx-4 bg-background/95 backdrop-blur-xl rounded-2xl border border-primary/20 shadow-2xl z-50 overflow-hidden"
+              className="fixed bottom-20 left-0 right-0 mx-4 bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl z-50 overflow-hidden"
             >
               <div className="p-4">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
                   <Sparkles className="w-5 h-5 text-primary" />
                   More Features
                 </h3>
@@ -149,20 +85,19 @@ const BottomNavigation = () => {
                         whileTap={{ scale: 0.95 }}
                         className={cn(
                           "flex flex-col items-center gap-2 p-4 rounded-xl transition-all",
-                          "bg-gradient-to-br from-muted/50 to-muted/30",
-                          "hover:from-primary/20 hover:to-pink-vibrant/20",
-                          "border border-transparent hover:border-primary/30"
+                          "bg-secondary/50 hover:bg-secondary",
+                          "border border-border/30 hover:border-primary/30"
                         )}
                       >
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center",
-                          `bg-gradient-to-br ${item.gradient} text-white`
+                          `bg-gradient-to-br ${item.gradient} text-white shadow-lg`
                         )}>
                           {item.icon}
                         </div>
-                        <span className="text-xs font-medium">{item.label}</span>
+                        <span className="text-xs font-medium text-foreground">{item.label}</span>
                         {item.badge && (
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-primary to-pink-vibrant text-white rounded-full">
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
                             {item.badge}
                           </span>
                         )}
@@ -177,7 +112,7 @@ const BottomNavigation = () => {
       </AnimatePresence>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-primary/20 safe-area-bottom pb-6">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom pb-6">
         <div className="flex items-center justify-around py-1.5 px-2 max-w-lg mx-auto">
           {primaryNavItems.map((item) => {
             const active = item.path === '#more' ? showMore : isActive(item.path);
@@ -186,20 +121,18 @@ const BottomNavigation = () => {
               return (
                 <button
                   key={item.path}
-                  onClick={handleMoreClick}
+                  onClick={() => setShowMore(!showMore)}
                   className="relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all"
                 >
                   <motion.div
-                    animate={{ 
-                      scale: showMore ? 1.1 : 1,
-                      rotate: showMore ? 45 : 0
-                    }}
+                    animate={{ scale: showMore ? 1.1 : 1, rotate: showMore ? 45 : 0 }}
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                       showMore 
-                        ? "bg-gradient-to-br from-primary to-pink-vibrant text-white shadow-lg" 
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-primary text-primary-foreground shadow-lg" 
+                        : "bg-secondary text-muted-foreground"
                     )}
+                    style={showMore ? { boxShadow: 'var(--shadow-glow-primary)' } : undefined}
                   >
                     {item.icon}
                   </motion.div>
@@ -226,8 +159,9 @@ const BottomNavigation = () => {
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                     active 
                       ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg` 
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
                   )}
+                  style={active ? { boxShadow: 'var(--shadow-glow-primary)' } : undefined}
                 >
                   {item.icon}
                 </motion.div>
@@ -238,7 +172,7 @@ const BottomNavigation = () => {
                   {item.label}
                 </span>
                 {item.badge && (
-                  <span className="absolute top-0 right-0 px-1 py-0.5 text-[8px] font-bold bg-gradient-to-r from-primary to-pink-vibrant text-white rounded-full">
+                  <span className="absolute top-0 right-0 px-1 py-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full">
                     {item.badge}
                   </span>
                 )}
@@ -254,7 +188,7 @@ const BottomNavigation = () => {
         </div>
       </nav>
 
-      {/* Spacer for bottom nav - extra space to clear Edit with Lovable badge */}
+      {/* Spacer */}
       <div className="h-36" />
     </>
   );

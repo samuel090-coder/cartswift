@@ -20,10 +20,11 @@ import LiveChatSupport from '@/components/LiveChatSupport';
 import StatusBar from '@/components/StatusBar';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import BottomNavigation from '@/components/BottomNavigation';
+import SocialFeed from '@/components/SocialFeed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, TrendingUp, Gift, Users, Sparkles, Package } from 'lucide-react';
+import { ShoppingBag, TrendingUp, Gift, Users, Sparkles, Package, Tv } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -219,21 +220,25 @@ const Index = () => {
       <div className="container mx-auto px-4 pt-3 pb-6 relative z-10">
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-md mx-auto">
-            <TabsTrigger value="shop" className="gap-2">
-              <ShoppingBag size={16} />
+          <TabsList className="grid w-full grid-cols-5 max-w-lg mx-auto bg-secondary/50 border border-border/30 backdrop-blur-sm">
+            <TabsTrigger value="shop" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ShoppingBag size={14} />
               Shop
             </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-2">
-              <TrendingUp size={16} />
-              Trending
+            <TabsTrigger value="feed" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Tv size={14} />
+              Feed
             </TabsTrigger>
-            <TabsTrigger value="rewards" className="gap-2">
-              <Gift size={16} />
+            <TabsTrigger value="trending" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TrendingUp size={14} />
+              Hot
+            </TabsTrigger>
+            <TabsTrigger value="rewards" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Gift size={14} />
               Rewards
             </TabsTrigger>
-            <TabsTrigger value="refer" className="gap-2">
-              <Users size={16} />
+            <TabsTrigger value="refer" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users size={14} />
               Refer
             </TabsTrigger>
           </TabsList>
@@ -260,7 +265,7 @@ const Index = () => {
               <section className="py-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Package className="w-5 h-5 text-cyan-bright" />
-                  <h2 className="text-xl font-bold text-white">🛒 From Our Sellers</h2>
+                  <h2 className="text-xl font-bold text-foreground">🛒 From Our Sellers</h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {sellerProducts.filter((p: any) => !p.is_featured).map((product: any, index) => (
@@ -270,7 +275,7 @@ const Index = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
                     >
-                      <Card className="overflow-hidden hover:shadow-lg transition-all border-primary/20 hover:border-primary/40 bg-gradient-to-br from-background/90 to-primary/5 group">
+                      <Card className="overflow-hidden hover:shadow-lg transition-all border border-border/50 hover:border-primary/40 bg-card group">
                         <div className="aspect-square relative overflow-hidden">
                           {product.images?.[0] ? (
                             <img 
@@ -285,7 +290,7 @@ const Index = () => {
                           )}
                         </div>
                         <CardContent className="p-2">
-                          <h3 className="font-medium text-xs truncate text-white group-hover:text-primary transition-colors">
+                          <h3 className="font-medium text-xs truncate text-foreground group-hover:text-primary transition-colors">
                             {product.title}
                           </h3>
                           <div className="flex items-center justify-between mt-1">
@@ -302,6 +307,10 @@ const Index = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="feed" className="space-y-6">
+            <SocialFeed />
+          </TabsContent>
+
           <TabsContent value="trending" className="space-y-6">
             <TrendingItems />
           </TabsContent>
@@ -310,7 +319,7 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LoyaltyPointsDisplay />
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-white">How to Earn Points</h2>
+                <h2 className="text-xl font-bold text-foreground">How to Earn Points</h2>
                 <div className="grid gap-3">
                   {[
                     { action: '🛍️ Make a Purchase', points: '1 point per $1 spent' },
@@ -318,9 +327,9 @@ const Index = () => {
                     { action: '📱 Share on Social Media', points: '5 points per platform' },
                     { action: '👥 Successful Referral', points: '50 points' }
                   ].map((item) => (
-                    <div key={item.action} className="flex justify-between items-center p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
-                      <span className="font-medium text-white">{item.action}</span>
-                      <span className="text-cyan-bright font-bold">{item.points}</span>
+                    <div key={item.action} className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg border border-border/30 backdrop-blur-sm">
+                      <span className="font-medium text-foreground">{item.action}</span>
+                      <span className="text-neon-cyan font-bold">{item.points}</span>
                     </div>
                   ))}
                 </div>

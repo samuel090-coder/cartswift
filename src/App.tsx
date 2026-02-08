@@ -28,6 +28,7 @@ import SellerProfileView from "./pages/SellerProfileView";
 import Subscriptions from "./pages/Subscriptions";
 import Affiliate from "./pages/Affiliate";
 import Ambassador from "./pages/Ambassador";
+import Explore from "./pages/Explore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="/affiliate" element={<Affiliate />} />
                 <Route path="/ambassador" element={<Ambassador />} />
+                <Route path="/explore" element={<Explore />} />
                 <Route path="/share/:itemId" element={<ShareView />} />
                 <Route path="/download/:itemId/payment" element={<DownloadPayment />} />
                 <Route path="/download-payment/:itemId" element={<DownloadPayment />} />
