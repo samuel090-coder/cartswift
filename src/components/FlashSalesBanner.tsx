@@ -26,7 +26,6 @@ const FlashSalesBanner = () => {
   const { data: flashSales = [], isLoading } = useQuery({
     queryKey: ['flash-sales'],
     queryFn: async (): Promise<FlashSale[]> => {
-      // First get flash sales
       const { data: sales, error: salesError } = await supabase
         .from('flash_sales')
         .select('*')
@@ -39,7 +38,6 @@ const FlashSalesBanner = () => {
       if (salesError) throw salesError;
       if (!sales || sales.length === 0) return [];
 
-      // Then get items for each sale
       const itemIds = sales.map(sale => sale.item_id);
       const { data: items, error: itemsError } = await supabase
         .from('items')
@@ -48,45 +46,35 @@ const FlashSalesBanner = () => {
 
       if (itemsError) throw itemsError;
 
-      // Combine the data
       return sales.map(sale => ({
         ...sale,
         items: items?.find(item => item.id === sale.item_id) || { title: 'Unknown Item', images: [] }
       }));
     },
-    refetchInterval: 60000 // Refetch every minute
+    refetchInterval: 60000
   });
 
   useEffect(() => {
     const timer = setInterval(() => {
       const newTimeLeft: { [key: string]: string } = {};
-      
       flashSales.forEach(sale => {
         const now = new Date().getTime();
         const endTime = new Date(sale.ends_at).getTime();
         const difference = endTime - now;
-
         if (difference > 0) {
           const days = Math.floor(difference / (1000 * 60 * 60 * 24));
           const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
           const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-          if (days > 0) {
-            newTimeLeft[sale.id] = `${days}d ${hours}h ${minutes}m`;
-          } else if (hours > 0) {
-            newTimeLeft[sale.id] = `${hours}h ${minutes}m ${seconds}s`;
-          } else {
-            newTimeLeft[sale.id] = `${minutes}m ${seconds}s`;
-          }
+          if (days > 0) newTimeLeft[sale.id] = `${days}d ${hours}h ${minutes}m`;
+          else if (hours > 0) newTimeLeft[sale.id] = `${hours}h ${minutes}m ${seconds}s`;
+          else newTimeLeft[sale.id] = `${minutes}m ${seconds}s`;
         } else {
           newTimeLeft[sale.id] = 'EXPIRED';
         }
       });
-      
       setTimeLeft(newTimeLeft);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [flashSales]);
 
@@ -99,16 +87,14 @@ const FlashSalesBanner = () => {
     return Math.max(0, sale.max_quantity - sale.sold_quantity);
   };
 
-  if (isLoading || flashSales.length === 0) {
-    return null;
-  }
+  if (isLoading || flashSales.length === 0) return null;
 
   return (
     <div className="w-full mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <Zap className="text-yellow-500 animate-pulse" size={24} />
-        <h2 className="text-xl font-bold">⚡ Flash Sales</h2>
-        <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
+        <Zap className="text-neon-amber animate-pulse" size={24} />
+        <h2 className="text-xl font-bold text-foreground">⚡ Flash Sales</h2>
+        <Badge className="animate-pulse bg-destructive text-destructive-foreground">LIVE</Badge>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -118,15 +104,15 @@ const FlashSalesBanner = () => {
           const isLowStock = availableQty !== null && availableQty <= 5;
           
           return (
-            <Card key={sale.id} className="relative overflow-hidden border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+            <Card key={sale.id} className="relative overflow-hidden border border-destructive/30 bg-card hover:border-destructive/50 transition-all">
               <div className="absolute top-2 left-2 z-10">
-                <Badge variant="destructive" className="animate-pulse">
+                <Badge className="animate-pulse bg-destructive text-destructive-foreground">
                   -{discountPercent}%
                 </Badge>
               </div>
               
               <CardContent className="p-4">
-                <div className="aspect-square mb-3 overflow-hidden rounded-lg bg-white">
+                <div className="aspect-square mb-3 overflow-hidden rounded-lg bg-secondary">
                   <img
                     src={sale.items?.images?.[0] || '/placeholder.svg'}
                     alt={sale.items?.title || 'Flash sale item'}
@@ -134,35 +120,33 @@ const FlashSalesBanner = () => {
                   />
                 </div>
                 
-                <h3 className="font-semibold text-sm mb-2 line-clamp-2">
+                <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-foreground">
                   {sale.items?.title}
                 </h3>
                 
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg font-bold text-red-600">
+                  <span className="text-lg font-bold text-neon-emerald">
                     ${Number(sale.sale_price).toFixed(2)}
                   </span>
-                  <span className="text-sm line-through text-gray-500">
+                  <span className="text-sm line-through text-muted-foreground">
                     ${Number(sale.original_price).toFixed(2)}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1 mb-2 text-sm text-red-600 font-medium">
+                <div className="flex items-center gap-1 mb-2 text-sm text-destructive font-medium">
                   <Clock size={16} />
                   <span>{timeLeft[sale.id] || 'Loading...'}</span>
                 </div>
                 
                 {availableQty !== null && (
                   <div className="mb-3">
-                    <div className={`text-xs ${isLowStock ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                    <div className={`text-xs ${isLowStock ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                       {isLowStock ? `Only ${availableQty} left!` : `${availableQty} available`}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div className="w-full bg-secondary rounded-full h-2 mt-1">
                       <div 
-                        className={`h-2 rounded-full ${isLowStock ? 'bg-red-500' : 'bg-green-500'}`}
-                        style={{
-                          width: `${Math.max(10, (availableQty / (sale.max_quantity || 1)) * 100)}%`
-                        }}
+                        className={`h-2 rounded-full ${isLowStock ? 'bg-destructive' : 'bg-neon-emerald'}`}
+                        style={{ width: `${Math.max(10, (availableQty / (sale.max_quantity || 1)) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -170,11 +154,8 @@ const FlashSalesBanner = () => {
                 
                 <Button 
                   size="sm" 
-                  className="w-full bg-red-600 hover:bg-red-700 gap-2"
-                  onClick={() => {
-                    // Navigate to item or add to cart
-                    window.location.href = `/#item-${sale.item_id}`;
-                  }}
+                  className="w-full btn-premium gap-2"
+                  onClick={() => { window.location.href = `/#item-${sale.item_id}`; }}
                 >
                   <ShoppingCart size={16} />
                   Grab Deal
