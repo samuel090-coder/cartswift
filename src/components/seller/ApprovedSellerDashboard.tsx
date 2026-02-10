@@ -14,11 +14,12 @@ import { toast } from 'sonner';
 import { 
   Plus, Package, DollarSign, TrendingUp, Star, Edit, Trash2, 
   Image, BarChart3, ShoppingBag, CreditCard, CheckCircle, Clock,
-  XCircle, Eye, Upload, Loader2, Sparkles, Award, Wallet, Rocket
+  XCircle, Eye, Upload, Loader2, Sparkles, Award, Wallet, Rocket, Bot, MessageCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import ProductBoostModal from './ProductBoostModal';
+import AutoReplySettings from './AutoReplySettings';
 
 const categories = ['Fashion', 'Animals', 'Tools', 'Vehicles', 'Books'] as const;
 
@@ -350,6 +351,10 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
             <TabsTrigger value="payments" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <CreditCard className="w-4 h-4" />
               Payments
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Bot className="w-4 h-4" />
+              Auto-Reply
             </TabsTrigger>
           </TabsList>
           
@@ -781,6 +786,10 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="messages">
+          <AutoReplySettings />
         </TabsContent>
       </Tabs>
 

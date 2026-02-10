@@ -594,6 +594,41 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          item_id: string | null
+          last_message_at: string
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          last_message_at?: string
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          last_message_at?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crypto_payments: {
         Row: {
           amount_usd: number
@@ -733,6 +768,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_auto_reply: boolean
+          is_read: boolean
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_auto_reply?: boolean
+          is_read?: boolean
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_auto_reply?: boolean
+          is_read?: boolean
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       downloads: {
         Row: {
@@ -1505,6 +1578,67 @@ export type Database = {
           },
         ]
       }
+      post_comments: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_alerts: {
         Row: {
           created_at: string
@@ -1878,6 +2012,45 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      seller_auto_replies: {
+        Row: {
+          away_message: string | null
+          created_at: string
+          greeting_message: string
+          id: string
+          is_away: boolean
+          is_enabled: boolean
+          quick_replies: Json | null
+          response_delay_seconds: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          away_message?: string | null
+          created_at?: string
+          greeting_message?: string
+          id?: string
+          is_away?: boolean
+          is_enabled?: boolean
+          quick_replies?: Json | null
+          response_delay_seconds?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          away_message?: string | null
+          created_at?: string
+          greeting_message?: string
+          id?: string
+          is_away?: boolean
+          is_enabled?: boolean
+          quick_replies?: Json | null
+          response_delay_seconds?: number
+          seller_id?: string
+          updated_at?: string
         }
         Relationships: []
       }

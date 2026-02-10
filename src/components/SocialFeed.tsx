@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Heart, MessageCircle, Share2, ShoppingBag, Play, Send, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, ShoppingBag, Play, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import BuyerSellerChat from '@/components/BuyerSellerChat';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface FeedPost {
   id: string;
@@ -22,19 +24,15 @@ interface FeedPost {
   currency?: string;
 }
 
-interface Comment {
-  id: string;
-  user: string;
-  text: string;
-  time: string;
-}
-
 const SocialFeed = () => {
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [postComments, setPostComments] = useState<Record<string, Comment[]>>({});
 
+  // Fetch posts
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['social-feed'],
     queryFn: async (): Promise<FeedPost[]> => {
@@ -47,54 +45,102 @@ const SocialFeed = () => {
       return (items || []).map((item, i) => ({
         id: item.id,
         type: i % 3 === 0 ? 'reel' : 'product',
-        user: {
-          name: 'CartSwift Store',
-          avatar: undefined,
-          verified: true,
-          id: 'store-default',
-        },
+        user: { name: 'CartSwift Store', avatar: undefined, verified: true, id: 'store-default' },
         image: item.images?.[0] || '/placeholder.svg',
         caption: item.description || item.title,
-        likes: Math.floor(Math.random() * 5000) + 100,
-        comments: Math.floor(Math.random() * 200) + 10,
+        likes: 0,
+        comments: 0,
         price: Number(item.price),
         currency: item.currency || 'USD',
       }));
     },
   });
 
+  // Fetch user's likes
+  const { data: userLikes = [] } = useQuery({
+    queryKey: ['user-likes', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('post_likes')
+        .select('item_id')
+        .eq('user_id', user!.id);
+      return data?.map(l => l.item_id) || [];
+    },
+  });
+
+  // Fetch like counts
+  const { data: likeCounts = {} } = useQuery({
+    queryKey: ['like-counts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('post_likes').select('item_id');
+      const counts: Record<string, number> = {};
+      data?.forEach(l => { counts[l.item_id] = (counts[l.item_id] || 0) + 1; });
+      return counts;
+    },
+  });
+
+  // Fetch comments
+  const { data: allComments = {} } = useQuery({
+    queryKey: ['post-comments'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('post_comments')
+        .select('*, profiles:user_id(full_name, avatar_url)')
+        .order('created_at', { ascending: true });
+      const grouped: Record<string, any[]> = {};
+      data?.forEach(c => {
+        if (!grouped[c.item_id]) grouped[c.item_id] = [];
+        grouped[c.item_id].push(c);
+      });
+      return grouped;
+    },
+  });
+
+  // Like mutation
+  const likeMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const isLiked = userLikes.includes(itemId);
+      if (isLiked) {
+        await supabase.from('post_likes').delete().eq('item_id', itemId).eq('user_id', user.id);
+      } else {
+        await supabase.from('post_likes').insert({ item_id: itemId, user_id: user.id });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+      queryClient.invalidateQueries({ queryKey: ['like-counts'] });
+    },
+  });
+
+  // Comment mutation
+  const commentMutation = useMutation({
+    mutationFn: async ({ itemId, text }: { itemId: string; text: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.from('post_comments').insert({ item_id: itemId, user_id: user.id, text });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post-comments'] });
+      setCommentText('');
+    },
+  });
+
   const toggleLike = (postId: string) => {
-    setLikedPosts(prev => {
-      const next = new Set(prev);
-      if (next.has(postId)) next.delete(postId);
-      else next.add(postId);
-      return next;
-    });
-  };
-
-  const handleDoubleTapLike = (postId: string) => {
-    if (!likedPosts.has(postId)) {
-      setLikedPosts(prev => new Set(prev).add(postId));
-    }
-  };
-
-  const toggleComments = (postId: string) => {
-    setOpenComments(prev => prev === postId ? null : postId);
+    if (!user) { toast({ title: 'Sign in to like posts', variant: 'destructive' }); return; }
+    likeMutation.mutate(postId);
   };
 
   const addComment = (postId: string) => {
+    if (!user) { toast({ title: 'Sign in to comment', variant: 'destructive' }); return; }
     if (!commentText.trim()) return;
-    const newComment: Comment = {
-      id: Date.now().toString(),
-      user: 'You',
-      text: commentText,
-      time: 'Just now',
-    };
-    setPostComments(prev => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment],
-    }));
-    setCommentText('');
+    commentMutation.mutate({ itemId: postId, text: commentText });
+  };
+
+  const startChat = (post: FeedPost) => {
+    if (!user) { toast({ title: 'Sign in to message sellers', variant: 'destructive' }); return; }
+    navigate(`/messages?seller=${post.user.id}`);
   };
 
   const getCurrencySymbol = (c: string) => {
@@ -126,167 +172,121 @@ const SocialFeed = () => {
         </div>
       </div>
 
-      {posts.map((post, index) => (
-        <motion.div
-          key={post.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-        >
-          <Card className="overflow-hidden border border-border/50 bg-card">
-            {/* Post Header */}
-            <div className="flex items-center gap-3 p-3">
-              <Avatar className="h-8 w-8 border border-primary/30">
-                <AvatarImage src={post.user.avatar} />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs">CS</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold text-foreground">{post.user.name}</span>
-                  {post.user.verified && <span className="text-neon-cyan text-xs">✓</span>}
-                </div>
-                <span className="text-xs text-muted-foreground">Sponsored</span>
-              </div>
-              {post.price && (
-                <span className="text-sm font-bold text-neon-emerald">
-                  {getCurrencySymbol(post.currency || 'USD')}{post.price.toFixed(2)}
-                </span>
-              )}
-            </div>
+      {posts.map((post, index) => {
+        const isLiked = userLikes.includes(post.id);
+        const likeCount = likeCounts[post.id] || 0;
+        const comments = allComments[post.id] || [];
 
-            {/* Post Image - double tap to like */}
-            <div
-              className="relative aspect-square bg-secondary cursor-pointer select-none"
-              onDoubleClick={() => handleDoubleTapLike(post.id)}
-            >
-              <img
-                src={post.image}
-                alt={post.caption}
-                className="w-full h-full object-cover"
-              />
-              {post.type === 'reel' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/20">
-                  <div className="h-14 w-14 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
-                    <Play className="h-6 w-6 text-foreground fill-foreground ml-1" />
+        return (
+          <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+            <Card className="overflow-hidden border border-border/50 bg-card">
+              {/* Header */}
+              <div className="flex items-center gap-3 p-3">
+                <Avatar className="h-8 w-8 border border-primary/30">
+                  <AvatarImage src={post.user.avatar} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">CS</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-foreground">{post.user.name}</span>
+                    {post.user.verified && <span className="text-neon-cyan text-xs">✓</span>}
+                  </div>
+                  <span className="text-xs text-muted-foreground">Sponsored</span>
+                </div>
+                {post.price && (
+                  <span className="text-sm font-bold text-neon-emerald">
+                    {getCurrencySymbol(post.currency || 'USD')}{post.price.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Image */}
+              <div
+                className="relative aspect-square bg-secondary cursor-pointer select-none"
+                onDoubleClick={() => toggleLike(post.id)}
+              >
+                <img src={post.image} alt={post.caption} className="w-full h-full object-cover" />
+                {post.type === 'reel' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/20">
+                    <div className="h-14 w-14 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
+                      <Play className="h-6 w-6 text-foreground fill-foreground ml-1" />
+                    </div>
+                  </div>
+                )}
+                {post.price && (
+                  <Button size="sm" className="absolute bottom-3 right-3 btn-premium text-xs gap-1">
+                    <ShoppingBag className="h-3 w-3" /> Shop
+                  </Button>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <motion.button onClick={() => toggleLike(post.id)} whileTap={{ scale: 1.3 }}>
+                    <Heart className={cn("h-6 w-6 transition-colors", isLiked ? "fill-destructive text-destructive" : "text-foreground")} />
+                  </motion.button>
+                  <button onClick={() => setOpenComments(prev => prev === post.id ? null : post.id)}>
+                    <MessageCircle className={cn("h-6 w-6", openComments === post.id ? "text-primary" : "text-foreground")} />
+                  </button>
+                  <button><Share2 className="h-6 w-6 text-foreground" /></button>
+                  <div className="ml-auto">
+                    <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => startChat(post)}>
+                      <MessageCircle className="h-3 w-3" /> Message
+                    </Button>
                   </div>
                 </div>
-              )}
-              {post.price && (
-                <Button size="sm" className="absolute bottom-3 right-3 btn-premium text-xs gap-1">
-                  <ShoppingBag className="h-3 w-3" />
-                  Shop
-                </Button>
-              )}
-            </div>
+                <p className="text-sm font-semibold text-foreground">{likeCount.toLocaleString()} likes</p>
+                <p className="text-sm text-foreground line-clamp-2">
+                  <span className="font-semibold">{post.user.name}</span> {post.caption}
+                </p>
+                <button onClick={() => setOpenComments(prev => prev === post.id ? null : post.id)} className="text-xs text-muted-foreground">
+                  View all {comments.length} comments
+                </button>
 
-            {/* Post Actions */}
-            <div className="p-3 space-y-2">
-              <div className="flex items-center gap-3">
-                <motion.button
-                  onClick={() => toggleLike(post.id)}
-                  whileTap={{ scale: 1.3 }}
-                  className="transition-transform"
-                >
-                  <Heart className={cn(
-                    "h-6 w-6 transition-colors",
-                    likedPosts.has(post.id) ? "fill-destructive text-destructive" : "text-foreground"
-                  )} />
-                </motion.button>
-                <button onClick={() => toggleComments(post.id)}>
-                  <MessageCircle className={cn(
-                    "h-6 w-6",
-                    openComments === post.id ? "text-primary" : "text-foreground"
-                  )} />
-                </button>
-                <button>
-                  <Share2 className="h-6 w-6 text-foreground" />
-                </button>
-                <div className="ml-auto">
-                  <BuyerSellerChat
-                    sellerId={post.user.id || 'store-default'}
-                    sellerName={post.user.name}
-                    sellerAvatar={post.user.avatar}
-                  />
-                </div>
+                {/* Comments */}
+                <AnimatePresence>
+                  {openComments === post.id && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="pt-2 border-t border-border/30 space-y-2 max-h-48 overflow-y-auto">
+                        {comments.map((c: any) => (
+                          <div key={c.id} className="flex gap-2 items-start">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={c.profiles?.avatar_url} />
+                              <AvatarFallback className="text-[10px] bg-secondary text-foreground">
+                                {(c.profiles?.full_name || 'U')[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="text-xs text-foreground">
+                                <span className="font-semibold">{c.profiles?.full_name || 'User'}</span> {c.text}
+                              </p>
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date(c.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <form onSubmit={(e) => { e.preventDefault(); addComment(post.id); }} className="flex gap-2 mt-2">
+                        <Input
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          placeholder="Add a comment..."
+                          className="flex-1 h-8 text-xs bg-secondary border-border/50"
+                        />
+                        <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={!commentText.trim()}>
+                          <Send className="h-3 w-3" />
+                        </Button>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <p className="text-sm font-semibold text-foreground">
-                {(likedPosts.has(post.id) ? post.likes + 1 : post.likes).toLocaleString()} likes
-              </p>
-              <p className="text-sm text-foreground line-clamp-2">
-                <span className="font-semibold">{post.user.name}</span>{' '}
-                {post.caption}
-              </p>
-              <button
-                onClick={() => toggleComments(post.id)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                View all {post.comments + (postComments[post.id]?.length || 0)} comments
-              </button>
-
-              {/* Comments Section */}
-              <AnimatePresence>
-                {openComments === post.id && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-2 border-t border-border/30 space-y-2 max-h-48 overflow-y-auto">
-                      {/* Sample existing comments */}
-                      {[
-                        { id: 's1', user: 'Sarah M.', text: 'Love this! 🔥', time: '2h' },
-                        { id: 's2', user: 'James K.', text: 'Great quality, highly recommend', time: '5h' },
-                      ].map(c => (
-                        <div key={c.id} className="flex gap-2 items-start">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-[10px] bg-secondary text-foreground">{c.user[0]}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="text-xs text-foreground">
-                              <span className="font-semibold">{c.user}</span>{' '}{c.text}
-                            </p>
-                            <span className="text-[10px] text-muted-foreground">{c.time}</span>
-                          </div>
-                        </div>
-                      ))}
-                      {/* User-added comments */}
-                      {(postComments[post.id] || []).map(c => (
-                        <div key={c.id} className="flex gap-2 items-start">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-[10px] bg-primary/20 text-primary">Y</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="text-xs text-foreground">
-                              <span className="font-semibold">{c.user}</span>{' '}{c.text}
-                            </p>
-                            <span className="text-[10px] text-muted-foreground">{c.time}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Comment input */}
-                    <form
-                      onSubmit={(e) => { e.preventDefault(); addComment(post.id); }}
-                      className="flex gap-2 mt-2"
-                    >
-                      <Input
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment..."
-                        className="flex-1 h-8 text-xs bg-secondary border-border/50"
-                      />
-                      <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={!commentText.trim()}>
-                        <Send className="h-3 w-3" />
-                      </Button>
-                    </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </Card>
-        </motion.div>
-      ))}
+            </Card>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };
