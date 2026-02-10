@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, ShoppingBag, User, Sparkles, Crown, 
-  Users, Store, Heart, LayoutGrid, Gift
+  Users, Store, Heart, LayoutGrid, Gift, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +36,7 @@ const BottomNavigation = () => {
     { icon: <Users className="w-5 h-5" />, label: 'Affiliate', path: '/affiliate', gradient: 'from-neon-emerald to-neon-cyan', requiresAuth: true },
     { icon: <Store className="w-5 h-5" />, label: 'Sell', path: profile?.is_seller ? '/seller' : '/profile?tab=seller', gradient: 'from-neon-violet to-neon-blue', requiresAuth: true },
     { icon: <Heart className="w-5 h-5" />, label: 'Wishlist', path: '/profile?tab=wishlist', gradient: 'from-destructive to-neon-rose', requiresAuth: true },
+    { icon: <MessageCircle className="w-5 h-5" />, label: 'Messages', path: '/messages', gradient: 'from-neon-cyan to-neon-emerald', requiresAuth: true },
   ];
 
   const isActive = (path: string) => {
