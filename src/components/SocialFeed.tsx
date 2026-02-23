@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface FeedPost {
   id: string;
+  source: 'item' | 'seller_product';
   type: 'product' | 'status' | 'reel';
   user: { name: string; avatar?: string; verified?: boolean; id?: string };
   image: string;
@@ -32,20 +33,41 @@ const SocialFeed = () => {
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
 
-  // Fetch posts
+  // Fetch posts from both items and seller_products
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['social-feed'],
     queryFn: async (): Promise<FeedPost[]> => {
+      // Fetch admin items
       const { data: items } = await supabase
         .from('items')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(12);
 
-      return (items || []).map((item, i) => ({
+      // Fetch approved seller products with seller profile
+      const { data: sellerProducts } = await supabase
+        .from('seller_products')
+        .select('*')
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false })
+        .limit(12);
+
+      // Get seller profiles for seller products
+      const sellerIds = [...new Set((sellerProducts || []).map(p => p.seller_id))];
+      let sellerProfiles: Record<string, any> = {};
+      if (sellerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, store_name, seller_verified')
+          .in('id', sellerIds);
+        profiles?.forEach(p => { sellerProfiles[p.id] = p; });
+      }
+
+      const adminPosts: FeedPost[] = (items || []).map((item) => ({
         id: item.id,
-        type: i % 3 === 0 ? 'reel' : 'product',
-        user: { name: 'CartSwift Store', avatar: undefined, verified: true, id: 'store-default' },
+        source: 'item' as const,
+        type: 'product' as const,
+        user: { name: 'CartSwift Store', avatar: undefined, verified: true, id: undefined },
         image: item.images?.[0] || '/placeholder.svg',
         caption: item.description || item.title,
         likes: 0,
@@ -53,6 +75,36 @@ const SocialFeed = () => {
         price: Number(item.price),
         currency: item.currency || 'USD',
       }));
+
+      const sellerPosts: FeedPost[] = (sellerProducts || []).map((product) => {
+        const profile = sellerProfiles[product.seller_id];
+        return {
+          id: product.id,
+          source: 'seller_product' as const,
+          type: 'product' as const,
+          user: {
+            name: profile?.store_name || profile?.full_name || 'Seller',
+            avatar: profile?.avatar_url || undefined,
+            verified: profile?.seller_verified || false,
+            id: product.seller_id,
+          },
+          image: product.images?.[0] || '/placeholder.svg',
+          caption: product.description || product.title,
+          likes: 0,
+          comments: 0,
+          price: Number(product.price),
+          currency: product.currency || 'USD',
+        };
+      });
+
+      // Interleave posts: seller, admin, seller, admin...
+      const merged: FeedPost[] = [];
+      const maxLen = Math.max(adminPosts.length, sellerPosts.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (i < sellerPosts.length) merged.push(sellerPosts[i]);
+        if (i < adminPosts.length) merged.push(adminPosts[i]);
+      }
+      return merged;
     },
   });
 
@@ -140,6 +192,10 @@ const SocialFeed = () => {
 
   const startChat = (post: FeedPost) => {
     if (!user) { toast({ title: 'Sign in to message sellers', variant: 'destructive' }); return; }
+    if (!post.user.id) {
+      toast({ title: 'This is a store post', description: 'No direct seller to message.' });
+      return;
+    }
     navigate(`/messages?seller=${post.user.id}`);
   };
 
@@ -176,22 +232,33 @@ const SocialFeed = () => {
         const isLiked = userLikes.includes(post.id);
         const likeCount = likeCounts[post.id] || 0;
         const comments = allComments[post.id] || [];
+        const isSeller = post.source === 'seller_product' && !!post.user.id;
 
         return (
-          <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+          <motion.div key={`${post.source}-${post.id}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
             <Card className="overflow-hidden border border-border/50 bg-card">
               {/* Header */}
-              <div className="flex items-center gap-3 p-3">
-                <Avatar className="h-8 w-8 border border-primary/30">
+              <div
+                className={cn("flex items-center gap-3 p-3", isSeller && "cursor-pointer hover:bg-secondary/30")}
+                onClick={() => isSeller && navigate(`/seller-profile/${post.user.id}`)}
+              >
+                <Avatar className={cn("h-8 w-8 border", isSeller ? "border-primary" : "border-border/30")}>
                   <AvatarImage src={post.user.avatar} />
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs">CS</AvatarFallback>
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                    {post.user.name[0]}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-semibold text-foreground">{post.user.name}</span>
                     {post.user.verified && <span className="text-neon-cyan text-xs">✓</span>}
+                    {isSeller && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full ml-1">Seller</span>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground">Sponsored</span>
+                  <span className="text-xs text-muted-foreground">
+                    {isSeller ? 'Seller Post' : 'Sponsored'}
+                  </span>
                 </div>
                 {post.price && (
                   <span className="text-sm font-bold text-neon-emerald">
@@ -230,11 +297,13 @@ const SocialFeed = () => {
                     <MessageCircle className={cn("h-6 w-6", openComments === post.id ? "text-primary" : "text-foreground")} />
                   </button>
                   <button><Share2 className="h-6 w-6 text-foreground" /></button>
-                  <div className="ml-auto">
-                    <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => startChat(post)}>
-                      <MessageCircle className="h-3 w-3" /> Message
-                    </Button>
-                  </div>
+                  {isSeller && (
+                    <div className="ml-auto">
+                      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => startChat(post)}>
+                        <Send className="h-3 w-3" /> DM Seller
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm font-semibold text-foreground">{likeCount.toLocaleString()} likes</p>
                 <p className="text-sm text-foreground line-clamp-2">
