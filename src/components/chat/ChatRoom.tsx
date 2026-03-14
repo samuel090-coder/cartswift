@@ -66,7 +66,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     queryKey: ['tagged-seller-products', taggedSellerIds],
     enabled: taggedSellerIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from('seller_products').select('id, name, images, price, currency').in('id', taggedSellerIds);
+      const { data } = await supabase.from('seller_products').select('id, title, images, price, currency').in('id', taggedSellerIds);
       return data || [];
     },
   });
@@ -74,7 +74,6 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
   const sendMutation = useMutation({
     mutationFn: async (payload: {
       content: string;
