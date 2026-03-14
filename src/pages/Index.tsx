@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAutoSubscribe } from '@/hooks/useAutoSubscribe';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +38,9 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [welcomeCategory, setWelcomeCategory] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(searchParams.get('tab') || 'shop');
+  
+  // Auto-subscribe to push notifications on first visit
+  useAutoSubscribe();
 
   // Sync tab with URL param
   useEffect(() => {
