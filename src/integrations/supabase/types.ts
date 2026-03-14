@@ -774,28 +774,55 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
           id: string
           is_auto_reply: boolean
           is_read: boolean
+          message_type: string
+          mime_type: string | null
+          reply_to_id: string | null
           sender_id: string
+          tagged_product_id: string | null
+          tagged_seller_product_id: string | null
+          voice_duration: number | null
         }
         Insert: {
           content: string
           conversation_id: string
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           is_auto_reply?: boolean
           is_read?: boolean
+          message_type?: string
+          mime_type?: string | null
+          reply_to_id?: string | null
           sender_id: string
+          tagged_product_id?: string | null
+          tagged_seller_product_id?: string | null
+          voice_duration?: number | null
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           is_auto_reply?: boolean
           is_read?: boolean
+          message_type?: string
+          mime_type?: string | null
+          reply_to_id?: string | null
           sender_id?: string
+          tagged_product_id?: string | null
+          tagged_seller_product_id?: string | null
+          voice_duration?: number | null
         }
         Relationships: [
           {
@@ -803,6 +830,27 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_tagged_product_id_fkey"
+            columns: ["tagged_product_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_tagged_seller_product_id_fkey"
+            columns: ["tagged_seller_product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
             referencedColumns: ["id"]
           },
         ]
