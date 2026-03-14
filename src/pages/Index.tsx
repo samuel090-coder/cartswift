@@ -38,6 +38,9 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [welcomeCategory, setWelcomeCategory] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(searchParams.get('tab') || 'shop');
+  
+  // Auto-subscribe to push notifications on first visit
+  useAutoSubscribe();
 
   // Sync tab with URL param
   useEffect(() => {
