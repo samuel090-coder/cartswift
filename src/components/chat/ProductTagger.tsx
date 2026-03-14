@@ -45,12 +45,12 @@ const ProductTagger = ({ onSelect, onClose }: ProductTaggerProps) => {
       // Search seller products
       const { data: sp } = await supabase
         .from('seller_products')
-        .select('id, name, images, price, currency')
-        .ilike('name', `%${search}%`)
+        .select('id, title, images, price, currency')
+        .ilike('title', `%${search}%`)
         .limit(10);
 
       sp?.forEach(p => results.push({
-        id: p.id, title: p.name,
+        id: p.id, title: p.title,
         image: p.images?.[0], price: p.price, currency: p.currency,
         source: 'seller_product',
       }));

@@ -189,7 +189,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     }
     if (msg.tagged_seller_product_id) {
       const sp = taggedSellerProducts?.find(p => p.id === msg.tagged_seller_product_id);
-      if (sp) return { id: sp.id, title: sp.name, image: sp.images?.[0], price: sp.price, currency: sp.currency };
+      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency };
     }
     return null;
   };
