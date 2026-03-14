@@ -206,7 +206,11 @@ const SellerProfileView = () => {
                     <Heart className={`w-4 h-4 ${isFollowing ? 'fill-primary' : ''}`} />
                     {isFollowing ? 'Following' : 'Follow'}
                   </Button>
-                  <Button variant="outline" className="flex-1 md:flex-none gap-2 border-primary/30 text-primary">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 md:flex-none gap-2 border-primary/30 text-primary"
+                    onClick={() => navigate(`/messages?seller=${sellerId}`)}
+                  >
                     <MessageCircle className="w-4 h-4" />
                     Contact
                   </Button>
