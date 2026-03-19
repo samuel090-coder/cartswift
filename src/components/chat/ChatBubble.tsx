@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { Play, Pause, Download, FileText, ShoppingBag, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Pause, Download, FileText, ShoppingBag, ExternalLink, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ChatBubbleProps {
@@ -12,7 +13,7 @@ interface ChatBubbleProps {
   fileSize?: number | null;
   mimeType?: string | null;
   voiceDuration?: number | null;
-  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string } | null;
+  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string; source?: string } | null;
   isMine: boolean;
   isAutoReply: boolean;
   timestamp: string;
@@ -22,12 +23,18 @@ const ChatBubble = ({
   content, messageType, fileUrl, fileName, fileSize, mimeType,
   voiceDuration, taggedProduct, isMine, isAutoReply, timestamp,
 }: ChatBubbleProps) => {
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewMedia, setViewMedia] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
   const formatSize = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(1)}MB` : `${(b / 1024).toFixed(0)}KB`;
+
+  const getCurrencySymbol = (c: string) => {
+    const s: Record<string, string> = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
+    return s[c] || c;
+  };
 
   const toggleAudio = () => {
     if (!fileUrl) return;
@@ -40,6 +47,16 @@ const ChatBubble = ({
       audio.play();
       setIsPlaying(true);
       audio.onended = () => setIsPlaying(false);
+    }
+  };
+
+  const handleBuyProduct = () => {
+    if (!taggedProduct) return;
+    // Navigate to checkout or product page based on source
+    if (taggedProduct.source === 'seller_product') {
+      navigate(`/checkout?seller_product=${taggedProduct.id}`);
+    } else {
+      navigate(`/share/${taggedProduct.id}`);
     }
   };
 
@@ -56,21 +73,31 @@ const ChatBubble = ({
       className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
     >
       <div className={`max-w-[80%] rounded-2xl overflow-hidden ${bubbleClass}`}>
-        {/* Tagged Product Card */}
+        {/* Tagged Product Card with Buy Button */}
         {taggedProduct && (
-          <div className={`flex items-center gap-2 p-2 border-b ${isMine ? 'border-primary-foreground/20' : 'border-border'}`}>
-            {taggedProduct.image && (
-              <img src={taggedProduct.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">{taggedProduct.title}</p>
-              {taggedProduct.price && (
-                <p className="text-[10px] opacity-80">
-                  {taggedProduct.currency || '$'}{taggedProduct.price.toFixed(2)}
-                </p>
+          <div className={`p-2 border-b ${isMine ? 'border-primary-foreground/20' : 'border-border'}`}>
+            <div className="flex items-center gap-2">
+              {taggedProduct.image && (
+                <img src={taggedProduct.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
               )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate">{taggedProduct.title}</p>
+                {taggedProduct.price != null && (
+                  <p className="text-sm font-bold">
+                    {getCurrencySymbol(taggedProduct.currency || 'USD')}{taggedProduct.price.toFixed(2)}
+                  </p>
+                )}
+              </div>
+              <ShoppingBag className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </div>
-            <ShoppingBag className="h-3.5 w-3.5 opacity-60 shrink-0" />
+            <Button
+              size="sm"
+              onClick={handleBuyProduct}
+              className={`w-full mt-2 h-7 text-xs gap-1 ${isMine ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
+            >
+              <CreditCard className="h-3 w-3" />
+              Buy Now
+            </Button>
           </div>
         )}
 

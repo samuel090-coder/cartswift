@@ -320,7 +320,10 @@ const SocialFeed = () => {
                       <div className="pt-2 border-t border-border/30 space-y-2 max-h-48 overflow-y-auto">
                         {comments.map((c: any) => (
                           <div key={c.id} className="flex gap-2 items-start">
-                            <Avatar className="h-6 w-6">
+                            <Avatar 
+                              className="h-6 w-6 cursor-pointer" 
+                              onClick={() => navigate(`/profile/${c.user_id}`)}
+                            >
                               <AvatarImage src={c.profiles?.avatar_url} />
                               <AvatarFallback className="text-[10px] bg-secondary text-foreground">
                                 {(c.profiles?.full_name || 'U')[0]}
@@ -328,7 +331,12 @@ const SocialFeed = () => {
                             </Avatar>
                             <div className="flex-1">
                               <p className="text-xs text-foreground">
-                                <span className="font-semibold">{c.profiles?.full_name || 'User'}</span> {c.text}
+                                <span 
+                                  className="font-semibold cursor-pointer hover:underline" 
+                                  onClick={() => navigate(`/profile/${c.user_id}`)}
+                                >
+                                  {c.profiles?.full_name || 'User'}
+                                </span>{' '}{c.text}
                               </p>
                               <span className="text-[10px] text-muted-foreground">
                                 {new Date(c.created_at).toLocaleDateString()}

@@ -281,7 +281,11 @@ const UserProfile = () => {
                             </>
                           )}
                         </Button>
-                        <Button variant="outline" className="flex-1 md:flex-none gap-2 border-primary/30 text-primary hover:bg-primary/10">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 md:flex-none gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/messages?seller=${userId}`); }}
+                        >
                           <MessageCircle className="w-4 h-4" />
                           Message
                         </Button>
