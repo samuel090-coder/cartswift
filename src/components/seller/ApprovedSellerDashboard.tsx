@@ -31,6 +31,8 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [boostProduct, setBoostProduct] = useState<any>(null);
@@ -220,7 +222,7 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title || !formData.price || !formData.stock_quantity) {
       toast.error('Please fill in all required fields');
       return;
@@ -229,6 +231,43 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
       toast.error('Please add at least one product image');
       return;
     }
+
+    // AI validation before publishing (only for new products)
+    if (!editingProduct) {
+      setIsValidating(true);
+      setValidationResult(null);
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-seller-post', {
+          body: {
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            category: formData.category,
+            images: formData.images,
+          },
+        });
+
+        if (error) throw error;
+
+        setValidationResult(data);
+
+        if (!data.is_valid) {
+          setIsValidating(false);
+          toast.error('Your listing needs some improvements before posting.');
+          return;
+        }
+
+        // Show score if valid but has suggestions
+        if (data.score < 8 && data.suggestions?.length > 0) {
+          toast.info(`Quality score: ${data.score}/10. ${data.suggestions[0]}`);
+        }
+      } catch (err) {
+        console.error('AI validation error:', err);
+        // Don't block posting if AI fails
+      }
+      setIsValidating(false);
+    }
+
     if (editingProduct) {
       updateProduct.mutate({ id: editingProduct.id, ...formData });
     } else {
@@ -508,12 +547,44 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
                   </p>
                 </div>
                 
+                {/* AI Validation Feedback */}
+                {validationResult && !validationResult.is_valid && (
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-2">
+                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      <XCircle className="w-4 h-4" /> AI Quality Check Failed (Score: {validationResult.score}/10)
+                    </p>
+                    <p className="text-sm text-destructive/80">{validationResult.summary}</p>
+                    {validationResult.issues?.length > 0 && (
+                      <ul className="text-xs text-destructive/70 list-disc pl-4 space-y-0.5">
+                        {validationResult.issues.map((issue: string, i: number) => (
+                          <li key={i}>{issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {validationResult.suggestions?.length > 0 && (
+                      <div className="pt-1">
+                        <p className="text-xs font-medium text-muted-foreground">Suggestions:</p>
+                        <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                          {validationResult.suggestions.map((s: string, i: number) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleSubmit} 
                   className="w-full h-12 bg-gradient-to-r from-primary to-primary/80" 
-                  disabled={addProduct.isPending || updateProduct.isPending}
+                  disabled={addProduct.isPending || updateProduct.isPending || isValidating}
                 >
-                  {addProduct.isPending || updateProduct.isPending ? (
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      AI Checking Quality...
+                    </>
+                  ) : addProduct.isPending || updateProduct.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...

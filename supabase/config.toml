@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.ai-notification-reminder]
 verify_jwt = false
+
+[functions.validate-seller-post]
+verify_jwt = false

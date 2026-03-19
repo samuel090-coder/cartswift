@@ -1746,6 +1746,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_seller: boolean | null
+          last_seen: string | null
           phone: string | null
           preferred_currency: string | null
           preferred_language: string | null
@@ -1774,6 +1775,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_seller?: boolean | null
+          last_seen?: string | null
           phone?: string | null
           preferred_currency?: string | null
           preferred_language?: string | null
@@ -1802,6 +1804,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_seller?: boolean | null
+          last_seen?: string | null
           phone?: string | null
           preferred_currency?: string | null
           preferred_language?: string | null

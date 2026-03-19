@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ interface Conversation {
   id: string;
   buyer_id: string;
   seller_id: string;
-  other_user?: { full_name: string | null; avatar_url: string | null; store_name: string | null };
+  other_user?: { full_name: string | null; avatar_url: string | null; store_name: string | null; last_seen?: string | null };
 }
 
 interface ChatRoomProps {
@@ -23,8 +24,39 @@ interface ChatRoomProps {
 
 const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Update own last_seen periodically
+  useEffect(() => {
+    if (!user) return;
+    const updateSeen = () => {
+      supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id).then(() => {});
+    };
+    updateSeen();
+    const interval = setInterval(updateSeen, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Fetch other user's last_seen
+  const otherUserId = conversation.buyer_id === user?.id ? conversation.seller_id : conversation.buyer_id;
+  const { data: otherProfile } = useQuery({
+    queryKey: ['other-user-presence', otherUserId],
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('last_seen').eq('id', otherUserId).single();
+      return data;
+    },
+  });
+
+  const isOnline = otherProfile?.last_seen
+    ? (Date.now() - new Date(otherProfile.last_seen).getTime()) < 60000
+    : false;
+
+  const lastSeenText = otherProfile?.last_seen
+    ? `Last seen ${new Date(otherProfile.last_seen).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+    : 'Offline';
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', conversation.id],
@@ -74,6 +106,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
   const sendMutation = useMutation({
     mutationFn: async (payload: {
       content: string;
@@ -107,7 +140,6 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
         .eq('id', conversation.id);
 
       // Auto-reply logic
-      const otherUserId = conversation.buyer_id === user.id ? conversation.seller_id : conversation.buyer_id;
       const { data: autoReply } = await supabase
         .from('seller_auto_replies')
         .select('*')
@@ -185,11 +217,11 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   const getTaggedProduct = (msg: any) => {
     if (msg.tagged_product_id) {
       const item = taggedItems?.find(i => i.id === msg.tagged_product_id);
-      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency };
+      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency, source: 'item' as const };
     }
     if (msg.tagged_seller_product_id) {
       const sp = taggedSellerProducts?.find(p => p.id === msg.tagged_seller_product_id);
-      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency };
+      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency, source: 'seller_product' as const };
     }
     return null;
   };
@@ -203,17 +235,29 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-8 w-8">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Avatar className="h-9 w-9 border border-primary/30">
+        <Avatar 
+          className="h-9 w-9 border border-primary/30 cursor-pointer" 
+          onClick={() => navigate(`/profile/${otherUserId}`)}
+        >
           <AvatarImage src={conversation.other_user?.avatar_url || undefined} />
           <AvatarFallback className="bg-primary/20 text-primary text-xs">
             {displayName[0]}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">{displayName}</p>
-          <p className="text-[10px] text-emerald-500 flex items-center gap-1">
-            <Circle className="h-2 w-2 fill-current" /> Online
+          <p 
+            className="text-sm font-semibold text-foreground cursor-pointer hover:underline"
+            onClick={() => navigate(`/profile/${otherUserId}`)}
+          >
+            {displayName}
           </p>
+          {isOnline ? (
+            <p className="text-[10px] text-emerald-500 flex items-center gap-1">
+              <Circle className="h-2 w-2 fill-current" /> Online
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground">{lastSeenText}</p>
+          )}
         </div>
       </div>
 
