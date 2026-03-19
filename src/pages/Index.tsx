@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAutoSubscribe } from '@/hooks/useAutoSubscribe';
+import usePresence from '@/hooks/usePresence';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
