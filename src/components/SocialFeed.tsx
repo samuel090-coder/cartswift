@@ -240,7 +240,7 @@ const SocialFeed = () => {
               {/* Header */}
               <div
                 className={cn("flex items-center gap-3 p-3", isSeller && "cursor-pointer hover:bg-secondary/30")}
-                onClick={() => isSeller && navigate(`/seller-profile/${post.user.id}`)}
+                onClick={() => isSeller && navigate(`/profile/${post.user.id}`)}
               >
                 <Avatar className={cn("h-8 w-8 border", isSeller ? "border-primary" : "border-border/30")}>
                   <AvatarImage src={post.user.avatar} />

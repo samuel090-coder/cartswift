@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatRoom from '@/components/chat/ChatRoom';
+import { toast } from 'sonner';
 
 interface Conversation {
   id: string;
@@ -20,15 +21,30 @@ interface Conversation {
   unread_count?: number;
 }
 
+interface DiscoverProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  store_name: string | null;
+  bio: string | null;
+  is_seller: boolean | null;
+  seller_application_approved: boolean | null;
+  seller_verified: boolean | null;
+  followers_count: number | null;
+  total_sales: number | null;
+}
+
 const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [activeConvo, setActiveConvo] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const sellerId = searchParams.get('seller');
+  const handledSellerParamRef = useRef<string | null>(null);
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations', user?.id],
     enabled: !!user,
     queryFn: async (): Promise<Conversation[]> => {
@@ -38,26 +54,29 @@ const Messages = () => {
         .or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`)
         .order('last_message_at', { ascending: false });
 
-      if (!data) return [];
+      if (!data || data.length === 0) return [];
 
-      const otherIds = data.map(c => c.buyer_id === user!.id ? c.seller_id : c.buyer_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, store_name')
-        .in('id', otherIds);
+      const otherIds = data.map((c) => (c.buyer_id === user!.id ? c.seller_id : c.buyer_id));
+      const convoIds = data.map((c) => c.id);
 
-      const convoIds = data.map(c => c.id);
-      const { data: messages } = await supabase
-        .from('direct_messages')
-        .select('conversation_id, content, is_read, sender_id')
-        .in('conversation_id', convoIds)
-        .order('created_at', { ascending: false });
+      const [{ data: profiles }, { data: messages }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, store_name')
+          .in('id', otherIds),
+        supabase
+          .from('direct_messages')
+          .select('conversation_id, content, is_read, sender_id, created_at')
+          .in('conversation_id', convoIds)
+          .order('created_at', { ascending: false }),
+      ]);
 
-      return data.map(c => {
+      return data.map((c) => {
         const otherId = c.buyer_id === user!.id ? c.seller_id : c.buyer_id;
-        const profile = profiles?.find(p => p.id === otherId);
-        const lastMsg = messages?.find(m => m.conversation_id === c.id);
-        const unread = messages?.filter(m => m.conversation_id === c.id && !m.is_read && m.sender_id !== user!.id).length || 0;
+        const profile = profiles?.find((p) => p.id === otherId);
+        const lastMsg = messages?.find((m) => m.conversation_id === c.id);
+        const unread = messages?.filter((m) => m.conversation_id === c.id && !m.is_read && m.sender_id !== user!.id).length || 0;
+
         return {
           ...c,
           other_user: profile || { full_name: 'User', avatar_url: null, store_name: null },
@@ -68,25 +87,92 @@ const Messages = () => {
     },
   });
 
-  useEffect(() => {
-    if (sellerId && user && conversations.length >= 0) {
-      const existing = conversations.find(c =>
-        (c.buyer_id === user.id && c.seller_id === sellerId) ||
-        (c.seller_id === user.id && c.buyer_id === sellerId)
-      );
-      if (existing) {
-        setActiveConvo(existing.id);
-      } else if (sellerId !== user.id) {
-        supabase.from('conversations').insert({ buyer_id: user.id, seller_id: sellerId })
-          .select().single().then(({ data }) => {
-            if (data) {
-              queryClient.invalidateQueries({ queryKey: ['conversations'] });
-              setActiveConvo(data.id);
-            }
-          });
-      }
+  const { data: topSellers = [] } = useQuery({
+    queryKey: ['message-top-sellers', user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<DiscoverProfile[]> => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, store_name, bio, is_seller, seller_application_approved, seller_verified, followers_count, total_sales')
+        .neq('id', user!.id)
+        .order('followers_count', { ascending: false })
+        .limit(18);
+
+      if (error) throw error;
+
+      return (data || [])
+        .filter((profile) => profile.is_seller || profile.seller_application_approved || profile.store_name)
+        .sort((a, b) => {
+          const scoreA = Number(a.followers_count || 0) + Number(a.total_sales || 0) * 2 + (a.seller_verified ? 500 : 0);
+          const scoreB = Number(b.followers_count || 0) + Number(b.total_sales || 0) * 2 + (b.seller_verified ? 500 : 0);
+          return scoreB - scoreA;
+        })
+        .slice(0, 10);
+    },
+  });
+
+  const { data: searchResults = [], isLoading: searching } = useQuery({
+    queryKey: ['message-search-profiles', user?.id, searchQuery],
+    enabled: !!user && searchQuery.trim().length > 0,
+    queryFn: async (): Promise<DiscoverProfile[]> => {
+      const term = searchQuery.trim();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, store_name, bio, is_seller, seller_application_approved, seller_verified, followers_count, total_sales')
+        .neq('id', user!.id)
+        .or(`full_name.ilike.%${term}%,store_name.ilike.%${term}%`)
+        .order('followers_count', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const openConversation = async (targetUserId: string) => {
+    if (!user) {
+      navigate('/auth');
+      return;
     }
-  }, [sellerId, user, conversations]);
+
+    if (targetUserId === user.id) {
+      toast.error("You can't message yourself");
+      return;
+    }
+
+    const existing = conversations.find(
+      (conversation) =>
+        (conversation.buyer_id === user.id && conversation.seller_id === targetUserId) ||
+        (conversation.seller_id === user.id && conversation.buyer_id === targetUserId)
+    );
+
+    if (existing) {
+      setActiveConvo(existing.id);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert({ buyer_id: user.id, seller_id: targetUserId })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Unable to start chat right now');
+      return;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
+    setActiveConvo(data.id);
+  };
+
+  useEffect(() => {
+    if (!sellerId || !user || loadingConversations) return;
+    if (handledSellerParamRef.current === sellerId) return;
+
+    handledSellerParamRef.current = sellerId;
+    void openConversation(sellerId);
+  }, [sellerId, user, loadingConversations, conversations]);
 
   if (!user) {
     return (
@@ -102,7 +188,7 @@ const Messages = () => {
     );
   }
 
-  const activeConversation = conversations.find(c => c.id === activeConvo);
+  const activeConversation = conversations.find((c) => c.id === activeConvo);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -112,6 +198,12 @@ const Messages = () => {
           <ConversationList
             conversations={conversations}
             onSelect={setActiveConvo}
+            topSellers={topSellers}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            onStartConversation={(userId) => void openConversation(userId)}
+            isSearching={searching}
           />
         ) : (
           <ChatRoom
