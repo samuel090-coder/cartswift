@@ -222,7 +222,7 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title || !formData.price || !formData.stock_quantity) {
       toast.error('Please fill in all required fields');
       return;
@@ -231,6 +231,43 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
       toast.error('Please add at least one product image');
       return;
     }
+
+    // AI validation before publishing (only for new products)
+    if (!editingProduct) {
+      setIsValidating(true);
+      setValidationResult(null);
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-seller-post', {
+          body: {
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            category: formData.category,
+            images: formData.images,
+          },
+        });
+
+        if (error) throw error;
+
+        setValidationResult(data);
+
+        if (!data.is_valid) {
+          setIsValidating(false);
+          toast.error('Your listing needs some improvements before posting.');
+          return;
+        }
+
+        // Show score if valid but has suggestions
+        if (data.score < 8 && data.suggestions?.length > 0) {
+          toast.info(`Quality score: ${data.score}/10. ${data.suggestions[0]}`);
+        }
+      } catch (err) {
+        console.error('AI validation error:', err);
+        // Don't block posting if AI fails
+      }
+      setIsValidating(false);
+    }
+
     if (editingProduct) {
       updateProduct.mutate({ id: editingProduct.id, ...formData });
     } else {
