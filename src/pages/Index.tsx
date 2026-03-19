@@ -42,6 +42,7 @@ const Index = () => {
   
   // Auto-subscribe to push notifications on first visit
   useAutoSubscribe();
+  usePresence();
 
   // Sync tab with URL param
   useEffect(() => {
