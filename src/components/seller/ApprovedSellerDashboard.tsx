@@ -547,12 +547,44 @@ const ApprovedSellerDashboard = ({ application }: ApprovedSellerDashboardProps) 
                   </p>
                 </div>
                 
+                {/* AI Validation Feedback */}
+                {validationResult && !validationResult.is_valid && (
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-2">
+                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      <XCircle className="w-4 h-4" /> AI Quality Check Failed (Score: {validationResult.score}/10)
+                    </p>
+                    <p className="text-sm text-destructive/80">{validationResult.summary}</p>
+                    {validationResult.issues?.length > 0 && (
+                      <ul className="text-xs text-destructive/70 list-disc pl-4 space-y-0.5">
+                        {validationResult.issues.map((issue: string, i: number) => (
+                          <li key={i}>{issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {validationResult.suggestions?.length > 0 && (
+                      <div className="pt-1">
+                        <p className="text-xs font-medium text-muted-foreground">Suggestions:</p>
+                        <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                          {validationResult.suggestions.map((s: string, i: number) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleSubmit} 
                   className="w-full h-12 bg-gradient-to-r from-primary to-primary/80" 
-                  disabled={addProduct.isPending || updateProduct.isPending}
+                  disabled={addProduct.isPending || updateProduct.isPending || isValidating}
                 >
-                  {addProduct.isPending || updateProduct.isPending ? (
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      AI Checking Quality...
+                    </>
+                  ) : addProduct.isPending || updateProduct.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...
