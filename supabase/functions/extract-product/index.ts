@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,9 +18,6 @@ serve(async (req) => {
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     if (!FIRECRAWL_API_KEY) throw new Error("FIRECRAWL_API_KEY not configured");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -137,31 +133,23 @@ serve(async (req) => {
     const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
     const args = toolCall ? JSON.parse(toolCall.function.arguments) : {};
 
-    // 3. Download top images and re-upload to storage
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const uploadedImages: string[] = [];
-    const imagesToUpload = candidateImages.slice(0, 5);
-
-    for (const imgUrl of imagesToUpload) {
+    // 3. Filter image URLs by HEAD-checking content-type & size, keep direct URLs
+    const validImages: string[] = [];
+    for (const imgUrl of candidateImages.slice(0, 12)) {
+      if (validImages.length >= 5) break;
+      // Skip obvious placeholders/sprites/icons
+      if (/(sprite|placeholder|blank|pixel|1x1|loading|spinner|icon|logo)/i.test(imgUrl)) continue;
       try {
-        const imgRes = await fetch(imgUrl);
-        if (!imgRes.ok) continue;
-        const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-        const ext = contentType.split("/")[1]?.split(";")[0] || "jpg";
-        const buf = new Uint8Array(await imgRes.arrayBuffer());
-        if (buf.length < 1000 || buf.length > 10 * 1024 * 1024) continue; // skip tiny/huge
-        const fileName = `extracted/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("item-images")
-          .upload(fileName, buf, { contentType, upsert: false });
-        if (upErr) {
-          console.error("Image upload error:", upErr);
-          continue;
-        }
-        const { data: pub } = supabase.storage.from("item-images").getPublicUrl(fileName);
-        uploadedImages.push(pub.publicUrl);
-      } catch (e) {
-        console.error("Image fetch failed:", imgUrl, e);
+        const head = await fetch(imgUrl, { method: "HEAD" });
+        if (!head.ok) continue;
+        const ct = head.headers.get("content-type") || "";
+        if (!ct.startsWith("image/")) continue;
+        const len = parseInt(head.headers.get("content-length") || "0", 10);
+        if (len > 0 && len < 5000) continue; // likely placeholder
+        validImages.push(imgUrl);
+      } catch {
+        // If HEAD fails (CORS/blocked), still include it — browser may load fine
+        validImages.push(imgUrl);
       }
     }
 
@@ -173,7 +161,7 @@ serve(async (req) => {
         price: args.price ?? null,
         currency: args.currency || "USD",
         category: args.category || "tools",
-        images: uploadedImages,
+        images: validImages,
         source_url: url,
       },
     }), {
