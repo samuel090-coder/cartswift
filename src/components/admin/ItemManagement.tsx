@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Upload } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import ProductExtractor, { ExtractedProduct } from './ProductExtractor';
 
 type Item = Database['public']['Tables']['items']['Row'];
 
@@ -256,6 +257,22 @@ const ItemManagement = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {!editingItem && (
+                <ProductExtractor
+                  onExtracted={(p: ExtractedProduct) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      title: p.title || prev.title,
+                      description: p.description || prev.description,
+                      price: p.price != null ? String(p.price) : prev.price,
+                      currency: p.currency || prev.currency,
+                      category: p.category || prev.category,
+                      images: [...(prev.images || []), ...(p.images || [])],
+                    }));
+                  }}
+                />
+              )}
+
               <div>
                 <Label htmlFor="item_type">Item Type *</Label>
                 <Select value={formData.item_type} onValueChange={(value) => setFormData(prev => ({ ...prev, item_type: value }))}>

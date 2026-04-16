@@ -52,9 +52,9 @@ const ChatBubble = ({
 
   const handleBuyProduct = () => {
     if (!taggedProduct) return;
-    // Navigate to checkout or product page based on source
+    // Open product detail page first so buyer can review before purchasing
     if (taggedProduct.source === 'seller_product') {
-      navigate(`/checkout?seller_product=${taggedProduct.id}`);
+      navigate(`/share/${taggedProduct.id}?type=seller`);
     } else {
       navigate(`/share/${taggedProduct.id}`);
     }
