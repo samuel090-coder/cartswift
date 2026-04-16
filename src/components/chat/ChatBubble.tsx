@@ -52,9 +52,9 @@ const ChatBubble = ({
 
   const handleBuyProduct = () => {
     if (!taggedProduct) return;
-    // Always open the product detail page first so the buyer can review
+    // Open product detail page first so buyer can review before purchasing
     if (taggedProduct.source === 'seller_product') {
-      navigate(`/product/${taggedProduct.id}?type=seller`);
+      navigate(`/share/${taggedProduct.id}?type=seller`);
     } else {
       navigate(`/share/${taggedProduct.id}`);
     }
