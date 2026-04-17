@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Mail, Package, CreditCard } from 'lucide-react';
+import { Mail, Package, CreditCard, Truck } from 'lucide-react';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
@@ -77,7 +78,7 @@ const Orders = () => {
               return (
                 <Card key={order.id} className="bg-white/10 backdrop-blur-sm border-white/20">
                   <CardHeader>
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-2 flex-wrap">
                       <div>
                         <CardTitle className="text-white mb-2">
                           Order #{order.id.slice(0, 8)}
@@ -85,14 +86,28 @@ const Orders = () => {
                         <p className="text-white/60 text-sm">
                           {format(new Date(order.created_at), 'PPP p')}
                         </p>
+                        {(order as any).tracking_code && (
+                          <p className="text-white/80 text-xs font-mono mt-1">
+                            Tracking: {(order as any).tracking_code}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant={
-                        order.status === 'completed' ? 'default' :
-                        order.status === 'processing' ? 'secondary' :
-                        'outline'
-                      }>
-                        {order.status}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant={
+                          order.status === 'completed' ? 'default' :
+                          order.status === 'processing' ? 'secondary' :
+                          'outline'
+                        }>
+                          {order.status}
+                        </Badge>
+                        {(order as any).tracking_code && (
+                          <Link to={`/track?code=${(order as any).tracking_code}`}>
+                            <Button size="sm" variant="outline" className="gap-1">
+                              <Truck className="h-3 w-3" /> Track
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
