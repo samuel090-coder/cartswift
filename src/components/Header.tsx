@@ -128,8 +128,8 @@ const Header = ({ onSearch }: HeaderProps) => {
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                        <Avatar className="h-9 w-9 border-2 border-primary/30">
+                      <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+                        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/30">
                           <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
                           <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                             {getInitials(profile?.full_name)}
