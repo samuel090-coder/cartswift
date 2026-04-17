@@ -60,6 +60,21 @@ const Profile = () => {
     enabled: !!user?.id,
   });
 
+  // Check if user is an admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ['is-admin', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return false;
+      const { data } = await supabase
+        .from('allowed_admins')
+        .select('email')
+        .eq('email', user.email)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user?.email,
+  });
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
