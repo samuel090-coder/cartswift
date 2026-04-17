@@ -195,11 +195,11 @@ const NotificationCenter = () => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative h-9 w-9">
           {unreadCount > 0 ? (
-            <BellRing className="h-5 w-5 text-primary animate-pulse" />
+            <BellRing className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
           ) : (
-            <Bell className="h-5 w-5" />
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           )}
           {unreadCount > 0 && (
             <Badge 
