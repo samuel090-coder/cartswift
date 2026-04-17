@@ -57,11 +57,11 @@ const Header = ({ onSearch }: HeaderProps) => {
         ? 'bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-lg' 
         : 'bg-background/60 backdrop-blur-md border-b border-border/30'
     }`}>
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
+      <div className="container mx-auto px-2 sm:px-4 py-3 overflow-hidden">
+        <div className="flex items-center justify-between gap-1 sm:gap-3 min-w-0">
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
-            <h1 className="text-xl font-black tracking-tight text-gradient">
+          <Link to="/" className="flex-shrink-0 min-w-0">
+            <h1 className="text-sm sm:text-xl font-black tracking-tight text-gradient truncate">
               CARTSWIFT
             </h1>
           </Link>
@@ -106,15 +106,15 @@ const Header = ({ onSearch }: HeaderProps) => {
           </AnimatePresence>
           
           {/* Right Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0 sm:gap-1.5 flex-shrink-0">
             {!searchOpen && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSearchOpen(true)}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
               >
-                <Search className="h-5 w-5" />
+                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             )}
 
@@ -128,8 +128,8 @@ const Header = ({ onSearch }: HeaderProps) => {
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                        <Avatar className="h-9 w-9 border-2 border-primary/30">
+                      <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+                        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/30">
                           <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
                           <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                             {getInitials(profile?.full_name)}
