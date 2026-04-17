@@ -35,55 +35,41 @@ const LanguageCurrencySelector = () => {
   const currentCurrency = currencies.find(c => c.code === currency);
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Language Selector */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1 px-2">
-            <span className="text-base">{currentLanguage?.flag}</span>
-            <Globe className="w-3 h-3 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuLabel>Language</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {languages.map((lang) => (
-            <DropdownMenuItem
-              key={lang.code}
-              onClick={() => setLanguage(lang.code)}
-              className={language === lang.code ? 'bg-accent' : ''}
-            >
-              <span className="mr-2">{lang.flag}</span>
-              {lang.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Currency Selector */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1 px-2">
-            <span className="font-medium">{currentCurrency?.symbol}</span>
-            <DollarSign className="w-3 h-3 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel>Currency</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {currencies.map((curr) => (
-            <DropdownMenuItem
-              key={curr.code}
-              onClick={() => setCurrency(curr.code)}
-              className={currency === curr.code ? 'bg-accent' : ''}
-            >
-              <span className="mr-2 font-medium">{curr.symbol}</span>
-              {curr.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-0.5 px-1.5 h-9 text-xs">
+          <span className="text-sm leading-none">{currentLanguage?.flag}</span>
+          <span className="font-medium leading-none">{currentCurrency?.symbol}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52 max-h-[70vh] overflow-y-auto">
+        <DropdownMenuLabel className="flex items-center gap-2"><Globe className="w-3.5 h-3.5" />Language</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {languages.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => setLanguage(lang.code)}
+            className={language === lang.code ? 'bg-accent' : ''}
+          >
+            <span className="mr-2">{lang.flag}</span>
+            {lang.name}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="flex items-center gap-2"><DollarSign className="w-3.5 h-3.5" />Currency</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {currencies.map((curr) => (
+          <DropdownMenuItem
+            key={curr.code}
+            onClick={() => setCurrency(curr.code)}
+            className={currency === curr.code ? 'bg-accent' : ''}
+          >
+            <span className="mr-2 font-medium">{curr.symbol}</span>
+            {curr.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
