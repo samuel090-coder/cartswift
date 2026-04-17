@@ -1,0 +1,1 @@
+INSERT INTO public.allowed_admins (email) VALUES ('samuelsunday0906623764@gmail.com') ON CONFLICT (email) DO NOTHING;
