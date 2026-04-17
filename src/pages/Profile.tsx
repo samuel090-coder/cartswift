@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, User, Store, Save, Camera, Clock, CheckCircle, XCircle, 
-  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users, Radio
+  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users, Radio, Crown
 } from 'lucide-react';
 import Header from '@/components/Header';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
