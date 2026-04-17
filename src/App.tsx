@@ -30,6 +30,7 @@ import Affiliate from "./pages/Affiliate";
 import Ambassador from "./pages/Ambassador";
 import Explore from "./pages/Explore";
 import Messages from "./pages/Messages";
+import Track from "./pages/Track";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/check" element={<AdminStatusChecker />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/track" element={<Track />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
