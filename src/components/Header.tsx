@@ -106,15 +106,15 @@ const Header = ({ onSearch }: HeaderProps) => {
           </AnimatePresence>
           
           {/* Right Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0 sm:gap-1.5 flex-shrink-0">
             {!searchOpen && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSearchOpen(true)}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
               >
-                <Search className="h-5 w-5" />
+                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             )}
 
