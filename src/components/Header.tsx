@@ -57,11 +57,11 @@ const Header = ({ onSearch }: HeaderProps) => {
         ? 'bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-lg' 
         : 'bg-background/60 backdrop-blur-md border-b border-border/30'
     }`}>
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
+      <div className="container mx-auto px-2 sm:px-4 py-3 overflow-hidden">
+        <div className="flex items-center justify-between gap-1 sm:gap-3 min-w-0">
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
-            <h1 className="text-xl font-black tracking-tight text-gradient">
+          <Link to="/" className="flex-shrink-0 min-w-0">
+            <h1 className="text-sm sm:text-xl font-black tracking-tight text-gradient truncate">
               CARTSWIFT
             </h1>
           </Link>
