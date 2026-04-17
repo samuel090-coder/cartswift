@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import { Eye, Download, Check, X, Clock, ExternalLink, ZoomIn } from 'lucide-react';
+import OrderTrackingManager from './OrderTrackingManager';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderStatus = Database['public']['Enums']['order_status'];
@@ -518,6 +519,9 @@ const OrderManagement = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Live Tracking Updates */}
+        <OrderTrackingManager orderId={order.id} trackingCode={(order as any).tracking_code} />
       </div>
     </DialogContent>
   );

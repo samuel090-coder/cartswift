@@ -1482,6 +1482,7 @@ export type Database = {
           state: string
           status: Database["public"]["Enums"]["order_status"]
           total_amount: number
+          tracking_code: string | null
           updated_at: string
         }
         Insert: {
@@ -1503,6 +1504,7 @@ export type Database = {
           state: string
           status?: Database["public"]["Enums"]["order_status"]
           total_amount: number
+          tracking_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -1524,6 +1526,7 @@ export type Database = {
           state?: string
           status?: Database["public"]["Enums"]["order_status"]
           total_amount?: number
+          tracking_code?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3004,6 +3007,7 @@ export type Database = {
         Returns: string
       }
       generate_download_token: { Args: never; Returns: string }
+      generate_tracking_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
