@@ -350,6 +350,17 @@ const Profile = () => {
                       Seller Application Pending
                     </Badge>
                   )}
+
+                  {isAdmin && (
+                    <Button
+                      onClick={() => navigate('/admin-dashboard')}
+                      className="mt-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white gap-2"
+                      size="sm"
+                    >
+                      <Crown className="w-4 h-4" />
+                      Open Admin Panel
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
