@@ -226,25 +226,25 @@ const Index = () => {
       <div className="container mx-auto px-4 pt-3 pb-6 relative z-10">
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-lg mx-auto bg-secondary/50 border border-border/30 backdrop-blur-sm">
-            <TabsTrigger value="shop" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <ShoppingBag size={14} />
+          <TabsList className="grid w-full grid-cols-5 max-w-lg mx-auto bg-secondary/50 border border-border/30 backdrop-blur-sm gap-0.5 p-1">
+            <TabsTrigger value="shop" className="flex-col sm:flex-row gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ShoppingBag size={12} className="sm:w-3.5 sm:h-3.5" />
               Shop
             </TabsTrigger>
-            <TabsTrigger value="feed" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Tv size={14} />
+            <TabsTrigger value="feed" className="flex-col sm:flex-row gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Tv size={12} className="sm:w-3.5 sm:h-3.5" />
               Feed
             </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <TrendingUp size={14} />
+            <TabsTrigger value="trending" className="flex-col sm:flex-row gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TrendingUp size={12} className="sm:w-3.5 sm:h-3.5" />
               Hot
             </TabsTrigger>
-            <TabsTrigger value="rewards" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Gift size={14} />
+            <TabsTrigger value="rewards" className="flex-col sm:flex-row gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Gift size={12} className="sm:w-3.5 sm:h-3.5" />
               Rewards
             </TabsTrigger>
-            <TabsTrigger value="refer" className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Users size={14} />
+            <TabsTrigger value="refer" className="flex-col sm:flex-row gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users size={12} className="sm:w-3.5 sm:h-3.5" />
               Refer
             </TabsTrigger>
           </TabsList>

@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, User, Store, Save, Camera, Clock, CheckCircle, XCircle, 
-  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users, Radio
+  Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users, Radio, Crown
 } from 'lucide-react';
 import Header from '@/components/Header';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
@@ -58,6 +58,21 @@ const Profile = () => {
       return data;
     },
     enabled: !!user?.id,
+  });
+
+  // Check if user is an admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ['is-admin', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return false;
+      const { data } = await supabase
+        .from('allowed_admins')
+        .select('email')
+        .eq('email', user.email)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user?.email,
   });
 
   useEffect(() => {
@@ -334,6 +349,17 @@ const Profile = () => {
                       <Clock className="w-3 h-3" />
                       Seller Application Pending
                     </Badge>
+                  )}
+
+                  {isAdmin && (
+                    <Button
+                      onClick={() => navigate('/admin/dashboard')}
+                      className="mt-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white gap-2"
+                      size="sm"
+                    >
+                      <Crown className="w-4 h-4" />
+                      Open Admin Panel
+                    </Button>
                   )}
                 </div>
               </div>
