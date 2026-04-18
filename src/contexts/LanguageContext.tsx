@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { formatDisplayPrice } from '@/lib/priceFormat';
 
 type Language = 'en' | 'es' | 'fr' | 'ar' | 'zh';
 type Currency = 'USD' | 'EUR' | 'GBP' | 'NGN' | 'CNY' | 'AED' | 'INR';
@@ -153,10 +154,6 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const formatPrice = (priceUSD: number): string => {
     const convertedPrice = priceUSD * currencyRates[currency];
-    // Use the global admin-controlled price format (full vs compact).
-    // Imported lazily to avoid a circular dep with priceFormat.ts utilities.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { formatDisplayPrice } = require('@/lib/priceFormat');
     return formatDisplayPrice(convertedPrice, currencySymbols[currency]);
   };
 

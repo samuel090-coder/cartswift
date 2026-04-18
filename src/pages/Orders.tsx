@@ -71,9 +71,7 @@ const Orders = () => {
         ) : (
           <div className="space-y-4">
             {orders.map((order: any) => {
-              const apkFileItems = order.order_items?.filter((oi: any) => 
-                oi.items?.item_type === 'apk' || oi.items?.item_type === 'file'
-              ) || [];
+              const allItems = order.order_items || [];
 
               return (
                 <Card key={order.id} className="bg-white/10 backdrop-blur-sm border-white/20">
@@ -130,7 +128,7 @@ const Orders = () => {
                     {/* Items */}
                     <div className="space-y-2">
                       <p className="text-white/80 font-medium">Items:</p>
-                      {apkFileItems.map((orderItem: any) => (
+                      {allItems.map((orderItem: any) => (
                         <div key={orderItem.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                           <div>
                             <p className="text-white font-medium">{orderItem.items?.title}</p>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Clock, Package, Bell, BellRing } from 'lucide-react';
+import { CheckCircle, Clock, Package, Bell, BellRing, Truck, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface PaymentConfirmationProps {
@@ -13,6 +15,7 @@ interface PaymentConfirmationProps {
     estimatedDelivery: string;
     paymentReference?: string;
     currency?: string;
+    trackingCode?: string | null;
   };
   onContinueShopping: () => void;
 }
@@ -117,6 +120,38 @@ const PaymentConfirmation = ({ orderData, onContinueShopping }: PaymentConfirmat
                 <span className="text-sm">{orderData.estimatedDelivery}</span>
               </div>
             </div>
+
+            {orderData.trackingCode && (
+              <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg space-y-3">
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <Truck className="h-5 w-5" />
+                  <span className="font-semibold">Your Tracking Code</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 bg-background rounded-md px-3 py-2 border">
+                  <span className="font-mono font-bold tracking-wider">{orderData.trackingCode}</span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      navigator.clipboard.writeText(orderData.trackingCode!);
+                      toast({ title: 'Copied!', description: 'Tracking code copied to clipboard.' });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Link to={`/track?code=${orderData.trackingCode}`}>
+                  <Button variant="outline" className="w-full gap-2">
+                    <Truck className="h-4 w-4" /> Track on live map
+                  </Button>
+                </Link>
+                <p className="text-xs text-muted-foreground text-center">
+                  Save this code — you can track your order any time at /track
+                </p>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Button onClick={onContinueShopping} className="w-full">
