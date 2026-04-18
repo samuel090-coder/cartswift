@@ -123,10 +123,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    try {
+      // Clear local state first so UI updates instantly even if network is slow.
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      // Hard redirect to ensure all in-memory state is cleared everywhere.
+      window.location.href = '/';
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

@@ -222,13 +222,21 @@ const Checkout = () => {
     onSuccess: async (order, paymentReference) => {
       const estimatedDelivery = new Date();
       estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
-      
+
+      // Re-read the freshly created order to capture the auto-generated tracking_code.
+      const { data: fullOrder } = await supabase
+        .from('orders')
+        .select('id, tracking_code')
+        .eq('id', order.id)
+        .maybeSingle();
+
       setOrderData({
         id: order.id,
         paymentMethod: formData.paymentMethod,
         total,
         estimatedDelivery: estimatedDelivery.toLocaleDateString(),
         paymentReference,
+        trackingCode: fullOrder?.tracking_code || (order as any).tracking_code || null,
       });
       
       // Send notification to admin

@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import ExpandableDescription from './ExpandableDescription';
 import LazyImage from './LazyImage';
+import { formatDisplayPrice } from '@/lib/priceFormat';
 
 type Item = Database['public']['Tables']['items']['Row'];
 
@@ -217,11 +218,11 @@ const ItemCard = ({ item }: ItemCardProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-bold text-neon-emerald">
-                {getCurrencySymbol(item.currency || 'USD')}{finalPrice.toFixed(2)}
+                {formatDisplayPrice(finalPrice, getCurrencySymbol(item.currency || 'USD'))}
               </span>
               {item.discount_percentage && (
                 <span className="text-xs text-muted-foreground line-through">
-                  {getCurrencySymbol(item.currency || 'USD')}{Number(item.price).toFixed(2)}
+                  {formatDisplayPrice(Number(item.price), getCurrencySymbol(item.currency || 'USD'))}
                 </span>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { formatDisplayPrice } from '@/lib/priceFormat';
 
 type Language = 'en' | 'es' | 'fr' | 'ar' | 'zh';
 type Currency = 'USD' | 'EUR' | 'GBP' | 'NGN' | 'CNY' | 'AED' | 'INR';
@@ -153,10 +154,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const formatPrice = (priceUSD: number): string => {
     const convertedPrice = priceUSD * currencyRates[currency];
-    return `${currencySymbols[currency]}${convertedPrice.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    return formatDisplayPrice(convertedPrice, currencySymbols[currency]);
   };
 
   const getCurrencySymbol = () => currencySymbols[currency];
