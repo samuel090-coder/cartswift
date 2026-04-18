@@ -153,10 +153,11 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const formatPrice = (priceUSD: number): string => {
     const convertedPrice = priceUSD * currencyRates[currency];
-    return `${currencySymbols[currency]}${convertedPrice.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    // Use the global admin-controlled price format (full vs compact).
+    // Imported lazily to avoid a circular dep with priceFormat.ts utilities.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { formatDisplayPrice } = require('@/lib/priceFormat');
+    return formatDisplayPrice(convertedPrice, currencySymbols[currency]);
   };
 
   const getCurrencySymbol = () => currencySymbols[currency];
