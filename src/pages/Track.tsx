@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Package, Truck, CheckCircle, Clock, MapPin, Search, AlertCircle } from 
 import Header from '@/components/Header';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
+import TrackingMap from '@/components/TrackingMap';
 
 const statusIcons: Record<string, any> = {
   pending: Clock,
@@ -62,6 +63,34 @@ const Track = () => {
     setLoading(false);
   };
 
+  // Realtime: refresh tracking when admin posts new updates.
+  useEffect(() => {
+    if (!order?.id) return;
+    const channel = supabase
+      .channel(`order-tracking-${order.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_tracking', filter: `order_id=eq.${order.id}` },
+        async () => {
+          const { data } = await supabase
+            .from('order_tracking')
+            .select('*')
+            .eq('order_id', order.id)
+            .order('created_at', { ascending: false });
+          setUpdates(data || []);
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` },
+        (payload) => setOrder((prev: any) => ({ ...prev, ...payload.new })),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [order?.id]);
+
   useEffect(() => {
     const initialCode = searchParams.get('code');
     if (initialCode) lookup(initialCode);
@@ -69,18 +98,21 @@ const Track = () => {
   }, []);
 
   const currentStepIndex = order ? steps.indexOf(order.status) : -1;
+  const destination = order
+    ? [order.city, order.state, order.country].filter(Boolean).join(', ')
+    : null;
 
   return (
     <AnimatedBackground>
       <SEOHead
         title="Track Your Order | CartSwift"
-        description="Enter your tracking code to see real-time updates on your CartSwift order."
+        description="Enter your tracking code to see real-time updates and a live map of your CartSwift order."
       />
       <Header />
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Track Your Order</h1>
-          <p className="text-white/70">Enter your tracking code to see live progress</p>
+          <p className="text-white/70">Enter your tracking code to see live progress on the map</p>
         </div>
 
         <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
@@ -127,6 +159,9 @@ const Track = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Live map */}
+              <TrackingMap updates={updates} destination={destination} />
+
               {/* Progress steps */}
               <div className="relative">
                 <div className="flex justify-between items-center relative z-10">
@@ -194,7 +229,7 @@ const Track = () => {
               <div className="p-4 bg-white/5 rounded-lg">
                 <p className="text-white/70 text-sm">Delivering to</p>
                 <p className="text-white font-medium">
-                  {order.full_name} — {order.city}, {order.state}, {order.country}
+                  {order.full_name} — {destination}
                 </p>
               </div>
             </CardContent>
