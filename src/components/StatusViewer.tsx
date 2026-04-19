@@ -211,6 +211,27 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
     recordViewAndEarnings();
   }, [currentStatus?.id, currentUser, isOwner, user.user_id]);
 
+  // Notify status owner via email when someone reacts
+  const notifyStatusReaction = async (reaction: string) => {
+    try {
+      if (!currentUser || isOwner) return;
+      const [{ data: owner }, { data: actor }] = await Promise.all([
+        supabase.from('profiles').select('email, full_name').eq('id', user.user_id).maybeSingle(),
+        supabase.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle(),
+      ]);
+      if (!owner?.email) return;
+      await supabase.functions.invoke('send-user-email', {
+        body: {
+          to: owner.email,
+          template: 'status_like',
+          data: { actorName: actor?.full_name || 'Someone', reaction },
+        },
+      });
+    } catch (e) {
+      console.warn('Reaction email notify failed', e);
+    }
+  };
+
   // Handle double tap for TikTok-style reaction
   const handleDoubleTap = async (e: React.MouseEvent | React.TouchEvent) => {
     const now = Date.now();
@@ -241,6 +262,7 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
           from_user_id: currentUser.id
         });
 
+        notifyStatusReaction('❤️');
         toast.success('❤️ Loved!');
       } catch (error) {
         console.error('Error adding reaction:', error);
@@ -276,6 +298,7 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
         user_id: currentUser.id,
         reaction_type: reaction
       });
+      notifyStatusReaction(reaction);
       toast.success(`Reacted with ${reaction}`);
       setShowReactions(false);
     } catch (error) {

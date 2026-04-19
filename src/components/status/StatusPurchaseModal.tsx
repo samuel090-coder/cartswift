@@ -177,6 +177,29 @@ const StatusPurchaseModal = ({ product, statusId, sellerId, onClose, onSuccess }
         });
       } catch (e) { console.warn('email failed', e); }
 
+      // Notify the seller that they earned a commission from their tagged status
+      try {
+        const { data: seller } = await supabase
+          .from('profiles').select('email, full_name').eq('id', sellerId).maybeSingle();
+        const { data: buyer } = await supabase
+          .from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+        if ((seller as any)?.email) {
+          await supabase.functions.invoke('send-user-email', {
+            body: {
+              to: (seller as any).email,
+              template: 'status_purchase',
+              data: {
+                buyerName: buyer?.full_name || shippingInfo.fullName || 'A buyer',
+                productTitle: product.title,
+                amount: product.price,
+                commission: commissionAmount,
+                currency: product.currency,
+              },
+            },
+          });
+        }
+      } catch (e) { console.warn('seller email failed', e); }
+
       setTrackingCode(order.tracking_code);
       setStep('success');
       toast.success('Order placed! 🎉');
