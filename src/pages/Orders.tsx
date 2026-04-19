@@ -11,7 +11,7 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 
 const Orders = () => {
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['apk-file-orders'],
+    queryKey: ['my-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
@@ -23,20 +23,15 @@ const Orders = () => {
               id,
               title,
               item_type,
-              file_url
+              file_url,
+              images
             )
           )
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      
-      // Filter to only show orders with APK/File items
-      return data.filter(order => 
-        order.order_items?.some((oi: any) => 
-          oi.items?.item_type === 'apk' || oi.items?.item_type === 'file'
-        )
-      );
+      return data || [];
     },
   });
 
@@ -59,7 +54,7 @@ const Orders = () => {
     <AnimatedBackground>
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-white mb-8">APK/File Orders</h1>
+        <h1 className="text-4xl font-bold text-white mb-8">My Orders</h1>
         
         {orders.length === 0 ? (
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">

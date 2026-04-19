@@ -33,7 +33,8 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
         .not('id', 'eq', user?.id || '');
       
       if (searchQuery.trim()) {
-        query = query.or(`full_name.ilike.%${searchQuery}%,store_name.ilike.%${searchQuery}%`);
+        const q = searchQuery.trim();
+        query = query.or(`full_name.ilike.%${q}%,store_name.ilike.%${q}%,email.ilike.%${q}%`);
       }
       
       const { data, error } = await query
