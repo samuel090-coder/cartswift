@@ -425,6 +425,8 @@ const PaymentProofsManagement = () => {
           });
         } catch (e) { console.warn('Email send failed', e); }
       }
+
+      toast({
         title: 'Notification Sent',
         description: `${type === 'approved' ? 'Approval' : 'Decline'} notification sent to ${order.full_name}`,
       });
