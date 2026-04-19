@@ -45,6 +45,58 @@ const OrderTrackingManager = ({ orderId, trackingCode }: Props) => {
         description: description || null,
       });
       if (error) throw error;
+
+      // If this update marks the order as live/shipped, email the buyer with map + ETA
+      const liveStatuses = ['shipped', 'in_transit', 'out_for_delivery'];
+      if (liveStatuses.includes(status)) {
+        try {
+          const { data: order } = await supabase
+            .from('orders')
+            .select('email, full_name, address_line1, city, state, country, tracking_code')
+            .eq('id', orderId)
+            .maybeSingle();
+          if (order?.email) {
+            // Geocode destination via Nominatim (free OSM)
+            const dest = `${order.address_line1 || ''}, ${order.city || ''}, ${order.state || ''}, ${order.country || ''}`;
+            let lat: number | null = null, lon: number | null = null, distanceKm: number | null = null, eta = '5-10 days';
+            try {
+              const geoRes = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(dest)}`,
+                { headers: { 'User-Agent': 'CartSwift/1.0' } }
+              );
+              const geo = await geoRes.json();
+              if (geo?.[0]) {
+                lat = parseFloat(geo[0].lat);
+                lon = parseFloat(geo[0].lon);
+                // Haversine from Miami HQ
+                const toRad = (d: number) => (d * Math.PI) / 180;
+                const R = 6371;
+                const dLat = toRad(lat - 25.7617);
+                const dLon = toRad(lon - -80.1918);
+                const a = Math.sin(dLat / 2) ** 2 +
+                  Math.cos(toRad(25.7617)) * Math.cos(toRad(lat)) *
+                  Math.sin(dLon / 2) ** 2;
+                distanceKm = Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+                eta = distanceKm < 1500 ? '2-4 days' : distanceKm < 5000 ? '5-8 days' : distanceKm < 10000 ? '8-14 days' : '12-20 days';
+              }
+            } catch (e) { console.warn('Geocode failed', e); }
+
+            await supabase.functions.invoke('send-user-email', {
+              body: {
+                to: order.email,
+                template: 'order_live',
+                data: {
+                  trackingCode: order.tracking_code,
+                  destination: [order.city, order.state, order.country].filter(Boolean).join(', '),
+                  status,
+                  description: description || null,
+                  lat, lon, distanceKm, eta,
+                },
+              },
+            });
+          }
+        } catch (e) { console.warn('order_live email failed', e); }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['order-tracking-admin', orderId] });
