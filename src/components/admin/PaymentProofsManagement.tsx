@@ -409,6 +409,23 @@ const PaymentProofsManagement = () => {
         console.error('Push notification error:', pushError);
       }
 
+      // Branded email via Brevo (Resend-style transactional)
+      if ((order as any).email) {
+        try {
+          await supabase.functions.invoke('send-user-email', {
+            body: {
+              to: (order as any).email,
+              template: type === 'approved' ? 'payment_approved' : 'payment_declined',
+              data: {
+                orderId: proof.order_id,
+                trackingCode: (order as any).tracking_code,
+                reason: adminNotes[proof.id] || undefined,
+              },
+            },
+          });
+        } catch (e) { console.warn('Email send failed', e); }
+      }
+
       toast({
         title: 'Notification Sent',
         description: `${type === 'approved' ? 'Approval' : 'Decline'} notification sent to ${order.full_name}`,

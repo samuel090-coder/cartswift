@@ -102,18 +102,34 @@ const ShareView = () => {
         if (shortlink?.id) canonicalId = String(shortlink.id);
       }
 
-      const { data: shareSettings, error: shareError } = await supabase
+      // Item is the source of truth — share works for ANY product
+      const { data: item, error: itemError } = await supabase
+        .from('items')
+        .select('*')
+        .eq('id', resolvedItemId)
+        .single();
+
+      if (itemError || !item) throw new Error('Product not found');
+
+      // Optional rich share settings — fall back to item defaults if missing
+      const { data: existingSettings } = await supabase
         .from('share_settings')
         .select('*')
         .eq('item_id', resolvedItemId)
-        .eq('is_shareable', true)
-        .single();
+        .maybeSingle();
 
-      if (shareError) throw new Error('Share page not found or not available');
-
-      const { data: item, error: itemError } = await supabase.from('items').select('*').eq('id', resolvedItemId).single();
-
-      if (itemError) throw new Error('Product not found');
+      const shareSettings = (existingSettings && existingSettings.is_shareable !== false)
+        ? existingSettings
+        : ({
+            item_id: resolvedItemId,
+            is_shareable: true,
+            share_headline: item.title,
+            hero_media_url: item.images?.[0] || null,
+            hero_media_type: 'image',
+            cta_text: 'Buy Now',
+            share_benefits: [],
+            social_proof_text: null,
+          } as any);
 
       return { item, shareSettings, canonicalId };
     },

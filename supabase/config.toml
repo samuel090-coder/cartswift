@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.extract-product]
 verify_jwt = false
+
+[functions.send-user-email]
+verify_jwt = false

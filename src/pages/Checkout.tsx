@@ -239,14 +239,14 @@ const Checkout = () => {
         trackingCode: fullOrder?.tracking_code || (order as any).tracking_code || null,
       });
       
-      // Send notification to admin
-      try {
-        const orderItems = items.map(item => ({
-          title: item.title,
-          quantity: item.quantity,
-          price: item.price
-        }));
+      // Build line-item summary once for both admin + customer email
+      const orderItems = items.map(item => ({
+        title: item.title,
+        quantity: item.quantity,
+        price: item.price,
+      }));
 
+      try {
         await supabase.functions.invoke('send-order-notification', {
           body: {
             orderId: order.id,
@@ -254,13 +254,37 @@ const Checkout = () => {
             customerEmail: formData.email,
             totalAmount: total,
             paymentMethod: formData.paymentMethod,
-            items: orderItems
-          }
+            items: orderItems,
+          },
         });
-        console.log('Admin notification sent successfully');
       } catch (notificationError) {
         console.error('Failed to send admin notification:', notificationError);
-        // Don't fail the order if notification fails
+      }
+
+      // Send branded confirmation email to the customer
+      if (formData.email) {
+        try {
+          await supabase.functions.invoke('send-user-email', {
+            body: {
+              to: formData.email,
+              template: 'order_received',
+              data: {
+                orderId: order.id,
+                trackingCode: fullOrder?.tracking_code || (order as any).tracking_code,
+                total,
+                currency: items[0]?.currency || 'USD',
+                items: orderItems,
+                shipping: {
+                  fullName: formData.fullName,
+                  address: formData.addressLine1,
+                  city: formData.city,
+                  state: formData.state,
+                  country: 'US',
+                },
+              },
+            },
+          });
+        } catch (e) { console.warn('customer email failed', e); }
       }
       
       setStep('confirmation');
