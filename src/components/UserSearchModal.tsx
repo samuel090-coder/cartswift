@@ -60,6 +60,26 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
     enabled: !!user?.id,
   });
 
+  // Helper to send email notifications about follow/unfollow events
+  const notifyFollowEvent = async (targetUserId: string, template: 'new_follower' | 'unfollow') => {
+    try {
+      const [{ data: target }, { data: actor }] = await Promise.all([
+        supabase.from('profiles').select('email, full_name').eq('id', targetUserId).maybeSingle(),
+        supabase.from('profiles').select('full_name').eq('id', user?.id || '').maybeSingle(),
+      ]);
+      if (!target?.email) return;
+      await supabase.functions.invoke('send-user-email', {
+        body: {
+          to: target.email,
+          template,
+          data: { actorName: actor?.full_name || 'Someone', actorId: user?.id },
+        },
+      });
+    } catch (e) {
+      console.warn('Follow email notify failed', e);
+    }
+  };
+
   // Follow mutation
   const followMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -70,6 +90,7 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
           following_id: userId
         });
       if (error) throw error;
+      await notifyFollowEvent(userId, 'new_follower');
     },
     onSuccess: () => {
       toast.success('Following!');
@@ -90,6 +111,7 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
         .eq('follower_id', user?.id)
         .eq('following_id', userId);
       if (error) throw error;
+      await notifyFollowEvent(userId, 'unfollow');
     },
     onSuccess: () => {
       toast.success('Unfollowed');
