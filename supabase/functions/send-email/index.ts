@@ -78,6 +78,30 @@ function mediaThumb(url: string | null | undefined, isVideo = false) {
   return `<div style="position:relative;margin:16px 0;text-align:center;"><img src="${proxyImage(url, 600)}" style="max-width:100%;border-radius:12px;display:block;margin:0 auto;" alt="">${isVideo ? '<div style="font-size:13px;color:#64748b;margin-top:8px;">▶︎ Video</div>' : ""}</div>`;
 }
 
+// Rich hero banner image for emails — uses Unsplash topical photos with weserv proxy.
+function heroBanner(topic: string, overlayText?: string): string {
+  const url = `https://source.unsplash.com/1200x500/?${encodeURIComponent(topic)}`;
+  const proxied = proxyImage(url, 1200);
+  return `<div style="position:relative;margin:0 0 20px;border-radius:14px;overflow:hidden;">
+    <img src="${proxied}" style="width:100%;height:auto;display:block;" alt="${topic}">
+    ${overlayText ? `<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.75));padding:18px 20px;color:#fff;font-size:18px;font-weight:700;">${overlayText}</div>` : ""}
+  </div>`;
+}
+
+function statCard(label: string, value: string, color = BRAND.primary): string {
+  return `<div style="background:linear-gradient(135deg,${color}15,${color}05);border:1px solid ${color}40;border-radius:12px;padding:16px;margin:12px 0;text-align:center;">
+    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.2px;">${label}</div>
+    <div style="font-size:26px;font-weight:800;color:${color};margin-top:6px;">${value}</div>
+  </div>`;
+}
+
+function infoBox(title: string, body: string, color = BRAND.primary): string {
+  return `<div style="background:#f8fafc;border-left:4px solid ${color};border-radius:8px;padding:14px 18px;margin:14px 0;">
+    <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${title}</div>
+    <div style="color:#475569;font-size:14px;line-height:1.5;">${body}</div>
+  </div>`;
+}
+
 function statusMap(lat: number | null, lon: number | null, distanceKm: number | null, eta: string) {
   if (lat == null || lon == null) return "";
   // Static OSM map showing Miami → destination with route
@@ -181,6 +205,235 @@ async function buildEmail(type: string, data: any, profile: any, item: any): Pro
       const inner = `<h2 style="margin:0 0 12px;font-size:22px;color:#dc2626;">Deposit declined</h2>
         <p style="color:#475569;line-height:1.6;">Your deposit request was not approved.${data.reason ? ` Reason: ${data.reason}` : ""}</p>`;
       return { subject: `Deposit declined`, html: shell("Deposit", inner, "Try again", `${APP_URL}/profile`) };
+    }
+
+    // ── 40 RICH ACTIVITY TEMPLATES (each with hero image) ──
+    case "welcome": {
+      const inner = heroBanner("shopping,celebration,gift", `Welcome to ${BRAND.name}, ${name}! 🎉`) +
+        `<p style="color:#475569;line-height:1.7;font-size:15px;">We're thrilled to have you. Discover trending products, follow your favorite sellers, and unlock exclusive deals.</p>` +
+        infoBox("🎁 Your welcome gift", "Use code <b>WELCOME10</b> for 10% off your first order.", "#10b981");
+      return { subject: `Welcome to ${BRAND.name}, ${name}!`, html: shell("Welcome", inner, "Start shopping", APP_URL) };
+    }
+    case "email_verified": {
+      const inner = heroBanner("verified,checkmark,security", "Email verified ✅") +
+        `<p style="color:#475569;line-height:1.7;">Your email is verified. Full access unlocked.</p>`;
+      return { subject: "Your email is verified", html: shell("Verified", inner, "Explore", APP_URL) };
+    }
+    case "password_reset": {
+      const inner = heroBanner("security,lock,key", "Password reset 🔐") +
+        `<p style="color:#475569;">Click below to reset — link expires in 1 hour.</p>` +
+        infoBox("Didn't request this?", "Ignore this email; your password is safe.", "#f59e0b");
+      return { subject: "Reset your password", html: shell("Password Reset", inner, "Reset password", data.resetUrl || APP_URL) };
+    }
+    case "login_alert": {
+      const inner = heroBanner("security,laptop,login", "New sign-in detected 🔔") +
+        infoBox("Device", `${data.device || "Unknown"} · ${data.location || "Unknown"}`, "#3b82f6") +
+        `<p style="color:#475569;">If this wasn't you, secure your account now.</p>`;
+      return { subject: "New sign-in to your account", html: shell("Security Alert", inner, "Review activity", `${APP_URL}/profile`) };
+    }
+    case "cart_abandoned": {
+      const inner = heroBanner("shopping cart,sale", "You left something behind 🛒") +
+        `<p style="color:#475569;">Your cart is waiting! Complete before items sell out.</p>` +
+        statCard("Items in cart", String(data.itemCount || 1), "#ec4899") +
+        infoBox("⏰ Limited time", "Use <b>COMEBACK5</b> for 5% off — expires in 24h.", "#f59e0b");
+      return { subject: "Your cart misses you 🛒", html: shell("Abandoned Cart", inner, "Complete checkout", `${APP_URL}/cart`) };
+    }
+    case "wishlist_price_drop": {
+      const inner = heroBanner("price tag,discount,sale", `Price dropped! 📉`) +
+        mediaThumb(data.imageUrl) +
+        statCard("New price", `$${Number(data.newPrice || 0).toFixed(2)}`, "#10b981") +
+        infoBox("Was", `<s>$${Number(data.oldPrice || 0).toFixed(2)}</s> — Save $${(Number(data.oldPrice||0)-Number(data.newPrice||0)).toFixed(2)}`, "#ec4899");
+      return { subject: `📉 Price drop: ${data.productTitle || "Wishlist item"}`, html: shell("Price Drop", inner, "Buy now", `${APP_URL}/share/${data.shortId || ""}`) };
+    }
+    case "wishlist_back_in_stock": {
+      const inner = heroBanner("warehouse,boxes", "Back in stock! 📦") +
+        mediaThumb(data.imageUrl) +
+        `<p style="color:#475569;font-size:15px;"><b>${data.productTitle}</b> is back. Grab yours before it sells out.</p>`;
+      return { subject: `${data.productTitle} is back in stock`, html: shell("Restock", inner, "Buy now", `${APP_URL}/share/${data.shortId || ""}`) };
+    }
+    case "flash_sale": {
+      const inner = heroBanner("flash sale,lightning,deal", "⚡ FLASH SALE STARTED!") +
+        statCard("Discount", `${data.discount || 30}% OFF`, "#ef4444") +
+        `<p style="color:#475569;">Hurry — ends in ${data.endsIn || "24h"}.</p>`;
+      return { subject: `⚡ Flash Sale: ${data.discount || 30}% off`, html: shell("Flash Sale", inner, "Shop the sale", APP_URL) };
+    }
+    case "seller_new_product": {
+      const inner = heroBanner("new product,launch", `${data.sellerName} just listed something new`) +
+        mediaThumb(data.imageUrl) +
+        infoBox(data.productTitle || "New listing", `$${Number(data.price || 0).toFixed(2)}`, "#ec4899");
+      return { subject: `${data.sellerName} listed a new product`, html: shell("New from Seller", inner, "View product", `${APP_URL}/share/${data.shortId || ""}`) };
+    }
+    case "seller_live": {
+      const inner = heroBanner("live streaming,broadcast", "🔴 LIVE NOW") +
+        `<p style="color:#475569;font-size:15px;"><b>${data.sellerName}</b> is live shopping right now. Join for exclusive deals!</p>`;
+      return { subject: `🔴 ${data.sellerName} is live now`, html: shell("Live Shopping", inner, "Join live", `${APP_URL}/profile/${data.sellerId || ""}`) };
+    }
+    case "seller_status_posted": {
+      const inner = heroBanner("social media,story", `${data.sellerName} posted a status`) +
+        mediaThumb(data.mediaUrl, data.isVideo);
+      return { subject: `New status from ${data.sellerName}`, html: shell("New Status", inner, "View status", `${APP_URL}/profile/${data.sellerId || ""}`) };
+    }
+    case "message_received": {
+      const inner = heroBanner("chat,message", `💬 New message from ${data.senderName}`) +
+        `<blockquote style="background:#f8fafc;border-left:3px solid ${BRAND.primary};padding:14px 18px;border-radius:8px;color:#334155;">${(data.preview || "").slice(0, 200)}</blockquote>`;
+      return { subject: `New message from ${data.senderName}`, html: shell("New Message", inner, "Reply", `${APP_URL}/messages`) };
+    }
+    case "voice_message_received": {
+      const inner = heroBanner("microphone,audio", `🎙️ Voice message from ${data.senderName}`) +
+        infoBox("Duration", `${data.duration || 0}s`, "#8b5cf6");
+      return { subject: `🎙️ Voice message from ${data.senderName}`, html: shell("Voice Message", inner, "Listen", `${APP_URL}/messages`) };
+    }
+    case "order_shipped": {
+      const inner = heroBanner("shipping,truck", "📦 Your order has shipped!") +
+        infoBox("Tracking code", data.trackingCode || "—", "#3b82f6") +
+        infoBox("Carrier", data.carrier || "CartSwift Express", "#10b981");
+      return { subject: `📦 Order ${data.trackingCode} shipped`, html: shell("Shipped", inner, "Track package", `${APP_URL}/track?code=${data.trackingCode || ""}`) };
+    }
+    case "out_for_delivery": {
+      const inner = heroBanner("delivery,courier", "🚚 Out for delivery today!") +
+        `<p style="color:#475569;font-size:15px;">Your order arrives today. Make sure someone's available.</p>`;
+      return { subject: `🚚 Out for delivery — ${data.trackingCode}`, html: shell("Out for Delivery", inner, "Track live", `${APP_URL}/track?code=${data.trackingCode || ""}`) };
+    }
+    case "order_delivered": {
+      const inner = heroBanner("delivered,package,happy", "✅ Delivered!") +
+        `<p style="color:#475569;font-size:15px;">We'd love to hear what you think!</p>`;
+      return { subject: `✅ Delivered — ${data.trackingCode}`, html: shell("Delivered", inner, "Leave a review", `${APP_URL}/orders`) };
+    }
+    case "order_cancelled": {
+      const inner = heroBanner("cancelled,refund", "Order cancelled") +
+        `<p style="color:#475569;">Order <b>${data.trackingCode || data.orderId}</b> was cancelled. ${data.reason || ""}</p>` +
+        infoBox("Refund", "Refund will appear in 3–5 business days.", "#10b981");
+      return { subject: `Order cancelled — ${data.trackingCode}`, html: shell("Cancelled", inner, "Browse again", APP_URL) };
+    }
+    case "refund_processed": {
+      const inner = heroBanner("refund,money back", "💵 Refund processed") +
+        statCard("Refund", `$${Number(data.amount || 0).toFixed(2)}`, "#10b981");
+      return { subject: `Refund of $${Number(data.amount || 0).toFixed(2)} processed`, html: shell("Refund", inner, "View order", `${APP_URL}/orders`) };
+    }
+    case "review_request": {
+      const inner = heroBanner("review,stars,feedback", "⭐ How was your order?") +
+        mediaThumb(data.imageUrl) +
+        `<p style="color:#475569;">Help others — share your experience with <b>${data.productTitle || "your purchase"}</b>.</p>`;
+      return { subject: `Rate your recent purchase`, html: shell("Review Request", inner, "Leave a review", `${APP_URL}/orders`) };
+    }
+    case "seller_review_received": {
+      const stars = "⭐".repeat(Number(data.rating || 5));
+      const inner = heroBanner("five stars,review", `${stars} New review!`) +
+        `<blockquote style="background:#fffbeb;border-left:3px solid #f59e0b;padding:14px 18px;border-radius:8px;color:#78350f;">${data.comment || ""}</blockquote>`;
+      return { subject: `${stars} New review on your product`, html: shell("New Review", inner, "View dashboard", `${APP_URL}/seller-dashboard`) };
+    }
+    case "loyalty_tier_upgrade": {
+      const inner = heroBanner("trophy,reward,achievement", `🏆 You're now ${data.tier || "Gold"}!`) +
+        `<p style="color:#475569;font-size:15px;">Congrats ${name}! Unlocked: free shipping, early access, bonus points.</p>`;
+      return { subject: `🏆 You unlocked ${data.tier} status!`, html: shell("Tier Upgrade", inner, "View rewards", `${APP_URL}/profile`) };
+    }
+    case "loyalty_points_earned": {
+      const inner = heroBanner("coins,points,reward", `+${data.points || 0} points earned!`) +
+        statCard("Total balance", `${data.balance || 0} pts`, "#f59e0b");
+      return { subject: `+${data.points || 0} loyalty points earned`, html: shell("Points Earned", inner, "Redeem", `${APP_URL}/profile`) };
+    }
+    case "referral_signup": {
+      const inner = heroBanner("friends,referral", "🎉 Your friend just joined!") +
+        `<p style="color:#475569;">${data.friendName || "Your friend"} signed up via your referral. You'll earn rewards on their first purchase.</p>`;
+      return { subject: `${data.friendName} joined via your referral`, html: shell("Referral", inner, "View earnings", `${APP_URL}/profile`) };
+    }
+    case "referral_reward": {
+      const inner = heroBanner("money,bonus", "💰 Referral bonus earned!") +
+        statCard("Earned", `$${Number(data.amount || 0).toFixed(2)}`, "#10b981");
+      return { subject: `💰 You earned $${Number(data.amount || 0).toFixed(2)} from a referral`, html: shell("Referral Reward", inner, "Withdraw", `${APP_URL}/profile`) };
+    }
+    case "affiliate_conversion": {
+      const inner = heroBanner("commission,sales", "💸 Affiliate commission earned!") +
+        statCard("Commission", `$${Number(data.commission || 0).toFixed(2)}`, "#10b981");
+      return { subject: `💸 Affiliate commission: $${Number(data.commission || 0).toFixed(2)}`, html: shell("Affiliate", inner, "View dashboard", `${APP_URL}/affiliate`) };
+    }
+    case "ambassador_approved": {
+      const inner = heroBanner("influencer,ambassador,star", "🌟 Welcome, Ambassador!") +
+        `<p style="color:#475569;font-size:15px;">Approved! You earn ${data.commissionRate || 10}% on every referred sale.</p>`;
+      return { subject: "🌟 Ambassador application approved!", html: shell("Ambassador", inner, "Get your code", `${APP_URL}/ambassador`) };
+    }
+    case "ambassador_rejected": {
+      const inner = heroBanner("decision,review", "Ambassador application update") +
+        `<p style="color:#475569;">Unfortunately, we couldn't approve your application this time.${data.reason ? ` ${data.reason}` : ""}</p>`;
+      return { subject: "Ambassador application update", html: shell("Application", inner, "Reapply later", `${APP_URL}/ambassador`) };
+    }
+    case "seller_approved": {
+      const inner = heroBanner("store,business,approved", "🎉 You're approved to sell!") +
+        `<p style="color:#475569;font-size:15px;">Welcome ${name}! Set up your store and start earning.</p>`;
+      return { subject: "🎉 Seller application approved!", html: shell("Seller Approved", inner, "Open dashboard", `${APP_URL}/seller-dashboard`) };
+    }
+    case "seller_rejected": {
+      const inner = heroBanner("review,feedback", "Seller application update") +
+        `<p style="color:#475569;">${data.reason || "We couldn't approve your application at this time."}</p>`;
+      return { subject: "Seller application update", html: shell("Application", inner, "Reapply", `${APP_URL}/profile`) };
+    }
+    case "boost_approved": {
+      const inner = heroBanner("rocket,boost,growth", "🚀 Your boost is live!") +
+        infoBox("Product", data.productTitle || "—", "#ec4899") +
+        infoBox("Duration", `${data.duration || 7} days`, "#10b981");
+      return { subject: `🚀 Boost active for ${data.productTitle}`, html: shell("Boost Live", inner, "View analytics", `${APP_URL}/seller-dashboard`) };
+    }
+    case "boost_ended": {
+      const inner = heroBanner("analytics,chart", "📊 Boost campaign ended") +
+        statCard("Total views", String(data.views || 0), "#3b82f6") +
+        statCard("Conversions", String(data.conversions || 0), "#10b981");
+      return { subject: `📊 Boost ended — ${data.views || 0} views`, html: shell("Boost Report", inner, "Boost again", `${APP_URL}/seller-dashboard`) };
+    }
+    case "status_payout": {
+      const inner = heroBanner("payout,earnings,money", "💰 Status earnings paid out") +
+        statCard("Payout", `$${Number(data.amount || 0).toFixed(2)}`, "#10b981") +
+        infoBox("Period", `${data.views || 0} views · ${data.reactions || 0} reactions`, "#8b5cf6");
+      return { subject: `💰 $${Number(data.amount || 0).toFixed(2)} status payout`, html: shell("Payout", inner, "View earnings", `${APP_URL}/profile`) };
+    }
+    case "withdrawal_requested": {
+      const inner = heroBanner("withdrawal,bank,transfer", "Withdrawal requested") +
+        statCard("Amount", `$${Number(data.amount || 0).toFixed(2)}`, "#3b82f6") +
+        `<p style="color:#475569;">Processing time: 1–3 business days.</p>`;
+      return { subject: `Withdrawal of $${Number(data.amount || 0).toFixed(2)} received`, html: shell("Withdrawal", inner, "Track", `${APP_URL}/profile`) };
+    }
+    case "withdrawal_completed": {
+      const inner = heroBanner("success,money,bank", "✅ Withdrawal completed") +
+        statCard("Sent", `$${Number(data.amount || 0).toFixed(2)}`, "#10b981");
+      return { subject: `✅ $${Number(data.amount || 0).toFixed(2)} sent to your account`, html: shell("Sent", inner, "View wallet", `${APP_URL}/profile`) };
+    }
+    case "gift_card_received": {
+      const inner = heroBanner("gift card,present,bow", "🎁 You received a gift card!") +
+        statCard("Value", `$${Number(data.amount || 0).toFixed(2)}`, "#ec4899") +
+        `<p style="color:#475569;">From: <b>${data.fromName || "A friend"}</b><br>${data.message ? `"${data.message}"` : ""}</p>`;
+      return { subject: `🎁 ${data.fromName} sent you a $${Number(data.amount || 0).toFixed(2)} gift card!`, html: shell("Gift Card", inner, "Redeem now", APP_URL) };
+    }
+    case "birthday": {
+      const inner = heroBanner("birthday,cake,celebration", `🎂 Happy Birthday, ${name}!`) +
+        `<p style="color:#475569;font-size:15px;">From all of us at ${BRAND.name}, have an amazing day!</p>` +
+        statCard("Birthday discount", "20% OFF", "#ec4899") +
+        infoBox("Code", "<b>BIRTHDAY20</b> — valid for 7 days", "#f59e0b");
+      return { subject: `🎂 Happy Birthday, ${name}! Here's 20% off`, html: shell("Birthday", inner, "Treat yourself", APP_URL) };
+    }
+    case "trending_alert": {
+      const inner = heroBanner("trending,viral,popular", "🔥 Trending right now") +
+        mediaThumb(data.imageUrl) +
+        infoBox(data.productTitle || "Trending item", `${data.viewCount || 0} views in 24h`, "#ef4444");
+      return { subject: `🔥 Trending: ${data.productTitle}`, html: shell("Trending", inner, "Shop trending", `${APP_URL}/share/${data.shortId || ""}`) };
+    }
+    case "personalized_recommendation": {
+      const inner = heroBanner("recommendation,curated", `Picks just for you, ${name}`) +
+        mediaThumb(data.imageUrl) +
+        `<p style="color:#475569;">Based on your browsing, we think you'll love <b>${data.productTitle}</b>.</p>`;
+      return { subject: `We picked ${data.productTitle} for you`, html: shell("For You", inner, "View product", `${APP_URL}/share/${data.shortId || ""}`) };
+    }
+    case "weekly_digest": {
+      const inner = heroBanner("newsletter,weekly,roundup", `Your week on ${BRAND.name}`) +
+        statCard("New products", String(data.newProducts || 0), "#ec4899") +
+        statCard("Trending sellers", String(data.trendingSellers || 0), "#3b82f6") +
+        statCard("Active deals", String(data.deals || 0), "#10b981");
+      return { subject: `Your weekly ${BRAND.name} digest`, html: shell("Weekly Digest", inner, "Browse now", APP_URL) };
+    }
+    case "we_miss_you": {
+      const inner = heroBanner("comeback,welcome back", `We miss you, ${name} 💔`) +
+        `<p style="color:#475569;font-size:15px;">It's been a while! Here's a special welcome-back offer:</p>` +
+        statCard("Discount", "15% OFF", "#ec4899") +
+        infoBox("Code", "<b>COMEBACK15</b> — valid for 14 days", "#f59e0b");
+      return { subject: `We miss you, ${name} 💔 Here's 15% off`, html: shell("Come Back", inner, "Shop now", APP_URL) };
     }
 
     // ── DEFAULT FALLBACK ──
