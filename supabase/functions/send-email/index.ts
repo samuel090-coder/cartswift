@@ -78,6 +78,30 @@ function mediaThumb(url: string | null | undefined, isVideo = false) {
   return `<div style="position:relative;margin:16px 0;text-align:center;"><img src="${proxyImage(url, 600)}" style="max-width:100%;border-radius:12px;display:block;margin:0 auto;" alt="">${isVideo ? '<div style="font-size:13px;color:#64748b;margin-top:8px;">▶︎ Video</div>' : ""}</div>`;
 }
 
+// Rich hero banner image for emails — uses Unsplash topical photos with weserv proxy.
+function heroBanner(topic: string, overlayText?: string): string {
+  const url = `https://source.unsplash.com/1200x500/?${encodeURIComponent(topic)}`;
+  const proxied = proxyImage(url, 1200);
+  return `<div style="position:relative;margin:0 0 20px;border-radius:14px;overflow:hidden;">
+    <img src="${proxied}" style="width:100%;height:auto;display:block;" alt="${topic}">
+    ${overlayText ? `<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.75));padding:18px 20px;color:#fff;font-size:18px;font-weight:700;">${overlayText}</div>` : ""}
+  </div>`;
+}
+
+function statCard(label: string, value: string, color = BRAND.primary): string {
+  return `<div style="background:linear-gradient(135deg,${color}15,${color}05);border:1px solid ${color}40;border-radius:12px;padding:16px;margin:12px 0;text-align:center;">
+    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.2px;">${label}</div>
+    <div style="font-size:26px;font-weight:800;color:${color};margin-top:6px;">${value}</div>
+  </div>`;
+}
+
+function infoBox(title: string, body: string, color = BRAND.primary): string {
+  return `<div style="background:#f8fafc;border-left:4px solid ${color};border-radius:8px;padding:14px 18px;margin:14px 0;">
+    <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${title}</div>
+    <div style="color:#475569;font-size:14px;line-height:1.5;">${body}</div>
+  </div>`;
+}
+
 function statusMap(lat: number | null, lon: number | null, distanceKm: number | null, eta: string) {
   if (lat == null || lon == null) return "";
   // Static OSM map showing Miami → destination with route
