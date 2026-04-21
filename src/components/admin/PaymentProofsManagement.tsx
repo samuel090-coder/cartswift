@@ -412,10 +412,10 @@ const PaymentProofsManagement = () => {
       // Branded email via Brevo (Resend-style transactional)
       if ((order as any).email) {
         try {
-          await supabase.functions.invoke('send-user-email', {
+          await supabase.functions.invoke('send-email', {
             body: {
-              to: (order as any).email,
-              template: type === 'approved' ? 'payment_approved' : 'payment_declined',
+              type: type === 'approved' ? 'payment_approved' : 'payment_declined',
+              userEmail: (order as any).email,
               data: {
                 orderId: proof.order_id,
                 trackingCode: (order as any).tracking_code,

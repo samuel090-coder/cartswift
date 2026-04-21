@@ -264,10 +264,10 @@ const Checkout = () => {
       // Send branded confirmation email to the customer
       if (formData.email) {
         try {
-          await supabase.functions.invoke('send-user-email', {
+          await supabase.functions.invoke('send-email', {
             body: {
-              to: formData.email,
-              template: 'order_received',
+              type: 'order_received',
+              userEmail: formData.email,
               data: {
                 orderId: order.id,
                 trackingCode: fullOrder?.tracking_code || (order as any).tracking_code,
