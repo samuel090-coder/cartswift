@@ -160,7 +160,12 @@ const Track = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Live map */}
-              <TrackingMap updates={updates} destination={destination} />
+              <TrackingMap
+                updates={updates}
+                destination={destination}
+                orderCreatedAt={order.created_at}
+                orderStatus={order.status}
+              />
 
               {/* Progress steps */}
               <div className="relative">

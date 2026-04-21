@@ -68,11 +68,12 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
         supabase.from('profiles').select('full_name').eq('id', user?.id || '').maybeSingle(),
       ]);
       if (!target?.email) return;
-      await supabase.functions.invoke('send-user-email', {
+      await supabase.functions.invoke('send-email', {
         body: {
-          to: target.email,
-          template,
-          data: { actorName: actor?.full_name || 'Someone', actorId: user?.id },
+          type: template === 'new_follower' ? 'new_follower' : 'new_follower',
+          userEmail: target.email,
+          userId: user?.id,
+          data: { followerName: actor?.full_name || 'Someone', followerId: user?.id, followerProfile: { full_name: actor?.full_name, ...actor } },
         },
       });
     } catch (e) {

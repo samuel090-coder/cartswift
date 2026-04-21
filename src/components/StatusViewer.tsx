@@ -220,11 +220,11 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
         supabase.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle(),
       ]);
       if (!owner?.email) return;
-      await supabase.functions.invoke('send-user-email', {
+      await supabase.functions.invoke('send-email', {
         body: {
-          to: owner.email,
-          template: 'status_like',
-          data: { actorName: actor?.full_name || 'Someone', reaction },
+          type: 'post_liked',
+          userEmail: owner.email,
+          data: { likerName: actor?.full_name || 'Someone', mediaUrl: user.media_url, isVideo: user.media_type === 'video' },
         },
       });
     } catch (e) {

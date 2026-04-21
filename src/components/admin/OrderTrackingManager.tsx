@@ -81,10 +81,10 @@ const OrderTrackingManager = ({ orderId, trackingCode }: Props) => {
               }
             } catch (e) { console.warn('Geocode failed', e); }
 
-            await supabase.functions.invoke('send-user-email', {
+            await supabase.functions.invoke('send-email', {
               body: {
-                to: order.email,
-                template: 'order_live',
+                type: 'order_live',
+                userEmail: order.email,
                 data: {
                   trackingCode: order.tracking_code,
                   destination: [order.city, order.state, order.country].filter(Boolean).join(', '),

@@ -160,17 +160,16 @@ const StatusPurchaseModal = ({ product, statusId, sellerId, onClose, onSuccess }
 
       // Email notify (best-effort)
       try {
-        await supabase.functions.invoke('send-user-email', {
+        await supabase.functions.invoke('send-email', {
           body: {
-            to: shippingInfo.email,
-            subject: `Order received — ${product.title}`,
-            template: 'order_received',
+            type: 'order_received',
+            userEmail: shippingInfo.email,
             data: {
               orderId: order.id,
               trackingCode: order.tracking_code,
               total: product.price,
               currency: product.currency,
-              productTitle: product.title,
+              items: [{ title: product.title, quantity: 1, price: product.price }],
               shipping: shippingInfo,
             },
           },
@@ -184,15 +183,14 @@ const StatusPurchaseModal = ({ product, statusId, sellerId, onClose, onSuccess }
         const { data: buyer } = await supabase
           .from('profiles').select('full_name').eq('id', user.id).maybeSingle();
         if ((seller as any)?.email) {
-          await supabase.functions.invoke('send-user-email', {
+          await supabase.functions.invoke('send-email', {
             body: {
-              to: (seller as any).email,
-              template: 'status_purchase',
+              type: 'status_purchase',
+              userEmail: (seller as any).email,
               data: {
                 buyerName: buyer?.full_name || shippingInfo.fullName || 'A buyer',
                 productTitle: product.title,
-                amount: product.price,
-                commission: commissionAmount,
+                amount: commissionAmount,
                 currency: product.currency,
               },
             },

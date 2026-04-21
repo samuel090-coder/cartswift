@@ -22,10 +22,11 @@ import PriceFormatSetting from '@/components/admin/PriceFormatSetting';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet, Send } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
+import EmailTester from '@/components/admin/EmailTester';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -265,6 +266,13 @@ const AdminDashboard = () => {
                 <Wallet size={16} />
                 <span className="hidden sm:inline">Deposits</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="emails" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Send size={16} />
+                <span className="hidden sm:inline">Emails</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="items">
@@ -336,6 +344,10 @@ const AdminDashboard = () => {
                 <DepositPaymentMethodsManagement />
                 <DepositManagement />
               </div>
+            </TabsContent>
+
+            <TabsContent value="emails">
+              <EmailTester />
             </TabsContent>
           </Tabs>
         </div>

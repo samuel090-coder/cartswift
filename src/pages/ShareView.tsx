@@ -245,18 +245,18 @@ const ShareView = () => {
         structured_data={structuredData}
       />
       
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 overflow-x-hidden pb-24 lg:pb-0">
         {/* Hero Section */}
         <motion.section 
-          className="relative min-h-screen flex items-center justify-center overflow-hidden"
+          className="relative min-h-screen flex items-center justify-center overflow-x-hidden py-6 lg:py-12"
           style={{ y }}
         >
           {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 animate-gradient-shift"></div>
           </div>
           
-          <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center relative z-10">
+          <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center relative z-10 max-w-full">
             {/* Media Section */}
             <motion.div 
               className="space-y-6"
@@ -329,7 +329,7 @@ const ShareView = () => {
               {/* Headline */}
               <div className="space-y-3">
                 <motion.h1 
-                  className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight"
+                  className="text-2xl sm:text-3xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight break-words"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.6 }}
@@ -391,11 +391,11 @@ const ShareView = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
-                <div className="text-4xl font-bold text-primary">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
                   {getCurrencySymbol(item.currency)}{discountPrice.toFixed(2)}
                 </div>
                 {item.discount_percentage && (
-                  <div className="text-2xl text-muted-foreground line-through">
+                  <div className="text-lg sm:text-xl lg:text-2xl text-muted-foreground line-through">
                     {getCurrencySymbol(item.currency)}{originalPrice.toFixed(2)}
                   </div>
                 )}
@@ -408,13 +408,13 @@ const ShareView = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1, duration: 0.6 }}
               >
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <Eye size={16} />
-                    <span>2,847 people viewed this today</span>
+                    <Eye size={14} />
+                    <span>2,847 viewed today</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Users size={16} />
+                    <Users size={14} />
                     <span>156 sold this week</span>
                   </div>
                 </div>
