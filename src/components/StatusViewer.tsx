@@ -224,7 +224,7 @@ const StatusViewer = ({ user, onClose, onNext }: StatusViewerProps) => {
         body: {
           type: 'post_liked',
           userEmail: owner.email,
-          data: { likerName: actor?.full_name || 'Someone', mediaUrl: user.media_url, isVideo: user.media_type === 'video' },
+          data: { likerName: actor?.full_name || 'Someone', mediaUrl: currentStatus?.media_url, isVideo: currentStatus?.media_type === 'video' },
         },
       });
     } catch (e) {
