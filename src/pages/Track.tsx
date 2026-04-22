@@ -147,7 +147,21 @@ const Track = () => {
           </Card>
         )}
 
-        {order && (
+        {order && order.status === 'pending' && (
+          <Card className="bg-amber-500/15 border-amber-300/40 backdrop-blur-sm">
+            <CardContent className="py-8 text-center text-white space-y-3">
+              <Clock className="mx-auto h-12 w-12 text-amber-300 animate-pulse" />
+              <h3 className="text-xl font-bold">Awaiting Payment Approval</h3>
+              <p className="text-white/80 text-sm max-w-sm mx-auto">
+                Your tracking code <span className="font-mono font-bold">{order.tracking_code}</span> is reserved.
+                Live tracking will activate as soon as our team approves your payment (usually within 30 minutes – 2 hours).
+              </p>
+              <p className="text-white/60 text-xs">This page updates automatically — no need to refresh.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {order && order.status !== 'pending' && (
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader>
               <div className="flex justify-between items-start flex-wrap gap-2">
