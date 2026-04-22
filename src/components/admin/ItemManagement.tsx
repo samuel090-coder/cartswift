@@ -448,6 +448,17 @@ const ItemManagement = () => {
                     <p className="text-sm text-gray-600">Current images: {formData.images.length}</p>
                   </div>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={handleAnalyzeImage}
+                  disabled={analyzing || (!imageFiles?.length && !formData.images.length)}
+                >
+                  {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {analyzing ? 'Analyzing image with AI…' : 'Analyze image with AI (auto-fill title & description)'}
+                </Button>
               </div>
 
               {/* Digital delivery link (used in approval email) */}
