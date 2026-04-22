@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import ProductExtractor, { ExtractedProduct } from './ProductExtractor';
 
@@ -48,6 +48,45 @@ const ItemManagement = () => {
   });
   const [imageFiles, setImageFiles] = useState<FileList | null>(null);
   const [apkFile, setApkFile] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+  const handleAnalyzeImage = async () => {
+    const file = imageFiles?.[0];
+    const existing = formData.images?.[0];
+    if (!file && !existing) {
+      toast({ title: 'Add an image first', description: 'Upload an image or have an existing one to analyze.', variant: 'destructive' });
+      return;
+    }
+    setAnalyzing(true);
+    try {
+      const imageUrl = file ? await fileToDataUrl(file) : existing;
+      const { data, error } = await supabase.functions.invoke('analyze-product-image', {
+        body: { imageUrl },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Analysis failed');
+      setFormData((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        category: data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : prev.category,
+      }));
+      toast({ title: '✨ AI analysis complete', description: 'Title and description filled in. Review and tweak as needed.' });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'AI analysis failed', description: e?.message || 'Try again.', variant: 'destructive' });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['admin-items'],
@@ -409,6 +448,17 @@ const ItemManagement = () => {
                     <p className="text-sm text-gray-600">Current images: {formData.images.length}</p>
                   </div>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={handleAnalyzeImage}
+                  disabled={analyzing || (!imageFiles?.length && !formData.images.length)}
+                >
+                  {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {analyzing ? 'Analyzing image with AI…' : 'Analyze image with AI (auto-fill title & description)'}
+                </Button>
               </div>
 
               {/* Digital delivery link (used in approval email) */}
