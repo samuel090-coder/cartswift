@@ -208,6 +208,19 @@ async function buildEmail(type: string, data: any, profile: any, item: any): Pro
     }
 
     // ── 40 RICH ACTIVITY TEMPLATES (each with hero image) ──
+    case "new_product_announcement": {
+      const price = Number(data.productPrice || 0).toFixed(2);
+      const cur = data.currency || "USD";
+      const inner = heroBanner("new product,marketplace,launch", `🆕 Just landed: ${data.productName || "New product"}`) +
+        (data.productImage ? mediaThumb(data.productImage) : "") +
+        `<p style="color:#475569;line-height:1.7;font-size:15px;">Hey ${data.userName || "there"}, a fresh product just hit ${BRAND.name}. Be among the first to grab it.</p>` +
+        infoBox(data.productName || "New product", (data.productDescription || "").slice(0, 220), "#3b82f6") +
+        statCard("Price", `${cur} ${price}`, "#10b981");
+      return {
+        subject: `🆕 New on ${BRAND.name}: ${data.productName || "a fresh product"}`,
+        html: shell("New Product", inner, "Shop now", data.productId ? `${APP_URL}/share/${data.productId}` : APP_URL),
+      };
+    }
     case "welcome": {
       const inner = heroBanner("shopping,celebration,gift", `Welcome to ${BRAND.name}, ${name}! 🎉`) +
         `<p style="color:#475569;line-height:1.7;font-size:15px;">We're thrilled to have you. Discover trending products, follow your favorite sellers, and unlock exclusive deals.</p>` +
