@@ -3048,8 +3048,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_status_view_count: {
+        Args: { p_status_id: string }
+        Returns: undefined
+      }
       is_admin_user: { Args: { user_uuid: string }; Returns: boolean }
       is_allowed_admin: { Args: { user_email: string }; Returns: boolean }
+      map_notification_to_email_type: {
+        Args: { p_type: string }
+        Returns: string
+      }
     }
     Enums: {
       item_category: "Fashion" | "Animals" | "Tools" | "Vehicles" | "Books"

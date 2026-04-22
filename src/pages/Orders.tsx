@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
+
+const supabase = createSessionSupabaseClient();
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ const Orders = () => {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['my-orders'],
     queryFn: async () => {
+      const sessionId = getSessionId();
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -28,6 +31,7 @@ const Orders = () => {
             )
           )
         `)
+        .eq('session_id', sessionId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
