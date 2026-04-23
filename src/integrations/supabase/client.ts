@@ -5,7 +5,29 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://qcfsnqumydfminvmqyfp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjZnNucXVteWRmbWludm1xeWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzcwMDIsImV4cCI6MjA2NjcxMzAwMn0.u9yL-M4ePbFxrkifl5GQlExtib5FCU3-84BiBYxCDCE";
 
+// Resolve the anonymous browser session id used by RLS policies that match
+// `x-session-id` (orders, payment_proofs, chat_sessions, in_app_notifications, ...).
+const getBrowserSessionId = (): string => {
+  if (typeof window === 'undefined') return '';
+  try {
+    let sid = localStorage.getItem('session_id');
+    if (!sid) {
+      sid = (crypto as any)?.randomUUID?.() ?? `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem('session_id', sid);
+    }
+    return sid;
+  } catch {
+    return '';
+  }
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: {
+    headers: {
+      'x-session-id': getBrowserSessionId(),
+    },
+  },
+});

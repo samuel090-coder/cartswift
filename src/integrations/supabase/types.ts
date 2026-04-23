@@ -3041,6 +3041,22 @@ export type Database = {
       }
       generate_download_token: { Args: never; Returns: string }
       generate_tracking_code: { Args: never; Returns: string }
+      get_order_by_tracking_code: {
+        Args: { _code: string }
+        Returns: {
+          city: string
+          country: string
+          created_at: string
+          currency: string
+          full_name: string
+          id: string
+          state: string
+          status: string
+          total_amount: number
+          tracking_code: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]

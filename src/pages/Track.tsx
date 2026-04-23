@@ -40,11 +40,11 @@ const Track = () => {
     setSearched(trimmed);
     setSearchParams({ code: trimmed });
 
-    const { data: orderData, error: orderErr } = await supabase
-      .from('orders')
-      .select('id, tracking_code, status, full_name, city, state, country, created_at, updated_at, total_amount, currency')
-      .eq('tracking_code', trimmed)
-      .maybeSingle();
+    // Use SECURITY DEFINER RPC so anyone with a tracking code can look it up
+    // without exposing email / address / phone via direct table access.
+    const { data: rpcRows, error: orderErr } = await supabase
+      .rpc('get_order_by_tracking_code', { _code: trimmed });
+    const orderData = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
 
     if (orderErr || !orderData) {
       setError('No order found with that tracking code. Please double-check and try again.');
