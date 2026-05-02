@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Pause, Download, FileText, ShoppingBag, ExternalLink, CreditCard } from 'lucide-react';
+import { Play, Pause, Download, FileText, ShoppingBag, ExternalLink, CreditCard, Check, CheckCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -17,11 +17,14 @@ interface ChatBubbleProps {
   isMine: boolean;
   isAutoReply: boolean;
   timestamp: string;
+  isRead?: boolean;
+  showReadReceipt?: boolean;
 }
 
 const ChatBubble = ({
   content, messageType, fileUrl, fileName, fileSize, mimeType,
   voiceDuration, taggedProduct, isMine, isAutoReply, timestamp,
+  isRead, showReadReceipt,
 }: ChatBubbleProps) => {
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
