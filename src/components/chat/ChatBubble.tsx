@@ -184,6 +184,13 @@ const ChatBubble = ({
           <span className={`text-[10px] ${timeClass}`}>
             {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
+          {isMine && showReadReceipt && (
+            isRead ? (
+              <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Read" />
+            ) : (
+              <Check className="h-3.5 w-3.5 text-white/60" aria-label="Sent" />
+            )
+          )}
         </div>
       </div>
     </motion.div>
