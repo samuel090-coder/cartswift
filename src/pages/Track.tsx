@@ -33,6 +33,18 @@ const Track = () => {
   const lookup = async (rawCode: string) => {
     const trimmed = rawCode.trim().toUpperCase();
     if (!trimmed) return;
+
+    // Client-side format validation
+    const FORMAT = /^CS-[A-Z0-9]{8}$/;
+    if (!FORMAT.test(trimmed)) {
+      setOrder(null);
+      setUpdates([]);
+      setSearched(trimmed);
+      setSearchParams({ code: trimmed });
+      setError('That tracking code looks invalid. It should look like CS-XXXXXXXX (8 letters/numbers after CS-).');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setOrder(null);
@@ -40,14 +52,39 @@ const Track = () => {
     setSearched(trimmed);
     setSearchParams({ code: trimmed });
 
-    // Use SECURITY DEFINER RPC so anyone with a tracking code can look it up
-    // without exposing email / address / phone via direct table access.
     const { data: rpcRows, error: orderErr } = await supabase
       .rpc('get_order_by_tracking_code', { _code: trimmed });
     const orderData = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
 
-    if (orderErr || !orderData) {
-      setError('No order found with that tracking code. Please double-check and try again.');
+    if (orderErr) {
+      setError("We couldn't reach the tracking service right now. Please check your connection and try again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!orderData) {
+      setError("No order matches this tracking code. Double-check the code from your confirmation email — it must be entered exactly as shown.");
+      setLoading(false);
+      return;
+    }
+
+    if (orderData.status === 'cancelled') {
+      setOrder(orderData);
+      setError('This order was cancelled and is no longer being shipped. If you believe this is a mistake, please contact support.');
+      setLoading(false);
+      return;
+    }
+
+    if (orderData.status === 'delivered') {
+      // Already-completed/used codes still resolve, just inform the user
+      const { data: trackData } = await supabase
+        .from('order_tracking')
+        .select('*')
+        .eq('order_id', orderData.id)
+        .order('created_at', { ascending: false });
+      setOrder(orderData);
+      setUpdates(trackData || []);
+      setError('');
       setLoading(false);
       return;
     }

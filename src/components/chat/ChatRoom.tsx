@@ -264,22 +264,31 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
       {/* Messages */}
       <ScrollArea className="flex-1">
         <div className="space-y-2 p-3 pb-4">
-          {messages.map(msg => (
-            <ChatBubble
-              key={msg.id}
-              content={msg.content}
-              messageType={(msg as any).message_type || 'text'}
-              fileUrl={(msg as any).file_url}
-              fileName={(msg as any).file_name}
-              fileSize={(msg as any).file_size}
-              mimeType={(msg as any).mime_type}
-              voiceDuration={(msg as any).voice_duration}
-              taggedProduct={getTaggedProduct(msg)}
-              isMine={msg.sender_id === user?.id}
-              isAutoReply={msg.is_auto_reply}
-              timestamp={msg.created_at}
-            />
-          ))}
+          {(() => {
+            // Find index of my latest message for read-receipt display
+            let lastMineIdx = -1;
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].sender_id === user?.id) { lastMineIdx = i; break; }
+            }
+            return messages.map((msg, idx) => (
+              <ChatBubble
+                key={msg.id}
+                content={msg.content}
+                messageType={(msg as any).message_type || 'text'}
+                fileUrl={(msg as any).file_url}
+                fileName={(msg as any).file_name}
+                fileSize={(msg as any).file_size}
+                mimeType={(msg as any).mime_type}
+                voiceDuration={(msg as any).voice_duration}
+                taggedProduct={getTaggedProduct(msg)}
+                isMine={msg.sender_id === user?.id}
+                isAutoReply={msg.is_auto_reply}
+                timestamp={msg.created_at}
+                isRead={!!(msg as any).is_read}
+                showReadReceipt={idx === lastMineIdx}
+              />
+            ));
+          })()}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>

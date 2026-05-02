@@ -263,52 +263,52 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-            <p className="text-sm text-yellow-800 mb-3">
+          <div className="bg-amber-500/10 p-4 rounded-lg border border-amber-500/30">
+            <p className="text-sm text-amber-100 mb-0 font-medium">
               {bankSettings?.instructions || 'Make payment to the following bank account and upload proof of payment. Your order will be confirmed within 30 minutes to 2 hours.'}
             </p>
           </div>
           
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+          <div className="bg-card border border-border p-4 rounded-lg space-y-3 text-foreground">
             <div className="space-y-3">
               {bankSettings?.account_name && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium text-sm text-gray-600">Account Name:</span>
-                  <span className="font-semibold">{bankSettings.account_name}</span>
+                <div className="flex justify-between items-center border-b border-border pb-2 gap-3">
+                  <span className="font-medium text-sm text-muted-foreground">Account Name:</span>
+                  <span className="font-semibold text-foreground text-right">{bankSettings.account_name}</span>
                 </div>
               )}
               {bankSettings?.bank_name && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium text-sm text-gray-600">Bank Name:</span>
-                  <span className="font-semibold">{bankSettings.bank_name}</span>
+                <div className="flex justify-between items-center border-b border-border pb-2 gap-3">
+                  <span className="font-medium text-sm text-muted-foreground">Bank Name:</span>
+                  <span className="font-semibold text-foreground text-right">{bankSettings.bank_name}</span>
                 </div>
               )}
               {bankSettings?.account_number && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium text-sm text-gray-600">Account Number:</span>
-                  <span className="font-mono font-semibold">{bankSettings.account_number}</span>
+                <div className="flex justify-between items-center border-b border-border pb-2 gap-3">
+                  <span className="font-medium text-sm text-muted-foreground">Account Number:</span>
+                  <span className="font-mono font-semibold text-foreground">{bankSettings.account_number}</span>
                 </div>
               )}
               {bankSettings?.routing_number && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium text-sm text-gray-600">Routing Number:</span>
-                  <span className="font-mono font-semibold">{bankSettings.routing_number}</span>
+                <div className="flex justify-between items-center border-b border-border pb-2 gap-3">
+                  <span className="font-medium text-sm text-muted-foreground">Routing Number:</span>
+                  <span className="font-mono font-semibold text-foreground">{bankSettings.routing_number}</span>
                 </div>
               )}
               {bankSettings?.additional_info?.swift_code && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium text-sm text-gray-600">SWIFT Code:</span>
-                  <span className="font-mono font-semibold">{bankSettings.additional_info.swift_code}</span>
+                <div className="flex justify-between items-center border-b border-border pb-2 gap-3">
+                  <span className="font-medium text-sm text-muted-foreground">SWIFT Code:</span>
+                  <span className="font-mono font-semibold text-foreground">{bankSettings.additional_info.swift_code}</span>
                 </div>
               )}
               {bankSettings?.additional_info?.bank_address && (
                 <div className="pt-2">
-                  <span className="font-medium text-sm text-gray-600">Bank Address:</span>
-                  <p className="text-sm mt-1">{bankSettings.additional_info.bank_address}</p>
+                  <span className="font-medium text-sm text-muted-foreground">Bank Address:</span>
+                  <p className="text-sm mt-1 text-foreground">{bankSettings.additional_info.bank_address}</p>
                 </div>
               )}
             </div>
-            <Badge variant="outline" className="mt-3">
+            <Badge variant="secondary" className="mt-3 text-sm">
               Amount: {getCurrencySymbol(currency)}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Badge>
           </div>
@@ -355,6 +355,9 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             >
               {loading ? 'Uploading...' : 'Submit Proof'}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              After you submit, your unique tracking code will appear on the next screen.
+            </p>
           </div>
         </CardContent>
       </Card>
