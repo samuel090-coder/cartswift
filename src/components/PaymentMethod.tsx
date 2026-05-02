@@ -355,6 +355,9 @@ const PaymentMethod = ({ method, total, currency = 'USD', onPaymentSuccess, onFi
             >
               {loading ? 'Uploading...' : 'Submit Proof'}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              After you submit, your unique tracking code will appear on the next screen.
+            </p>
           </div>
         </CardContent>
       </Card>
