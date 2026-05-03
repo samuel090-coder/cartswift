@@ -236,6 +236,7 @@ const Checkout = () => {
         total,
         estimatedDelivery: estimatedDelivery.toLocaleDateString(),
         paymentReference,
+        currency: items[0]?.currency || 'USD',
         trackingCode: fullOrder?.tracking_code || (order as any).tracking_code || null,
       });
       

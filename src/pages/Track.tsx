@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, CheckCircle, Clock, MapPin, Search, AlertCircle } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, MapPin, Search, AlertCircle, Copy, RotateCw } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
@@ -177,9 +178,36 @@ const Track = () => {
 
         {error && (
           <Card className="bg-destructive/20 border-destructive/40">
-            <CardContent className="py-6 text-center text-white">
-              <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+            <CardContent className="py-6 text-center text-white space-y-4">
+              <AlertCircle className="mx-auto h-8 w-8" />
               <p>{error}</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => lookup(code || searched)}
+                  disabled={loading || !(code || searched)}
+                  className="gap-2"
+                >
+                  <RotateCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Retrying...' : 'Retry lookup'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                  onClick={() => {
+                    setCode('');
+                    setSearched('');
+                    setError('');
+                    setOrder(null);
+                    setUpdates([]);
+                    setSearchParams({});
+                  }}
+                >
+                  Try a different code
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -189,9 +217,24 @@ const Track = () => {
             <CardContent className="py-8 text-center text-white space-y-3">
               <Clock className="mx-auto h-12 w-12 text-amber-300 animate-pulse" />
               <h3 className="text-xl font-bold">Awaiting Payment Approval</h3>
+              <div className="flex items-center justify-center gap-2 bg-white/10 rounded-lg px-3 py-2 max-w-xs mx-auto border border-white/20">
+                <span className="font-mono font-bold tracking-wider">{order.tracking_code}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-white hover:bg-white/20"
+                  onClick={() => {
+                    navigator.clipboard.writeText(order.tracking_code);
+                    toast({ title: 'Copied!', description: 'Tracking code copied.' });
+                  }}
+                  aria-label="Copy tracking code"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <p className="text-white/80 text-sm max-w-sm mx-auto">
-                Your tracking code <span className="font-mono font-bold">{order.tracking_code}</span> is reserved.
-                Live tracking will activate as soon as our team approves your payment (usually within 30 minutes – 2 hours).
+                Your code is reserved. Live tracking activates as soon as our team approves your payment (usually within 30 minutes – 2 hours).
               </p>
               <p className="text-white/60 text-xs">This page updates automatically — no need to refresh.</p>
             </CardContent>
@@ -203,7 +246,22 @@ const Track = () => {
             <CardHeader>
               <div className="flex justify-between items-start flex-wrap gap-2">
                 <div>
-                  <CardTitle className="text-white">Order {order.tracking_code}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-white font-mono">{order.tracking_code}</CardTitle>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-white hover:bg-white/20"
+                      onClick={() => {
+                        navigator.clipboard.writeText(order.tracking_code);
+                        toast({ title: 'Copied!', description: 'Tracking code copied.' });
+                      }}
+                      aria-label="Copy tracking code"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <p className="text-white/60 text-sm mt-1">Placed {new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
                 <Badge className="capitalize">{order.status}</Badge>
