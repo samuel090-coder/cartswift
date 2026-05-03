@@ -178,9 +178,36 @@ const Track = () => {
 
         {error && (
           <Card className="bg-destructive/20 border-destructive/40">
-            <CardContent className="py-6 text-center text-white">
-              <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+            <CardContent className="py-6 text-center text-white space-y-4">
+              <AlertCircle className="mx-auto h-8 w-8" />
               <p>{error}</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => lookup(code || searched)}
+                  disabled={loading || !(code || searched)}
+                  className="gap-2"
+                >
+                  <RotateCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Retrying...' : 'Retry lookup'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                  onClick={() => {
+                    setCode('');
+                    setSearched('');
+                    setError('');
+                    setOrder(null);
+                    setUpdates([]);
+                    setSearchParams({});
+                  }}
+                >
+                  Try a different code
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
