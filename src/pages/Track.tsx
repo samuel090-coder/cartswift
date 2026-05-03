@@ -217,9 +217,24 @@ const Track = () => {
             <CardContent className="py-8 text-center text-white space-y-3">
               <Clock className="mx-auto h-12 w-12 text-amber-300 animate-pulse" />
               <h3 className="text-xl font-bold">Awaiting Payment Approval</h3>
+              <div className="flex items-center justify-center gap-2 bg-white/10 rounded-lg px-3 py-2 max-w-xs mx-auto border border-white/20">
+                <span className="font-mono font-bold tracking-wider">{order.tracking_code}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-white hover:bg-white/20"
+                  onClick={() => {
+                    navigator.clipboard.writeText(order.tracking_code);
+                    toast({ title: 'Copied!', description: 'Tracking code copied.' });
+                  }}
+                  aria-label="Copy tracking code"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <p className="text-white/80 text-sm max-w-sm mx-auto">
-                Your tracking code <span className="font-mono font-bold">{order.tracking_code}</span> is reserved.
-                Live tracking will activate as soon as our team approves your payment (usually within 30 minutes – 2 hours).
+                Your code is reserved. Live tracking activates as soon as our team approves your payment (usually within 30 minutes – 2 hours).
               </p>
               <p className="text-white/60 text-xs">This page updates automatically — no need to refresh.</p>
             </CardContent>
