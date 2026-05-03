@@ -246,7 +246,22 @@ const Track = () => {
             <CardHeader>
               <div className="flex justify-between items-start flex-wrap gap-2">
                 <div>
-                  <CardTitle className="text-white">Order {order.tracking_code}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-white font-mono">{order.tracking_code}</CardTitle>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-white hover:bg-white/20"
+                      onClick={() => {
+                        navigator.clipboard.writeText(order.tracking_code);
+                        toast({ title: 'Copied!', description: 'Tracking code copied.' });
+                      }}
+                      aria-label="Copy tracking code"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <p className="text-white/60 text-sm mt-1">Placed {new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
                 <Badge className="capitalize">{order.status}</Badge>
