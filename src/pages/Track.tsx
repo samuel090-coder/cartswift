@@ -216,6 +216,8 @@ const Track = () => {
           </CardContent>
         </Card>
 
+        {loading && !order && !error && <TrackSkeleton />}
+
         {error && (
           <Card className="bg-destructive/20 border-destructive/40">
             <CardContent className="py-6 text-center text-white space-y-4">
