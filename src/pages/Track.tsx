@@ -11,6 +11,46 @@ import Header from '@/components/Header';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SEOHead from '@/components/SEOHead';
 import TrackingMap from '@/components/TrackingMap';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const TrackSkeleton = () => (
+  <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+    <CardHeader>
+      <div className="flex justify-between items-start flex-wrap gap-2">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-40 bg-white/20" />
+          <Skeleton className="h-3 w-28 bg-white/15" />
+        </div>
+        <Skeleton className="h-6 w-20 bg-white/20" />
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      <Skeleton className="h-48 w-full bg-white/10 rounded-lg" />
+      <div className="flex justify-between items-center">
+        {[0,1,2,3].map(i => (
+          <div key={i} className="flex flex-col items-center flex-1 gap-2">
+            <Skeleton className="h-10 w-10 rounded-full bg-white/20" />
+            <Skeleton className="h-3 w-14 bg-white/15" />
+          </div>
+        ))}
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-32 bg-white/20" />
+        {[0,1,2].map(i => (
+          <div key={i} className="flex gap-3">
+            <Skeleton className="h-3 w-3 rounded-full bg-white/20 mt-1" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-24 bg-white/20" />
+              <Skeleton className="h-3 w-3/4 bg-white/15" />
+              <Skeleton className="h-3 w-20 bg-white/10" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-16 w-full bg-white/10 rounded-lg" />
+    </CardContent>
+  </Card>
+);
 
 const statusIcons: Record<string, any> = {
   pending: Clock,
