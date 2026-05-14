@@ -2784,6 +2784,116 @@ export type Database = {
         }
         Relationships: []
       }
+      temu_api_settings: {
+        Row: {
+          access_token: string | null
+          app_key: string | null
+          created_at: string | null
+          id: string
+          last_sync_at: string | null
+          region: string | null
+          sync_enabled: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          app_key?: string | null
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          region?: string | null
+          sync_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          app_key?: string | null
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          region?: string | null
+          sync_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      temu_products: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          images: string[] | null
+          imported_to_items: boolean | null
+          is_active: boolean | null
+          items_id: string | null
+          mapped_category: Database["public"]["Enums"]["item_category"] | null
+          original_price: number | null
+          price: number
+          rating: number | null
+          review_count: number | null
+          sales_count: number | null
+          temu_category: string | null
+          temu_product_id: string
+          temu_url: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          images?: string[] | null
+          imported_to_items?: boolean | null
+          is_active?: boolean | null
+          items_id?: string | null
+          mapped_category?: Database["public"]["Enums"]["item_category"] | null
+          original_price?: number | null
+          price: number
+          rating?: number | null
+          review_count?: number | null
+          sales_count?: number | null
+          temu_category?: string | null
+          temu_product_id: string
+          temu_url?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          images?: string[] | null
+          imported_to_items?: boolean | null
+          is_active?: boolean | null
+          items_id?: string | null
+          mapped_category?: Database["public"]["Enums"]["item_category"] | null
+          original_price?: number | null
+          price?: number
+          rating?: number | null
+          review_count?: number | null
+          sales_count?: number | null
+          temu_category?: string | null
+          temu_product_id?: string
+          temu_url?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temu_products_items_id_fkey"
+            columns: ["items_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_followers: {
         Row: {
           created_at: string
