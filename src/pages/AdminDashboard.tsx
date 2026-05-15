@@ -27,6 +27,7 @@ import { NotificationManagement } from '@/components/admin/NotificationManagemen
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
 import EmailTester from '@/components/admin/EmailTester';
+import TemuIntegration from '@/components/admin/TemuIntegration';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -273,6 +274,13 @@ const AdminDashboard = () => {
                 <Send size={16} />
                 <span className="hidden sm:inline">Emails</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="temu" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Package size={16} />
+                <span className="hidden sm:inline">Temu</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="items">
@@ -348,6 +356,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="emails">
               <EmailTester />
+            </TabsContent>
+
+            <TabsContent value="temu">
+              <TemuIntegration />
             </TabsContent>
           </Tabs>
         </div>
