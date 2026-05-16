@@ -279,7 +279,7 @@ const AdminDashboard = () => {
                 className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
               >
                 <Package size={16} />
-                <span className="hidden sm:inline">Temu</span>
+                <span className="hidden sm:inline">Marketplace</span>
               </TabsTrigger>
             </TabsList>
             

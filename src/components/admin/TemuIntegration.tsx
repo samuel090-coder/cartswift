@@ -151,7 +151,7 @@ const TemuIntegration = () => {
       <Card className="bg-slate-900/80 border-amber-500/20">
         <CardHeader>
           <CardTitle className="text-amber-300 flex items-center gap-2">
-            🛍️ Temu Integration
+            🛍️ Marketplace Product Finder
             <Badge variant="outline" className="ml-2 border-amber-500/40 text-amber-300">
               {region}
             </Badge>
@@ -159,11 +159,11 @@ const TemuIntegration = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-400">
-            Fetch trending products from the Temu marketplace and import them into your store.
-            Add <code className="text-amber-300">TEMU_APP_KEY</code>,{' '}
-            <code className="text-amber-300">TEMU_APP_SECRET</code>, and{' '}
-            <code className="text-amber-300">TEMU_ACCESS_TOKEN</code> as secrets to enable live API
-            mode. Without them, the integration runs in mock mode for testing.
+            Pull trending products from third-party e-commerce marketplaces (via RapidAPI's
+            Dropshipping Product Finder) and import them into your CartSwift catalog so customers
+            can browse and buy them on your site. Powered by the{' '}
+            <code className="text-amber-300">RAPIDAPI_KEY</code> secret — if missing or the
+            upstream API fails, the panel safely falls back to sample products.
           </p>
 
           <div className="flex flex-wrap gap-2">
