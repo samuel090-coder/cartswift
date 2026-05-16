@@ -7,17 +7,15 @@ const corsHeaders = {
 };
 
 /**
- * Temu Open API product fetcher.
+ * Third-party marketplace product fetcher.
  *
- * NOTE: This function calls the Temu Partner Platform API once `TEMU_APP_KEY`,
- * `TEMU_APP_SECRET`, and `TEMU_ACCESS_TOKEN` secrets are configured. Until then
- * it falls back to a `mock` mode that seeds sample products so admins can test
- * the import flow end-to-end.
- *
- * Reference: https://partner.temu.com/documentation
+ * Calls the "Original Dropshipping Product Finder" API hosted on RapidAPI
+ * to populate the marketplace catalog with externally-sourced products.
+ * Requires `RAPIDAPI_KEY` secret. Falls back to mock data if missing or if
+ * the upstream API returns an error.
  */
 
-interface TemuProduct {
+interface NormalizedProduct {
   product_id: string;
   title: string;
   description?: string;
@@ -32,92 +30,94 @@ interface TemuProduct {
   sales_count?: number;
 }
 
-const TEMU_REGION_HOSTS: Record<string, string> = {
-  US: 'https://openapi.temu.com',
-  EU: 'https://openapi-eu.temu.com',
-  Global: 'https://openapi-global.temu.com',
-};
+const RAPIDAPI_HOST = 'original-dropshipping-product-finder.p.rapidapi.com';
+const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}/findproduct/`;
 
-async function callTemuApi(params: {
-  appKey: string;
-  appSecret: string;
-  accessToken: string;
-  region: string;
-  type: string;
-  payload: Record<string, unknown>;
-}): Promise<{ result?: { goods_list?: any[] }; error?: any }> {
-  const host = TEMU_REGION_HOSTS[params.region] ?? TEMU_REGION_HOSTS.Global;
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-
-  // Build sorted param string for HMAC-SHA256 signing (Temu signing convention)
-  const allParams: Record<string, string> = {
-    type: params.type,
-    app_key: params.appKey,
-    access_token: params.accessToken,
-    timestamp,
-    data_type: 'JSON',
-    ...Object.fromEntries(
-      Object.entries(params.payload).map(([k, v]) => [k, JSON.stringify(v)])
-    ),
-  };
-
-  const sortedKeys = Object.keys(allParams).sort();
-  const signSource =
-    params.appSecret +
-    sortedKeys.map((k) => `${k}${allParams[k]}`).join('') +
-    params.appSecret;
-
-  const encoder = new TextEncoder();
-  const data = encoder.encode(signSource);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const sign = Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase();
-
-  const body = { ...allParams, sign };
-
-  const res = await fetch(host, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-  return await res.json();
+function pickFirst<T>(...vals: (T | null | undefined)[]): T | undefined {
+  for (const v of vals) if (v !== null && v !== undefined && v !== '') return v as T;
+  return undefined;
 }
 
-function mockProducts(query: string, limit: number): TemuProduct[] {
+function normalize(raw: any, idx: number): NormalizedProduct | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const title = pickFirst<string>(
+    raw.title, raw.name, raw.product_name, raw.productTitle, raw.goods_name
+  );
+  if (!title) return null;
+
+  const priceRaw = pickFirst<any>(
+    raw.price, raw.sale_price, raw.salePrice, raw.current_price, raw.amount
+  );
+  const price = typeof priceRaw === 'number'
+    ? priceRaw
+    : parseFloat(String(priceRaw ?? '0').replace(/[^0-9.]/g, '')) || 0;
+
+  const origRaw = pickFirst<any>(raw.original_price, raw.originalPrice, raw.list_price, raw.was_price);
+  const original_price = origRaw != null
+    ? (typeof origRaw === 'number' ? origRaw : parseFloat(String(origRaw).replace(/[^0-9.]/g, '')) || undefined)
+    : undefined;
+
+  let images: string[] = [];
+  const imgField = pickFirst<any>(raw.images, raw.image, raw.thumbnail, raw.picture, raw.imageUrl, raw.image_url);
+  if (Array.isArray(imgField)) images = imgField.map((i: any) => typeof i === 'string' ? i : i?.url).filter(Boolean);
+  else if (typeof imgField === 'string') images = [imgField];
+
+  return {
+    product_id: String(pickFirst(raw.id, raw.product_id, raw.productId, raw.sku, raw.asin) ?? `EXT-${Date.now()}-${idx}`),
+    title: String(title),
+    description: pickFirst<string>(raw.description, raw.desc, raw.summary, raw.detail),
+    price,
+    original_price,
+    currency: String(pickFirst<string>(raw.currency, raw.currency_code) ?? 'USD'),
+    images: images.length ? images : [`https://picsum.photos/seed/dropship${idx}/400/400`],
+    category: pickFirst<string>(raw.category, raw.cat_name, raw.categoryName),
+    rating: raw.rating != null ? Number(raw.rating) : undefined,
+    review_count: raw.reviews != null ? Number(raw.reviews) : (raw.review_count != null ? Number(raw.review_count) : undefined),
+    product_url: pickFirst<string>(raw.url, raw.product_url, raw.productUrl, raw.link),
+    sales_count: raw.sales != null ? Number(raw.sales) : (raw.sales_count != null ? Number(raw.sales_count) : undefined),
+  };
+}
+
+function extractList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  return (
+    payload.products ?? payload.data ?? payload.results ?? payload.items ??
+    payload.list ?? payload.response ?? payload.result?.products ?? payload.result ?? []
+  );
+}
+
+function mockProducts(query: string, limit: number): NormalizedProduct[] {
   const cats = ['Fashion', 'Tools', 'Books', 'Vehicles', 'Animals'];
   return Array.from({ length: limit }, (_, i) => ({
     product_id: `MOCK-${Date.now()}-${i}`,
     title: `${query || 'Trending'} Product #${i + 1}`,
-    description: `High-quality ${query || 'trending'} item sourced via Temu marketplace integration.`,
+    description: `Quality ${query || 'trending'} item sourced from global dropshipping marketplace.`,
     price: parseFloat((Math.random() * 80 + 5).toFixed(2)),
     original_price: parseFloat((Math.random() * 150 + 100).toFixed(2)),
     currency: 'USD',
-    images: [`https://picsum.photos/seed/temu${i}${Date.now()}/400/400`],
+    images: [`https://picsum.photos/seed/ds${i}${Date.now()}/400/400`],
     category: cats[i % cats.length],
     rating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)),
     review_count: Math.floor(Math.random() * 50000),
-    product_url: `https://www.temu.com/mock-product-${i}`,
+    product_url: `https://example.com/mock-${i}`,
     sales_count: Math.floor(Math.random() * 100000),
   }));
 }
 
-function mapTemuCategory(temuCat?: string): string {
-  if (!temuCat) return 'Fashion';
-  const c = temuCat.toLowerCase();
+function mapCategory(cat?: string): string {
+  if (!cat) return 'Fashion';
+  const c = cat.toLowerCase();
   if (c.includes('book')) return 'Books';
   if (c.includes('pet') || c.includes('animal')) return 'Animals';
-  if (c.includes('tool') || c.includes('hardware')) return 'Tools';
+  if (c.includes('tool') || c.includes('hardware') || c.includes('home')) return 'Tools';
   if (c.includes('auto') || c.includes('vehicle') || c.includes('car')) return 'Vehicles';
   return 'Fashion';
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -125,66 +125,65 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRole);
 
     const { query = '', limit = 20, mode = 'auto' } = await req.json().catch(() => ({}));
+    const rapidKey = Deno.env.get('RAPIDAPI_KEY');
 
-    const appKey = Deno.env.get('TEMU_APP_KEY');
-    const appSecret = Deno.env.get('TEMU_APP_SECRET');
-    const accessToken = Deno.env.get('TEMU_ACCESS_TOKEN');
-
-    // Get region from settings
-    const { data: settings } = await supabase
-      .from('temu_api_settings')
-      .select('region')
-      .limit(1)
-      .maybeSingle();
-
-    const region = settings?.region || 'Global';
-
-    let products: TemuProduct[] = [];
+    let products: NormalizedProduct[] = [];
     let usedMock = false;
+    let upstreamError: string | null = null;
 
-    if (mode === 'mock' || !appKey || !appSecret || !accessToken) {
+    if (mode === 'mock' || !rapidKey) {
       usedMock = true;
       products = mockProducts(query, limit);
     } else {
-      const apiResp = await callTemuApi({
-        appKey,
-        appSecret,
-        accessToken,
-        region,
-        type: 'temu.product.list.query',
-        payload: {
-          page: 1,
-          page_size: limit,
-          keyword: query || undefined,
-        },
-      });
+      try {
+        // Build URL with optional query params (covers common variants)
+        const url = new URL(RAPIDAPI_URL);
+        if (query) {
+          url.searchParams.set('query', query);
+          url.searchParams.set('keyword', query);
+          url.searchParams.set('search', query);
+        }
+        url.searchParams.set('limit', String(limit));
 
-      if (apiResp.error) {
-        console.error('Temu API error:', apiResp.error);
-        return new Response(
-          JSON.stringify({ success: false, error: apiResp.error }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const upstream = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-rapidapi-host': RAPIDAPI_HOST,
+            'x-rapidapi-key': rapidKey,
+          },
+        });
+
+        const text = await upstream.text();
+        let payload: any = null;
+        try { payload = JSON.parse(text); } catch { payload = text; }
+
+        if (!upstream.ok) {
+          upstreamError = `Upstream ${upstream.status}: ${typeof payload === 'string' ? payload.slice(0, 200) : JSON.stringify(payload).slice(0, 200)}`;
+          console.error('RapidAPI error:', upstreamError);
+          usedMock = true;
+          products = mockProducts(query, limit);
+        } else {
+          const list = extractList(payload);
+          products = list
+            .map((r: any, i: number) => normalize(r, i))
+            .filter((p): p is NormalizedProduct => p !== null)
+            .slice(0, limit);
+
+          if (products.length === 0) {
+            usedMock = true;
+            upstreamError = 'Upstream returned no products in a recognised shape';
+            products = mockProducts(query, limit);
+          }
+        }
+      } catch (e) {
+        console.error('Fetch failed:', e);
+        upstreamError = String(e);
+        usedMock = true;
+        products = mockProducts(query, limit);
       }
-
-      const goods = apiResp.result?.goods_list ?? [];
-      products = goods.map((g: any) => ({
-        product_id: String(g.goods_id ?? g.product_id),
-        title: g.goods_name ?? g.title ?? 'Untitled',
-        description: g.goods_desc ?? g.description,
-        price: Number(g.price ?? g.sale_price ?? 0) / 100,
-        original_price: g.original_price ? Number(g.original_price) / 100 : undefined,
-        currency: g.currency ?? 'USD',
-        images: Array.isArray(g.image_list) ? g.image_list : [g.thumb_url].filter(Boolean),
-        category: g.cat_name ?? g.category,
-        rating: g.review_score ? Number(g.review_score) : undefined,
-        review_count: g.review_num ? Number(g.review_num) : undefined,
-        product_url: g.goods_url,
-        sales_count: g.sales_count ? Number(g.sales_count) : undefined,
-      }));
     }
 
-    // Upsert into temu_products
     const rows = products.map((p) => ({
       temu_product_id: p.product_id,
       title: p.title,
@@ -198,7 +197,7 @@ Deno.serve(async (req) => {
           : null,
       images: p.images,
       temu_category: p.category,
-      mapped_category: mapTemuCategory(p.category),
+      mapped_category: mapCategory(p.category),
       rating: p.rating,
       review_count: p.review_count,
       temu_url: p.product_url,
@@ -213,25 +212,23 @@ Deno.serve(async (req) => {
 
     if (upsertError) throw upsertError;
 
-    // Update last_sync_at
-    if (settings) {
-      await supabase
-        .from('temu_api_settings')
-        .update({ last_sync_at: new Date().toISOString() })
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-    }
+    await supabase
+      .from('temu_api_settings')
+      .update({ last_sync_at: new Date().toISOString() })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
     return new Response(
       JSON.stringify({
         success: true,
         count: upserted?.length ?? 0,
         usedMock,
-        region,
+        upstreamError,
+        source: usedMock ? 'mock' : 'rapidapi',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('temu-fetch-products error:', err);
+    console.error('marketplace-fetch error:', err);
     return new Response(
       JSON.stringify({ success: false, error: String(err) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
