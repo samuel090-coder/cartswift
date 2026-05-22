@@ -13,6 +13,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import ShareView from "./pages/ShareView";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
+import AISupportLauncher from "./components/AISupportLauncher";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStatusChecker from "./pages/AdminStatusChecker";
@@ -51,6 +53,7 @@ const App = () => (
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:userId" element={<UserProfile />} />
                 <Route path="/user/:userId" element={<UserProfile />} />
@@ -74,6 +77,7 @@ const App = () => (
                 <Route path="/track" element={<Track />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <AISupportLauncher />
             </BrowserRouter>
           </CartProvider>
         </AuthProvider>
