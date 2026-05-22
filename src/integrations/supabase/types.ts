@@ -157,6 +157,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_support_settings: {
+        Row: {
+          ai_enabled: boolean
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          ai_enabled?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ai_enabled?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       allowed_admins: {
         Row: {
           created_at: string | null
@@ -2783,6 +2801,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      support_chats: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          unread_admin: number
+          unread_user: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          unread_admin?: number
+          unread_user?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          unread_admin?: number
+          unread_user?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          chat_id: string
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          sender: string
+        }
+        Insert: {
+          chat_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sender: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "support_chats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       temu_api_settings: {
         Row: {
