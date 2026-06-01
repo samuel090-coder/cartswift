@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import ViralFeaturesManagement from '@/components/admin/ViralFeaturesManagement';
 import ItemManagement from '@/components/admin/ItemManagement';
+import BulkProductPoster from '@/components/admin/BulkProductPoster';
 import OrderManagement from '@/components/admin/OrderManagement';
 import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement';
 import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
@@ -22,7 +23,7 @@ import PriceFormatSetting from '@/components/admin/PriceFormatSetting';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet, Send, Headphones } from 'lucide-react';
+import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet, Send, Headphones, Sparkles } from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
@@ -164,6 +165,13 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">Items</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="ai-bulk" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Sparkles size={16} />
+                <span className="hidden sm:inline">AI Bulk</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="orders" 
                 className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
               >
@@ -298,6 +306,11 @@ const AdminDashboard = () => {
             <TabsContent value="items">
               <ItemManagement />
             </TabsContent>
+
+            <TabsContent value="ai-bulk">
+              <BulkProductPoster />
+            </TabsContent>
+
             
             <TabsContent value="orders">
               <OrderManagement />
