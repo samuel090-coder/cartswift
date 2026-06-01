@@ -22,19 +22,20 @@ serve(async (req) => {
     const userContent: any[] = [
       {
         type: "text",
-        text: `You are an expert e-commerce product cataloguer. I'm giving you ${imageUrls.length} product image(s) indexed 0..${imageUrls.length - 1}. 
+        text: `You are an expert e-commerce product cataloguer. I'm giving you ${imageUrls.length} product image(s) indexed 0..${imageUrls.length - 1}.
 
 Your job:
 1. Detect each distinct product across the images.
 2. GROUP images that show the SAME product (even if different angles or different colors of the exact same model) into ONE listing — return all their indexes in image_indexes.
 3. Treat clearly different products (e.g. a Lamborghini vs a Peugeot, or a pot vs a shoe) as SEPARATE listings.
-4. For each listing, write a compelling title (max 70 chars), a 2-4 sentence customer-facing description, pick the BEST matching category from: fashion, books, tools, vehicles, animals (pick the closest fit even if not perfect), and estimate a realistic market price in USD as a number.
+4. For each listing: compelling title (max 70 chars), 2-4 sentence customer-facing description, BEST matching category from [fashion, books, tools, vehicles, animals] (pick the closest fit), and realistic market price in USD as a number.
 5. Return ONE entry per distinct product.`,
       },
-      ...imageUrls.map((url: string, i: number) => ({
-        type: "text", text: `Image index ${i}:`,
-      })).flatMap((t, i) => [t, { type: "image_url", image_url: { url: imageUrls[i] } }]),
     ];
+    imageUrls.forEach((url: string, i: number) => {
+      userContent.push({ type: "text", text: `Image index ${i}:` });
+      userContent.push({ type: "image_url", image_url: { url } });
+    });
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
