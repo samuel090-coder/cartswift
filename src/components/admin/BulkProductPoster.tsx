@@ -8,8 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, Upload, Sparkles, Pencil, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+const CHUNK_SIZE = 6;
 
 type Listing = {
   title: string;
@@ -27,6 +30,8 @@ const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'];
 const BulkProductPoster = () => {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [postingAll, setPostingAll] = useState(false);
@@ -34,34 +39,62 @@ const BulkProductPoster = () => {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const arr = Array.from(files);
     setUploading(true);
+    setProgress(0);
+    setProgressLabel(`Uploading 0 / ${arr.length}`);
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files)) {
+      for (let i = 0; i < arr.length; i++) {
+        const file = arr[i];
         const ext = file.name.split('.').pop() || 'jpg';
         const path = `bulk/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error } = await supabase.storage.from('item-images').upload(path, file, { contentType: file.type });
         if (error) throw error;
         const { data } = supabase.storage.from('item-images').getPublicUrl(path);
         urls.push(data.publicUrl);
+        const pct = Math.round(((i + 1) / arr.length) * 50); // upload = first 50%
+        setProgress(pct);
+        setProgressLabel(`Uploading ${i + 1} / ${arr.length}`);
       }
-      toast.success(`Uploaded ${urls.length} image(s). Analyzing...`);
+
+      setUploading(false);
       setAnalyzing(true);
-      const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', {
-        body: { imageUrls: urls },
-      });
-      if (error) throw error;
-      if (!data?.listings?.length) {
+
+      // Process images in chunks to avoid edge-function timeouts
+      const chunks: string[][] = [];
+      for (let i = 0; i < urls.length; i += CHUNK_SIZE) chunks.push(urls.slice(i, i + CHUNK_SIZE));
+
+      const detected: Listing[] = [];
+      for (let c = 0; c < chunks.length; c++) {
+        setProgressLabel(`AI analyzing batch ${c + 1} / ${chunks.length}`);
+        try {
+          const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', {
+            body: { imageUrls: chunks[c] },
+          });
+          if (error) throw error;
+          if (data?.listings?.length) detected.push(...data.listings);
+        } catch (err: any) {
+          console.error('Batch failed', err);
+          toast.error(`Batch ${c + 1} failed: ${err.message || 'request error'}`);
+        }
+        const pct = 50 + Math.round(((c + 1) / chunks.length) * 50);
+        setProgress(pct);
+      }
+
+      if (!detected.length) {
         toast.error('AI could not detect any products. Try clearer images.');
       } else {
-        setListings((prev) => [...prev, ...data.listings]);
-        toast.success(`Detected ${data.listings.length} product(s)`);
+        setListings((prev) => [...prev, ...detected]);
+        toast.success(`Detected ${detected.length} product(s)`);
       }
     } catch (e: any) {
       toast.error(e.message || 'Failed to process images');
     } finally {
       setUploading(false);
       setAnalyzing(false);
+      setProgress(0);
+      setProgressLabel('');
       if (fileRef.current) fileRef.current.value = '';
     }
   };
@@ -157,9 +190,15 @@ const BulkProductPoster = () => {
         </CardContent>
       </Card>
 
-      {analyzing && (
-        <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
-          <Loader2 className="animate-spin" size={16} /> AI is detecting and grouping products...
+      {(uploading || analyzing) && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-amber-400">
+            <span className="flex items-center gap-2">
+              <Loader2 className="animate-spin" size={14} /> {progressLabel}
+            </span>
+            <span className="font-mono">{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
         </div>
       )}
 
