@@ -190,9 +190,15 @@ const BulkProductPoster = () => {
         </CardContent>
       </Card>
 
-      {analyzing && (
-        <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
-          <Loader2 className="animate-spin" size={16} /> AI is detecting and grouping products...
+      {(uploading || analyzing) && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-amber-400">
+            <span className="flex items-center gap-2">
+              <Loader2 className="animate-spin" size={14} /> {progressLabel}
+            </span>
+            <span className="font-mono">{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
         </div>
       )}
 
