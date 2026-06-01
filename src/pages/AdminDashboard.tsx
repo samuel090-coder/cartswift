@@ -306,6 +306,11 @@ const AdminDashboard = () => {
             <TabsContent value="items">
               <ItemManagement />
             </TabsContent>
+
+            <TabsContent value="ai-bulk">
+              <BulkProductPoster />
+            </TabsContent>
+
             
             <TabsContent value="orders">
               <OrderManagement />
