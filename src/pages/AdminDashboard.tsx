@@ -165,6 +165,13 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">Items</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="ai-bulk" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Sparkles size={16} />
+                <span className="hidden sm:inline">AI Bulk</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="orders" 
                 className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
               >
