@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import ViralFeaturesManagement from '@/components/admin/ViralFeaturesManagement';
 import ItemManagement from '@/components/admin/ItemManagement';
+import BulkProductPoster from '@/components/admin/BulkProductPoster';
 import OrderManagement from '@/components/admin/OrderManagement';
 import PaymentProofsManagement from '@/components/admin/PaymentProofsManagement';
 import AnalyticsManagement from '@/components/admin/AnalyticsManagement';
