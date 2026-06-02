@@ -12,7 +12,9 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Upload, Sparkles, Pencil, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CHUNK_SIZE = 6;
+const CHUNK_SIZE = 3; // images per AI call (keeps each request fast & reliable)
+const PARALLEL = 6;   // parallel AI calls (effective throughput ~18-50 images at once)
+const MAX_RETRIES = 2;
 
 type Listing = {
   title: string;
