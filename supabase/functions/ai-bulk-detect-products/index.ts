@@ -88,8 +88,18 @@ Your job:
     }
 
     const data = await res.json();
-    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = toolCall ? JSON.parse(toolCall.function.arguments) : { listings: [] };
+    const msg = data?.choices?.[0]?.message;
+    const toolCall = msg?.tool_calls?.[0];
+    let args: any = { listings: [] };
+    if (toolCall?.function?.arguments) {
+      try { args = JSON.parse(toolCall.function.arguments); } catch (e) { console.error("tool args parse error", e); }
+    } else if (msg?.content) {
+      // Fallback: try to parse JSON out of plain content
+      try {
+        const match = String(msg.content).match(/\{[\s\S]*\}/);
+        if (match) args = JSON.parse(match[0]);
+      } catch (e) { console.error("content parse error", e); }
+    }
 
     const listings = (args.listings || []).map((l: any) => ({
       title: l.title || "Untitled product",
@@ -99,6 +109,21 @@ Your job:
       currency: "USD",
       images: (l.image_indexes || []).map((i: number) => imageUrls[i]).filter(Boolean),
     })).filter((l: any) => l.images.length > 0);
+
+    // Safety net: if AI returned nothing usable, create one listing per image so the user is never blocked
+    if (listings.length === 0) {
+      console.warn("AI returned no listings, falling back to one-per-image");
+      imageUrls.forEach((url: string, i: number) => {
+        listings.push({
+          title: `Product ${i + 1}`,
+          description: "Please edit this description.",
+          category: "tools",
+          price: 0,
+          currency: "USD",
+          images: [url],
+        });
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, listings }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
