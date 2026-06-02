@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,15 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Upload, Sparkles, Pencil, Send, Trash2, X } from 'lucide-react';
+import { Loader2, Pencil, Send, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CHUNK_SIZE = 3; // images per AI call (keeps each request fast & reliable)
-const PARALLEL = 6;   // parallel AI calls (effective throughput ~18-50 images at once)
-const MAX_RETRIES = 2;
+const VISION_CHUNK_SIZE = 6;
+const ANALYSIS_PARALLEL = 2;
+const GROUP_CHUNK_SIZE = 50;
+const MAX_RETRIES = 3;
+const MAX_ANALYSIS_DIMENSION = 896;
+const ANALYSIS_QUALITY = 0.82;
+const UPLOAD_PROGRESS_SHARE = 35;
+const ANALYZE_PROGRESS_SHARE = 45;
+const GROUP_PROGRESS_SHARE = 20;
 
 type Listing = {
   title: string;
@@ -23,11 +29,114 @@ type Listing = {
   price: number;
   currency: string;
   images: string[];
+  sourceIds?: string[];
   posted?: boolean;
   posting?: boolean;
 };
 
-const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'];
+type PreparedImage = {
+  sourceId: string;
+  name: string;
+  url: string;
+  dataUrl: string;
+};
+
+const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const chunkArray = <T,>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+};
+
+const uniqueStrings = (items: string[] = []) => Array.from(new Set(items.filter(Boolean)));
+
+const filenameToTitle = (name: string) =>
+  name
+    .replace(/\.[^.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Product';
+
+const normalizeListing = (listing: Partial<Listing>): Listing => {
+  const category = CATEGORIES.includes((listing.category || '').toLowerCase() as (typeof CATEGORIES)[number])
+    ? (listing.category || '').toLowerCase()
+    : 'tools';
+
+  return {
+    title: (listing.title || 'Untitled product').trim(),
+    description: (listing.description || 'Review this AI-generated draft before posting.').trim(),
+    category,
+    price: Number.isFinite(Number(listing.price)) ? Math.max(0, Number(listing.price)) : 0,
+    currency: (listing.currency || 'USD').trim() || 'USD',
+    images: uniqueStrings(listing.images || []),
+    sourceIds: uniqueStrings(listing.sourceIds || []),
+    posted: listing.posted,
+    posting: listing.posting,
+  };
+};
+
+const fallbackListingFromImage = (image: PreparedImage): Listing =>
+  normalizeListing({
+    title: filenameToTitle(image.name),
+    description: 'AI generated a draft for this uploaded product. Review and adjust before posting.',
+    category: 'tools',
+    price: 0,
+    currency: 'USD',
+    images: [image.url],
+    sourceIds: [image.sourceId],
+  });
+
+const estimateGroupingCalls = (count: number) => {
+  if (count <= 1) return 0;
+  let total = 0;
+  let current = count;
+  while (current > 1) {
+    const callsThisRound = Math.ceil(current / GROUP_CHUNK_SIZE);
+    total += callsThisRound;
+    if (callsThisRound === 1) break;
+    current = callsThisRound;
+  }
+  return total;
+};
+
+const toOptimizedDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onload = () => {
+        const scale = Math.min(
+          MAX_ANALYSIS_DIMENSION / image.width,
+          MAX_ANALYSIS_DIMENSION / image.height,
+          1,
+        );
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Unable to prepare image for AI analysis'));
+          return;
+        }
+
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', ANALYSIS_QUALITY));
+      };
+
+      image.onerror = () => reject(new Error(`Failed to read image "${file.name}"`));
+      image.src = reader.result as string;
+    };
+
+    reader.onerror = () => reject(new Error(`Failed to load file "${file.name}"`));
+    reader.readAsDataURL(file);
+  });
 
 const BulkProductPoster = () => {
   const [uploading, setUploading] = useState(false);
@@ -39,89 +148,219 @@ const BulkProductPoster = () => {
   const [postingAll, setPostingAll] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const invokeBulkAI = async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', { body });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const invokeWithRetry = async <T,>(label: string, run: () => Promise<T>): Promise<T> => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await run();
+      } catch (error: any) {
+        lastError = error;
+        const message = error?.message || 'Unknown error';
+        const shouldStop = message.includes('AI credits depleted') || message.includes('Payment Required');
+        if (attempt === MAX_RETRIES || shouldStop) break;
+        await wait(900 * (attempt + 1));
+      }
+    }
+
+    console.error(`${label} failed after retries`, lastError);
+    throw lastError instanceof Error ? lastError : new Error(`${label} failed`);
+  };
+
+  const runInParallelWaves = async <T, U>(
+    items: T[],
+    parallel: number,
+    worker: (item: T, index: number) => Promise<U>,
+  ): Promise<U[]> => {
+    const results: U[] = [];
+    for (let i = 0; i < items.length; i += parallel) {
+      const wave = items.slice(i, i + parallel).map((item, offset) => worker(item, i + offset));
+      const waveResults = await Promise.all(wave);
+      results.push(...waveResults);
+    }
+    return results;
+  };
+
+  const uploadAndPrepareImages = async (files: File[]) => {
+    const prepared: PreparedImage[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const sourceId = crypto.randomUUID();
+      const extension = file.name.split('.').pop() || 'jpg';
+      const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
+
+      const [dataUrl, uploadResult] = await Promise.all([
+        toOptimizedDataUrl(file),
+        supabase.storage.from('item-images').upload(path, file, { contentType: file.type || 'image/jpeg' }),
+      ]);
+
+      if (uploadResult.error) throw uploadResult.error;
+
+      const { data } = supabase.storage.from('item-images').getPublicUrl(path);
+
+      prepared.push({
+        sourceId,
+        name: file.name,
+        url: data.publicUrl,
+        dataUrl,
+      });
+
+      const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
+      setProgress(pct);
+      setProgressLabel(`Uploading ${i + 1} / ${files.length}`);
+    }
+
+    return prepared;
+  };
+
+  const analyzeChunk = async (images: PreparedImage[], batchNumber: number) => {
+    try {
+      const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
+        invokeBulkAI({
+          mode: 'analyze',
+          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
+        }),
+      );
+
+      const nextListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
+      if (nextListings.length > 0) return nextListings;
+    } catch (error) {
+      console.warn(`Vision batch ${batchNumber} failed, retrying one image at a time`, error);
+    }
+
+    const recovered: Listing[] = [];
+
+    for (const image of images) {
+      try {
+        const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
+          invokeBulkAI({
+            mode: 'analyze',
+            images: [{ sourceId: image.sourceId, name: image.name, url: image.url, dataUrl: image.dataUrl }],
+          }),
+        );
+
+        const singleListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
+        recovered.push(...(singleListings.length > 0 ? singleListings : [fallbackListingFromImage(image)]));
+      } catch (error) {
+        console.error(`Single-image recovery failed for ${image.name}`, error);
+        recovered.push(fallbackListingFromImage(image));
+      }
+    }
+
+    return recovered;
+  };
+
+  const groupListings = async (candidates: Listing[]) => {
+    if (candidates.length <= 1) return candidates;
+
+    const totalGroupingCalls = estimateGroupingCalls(candidates.length);
+    let completedGroupingCalls = 0;
+    let current = candidates.map(normalizeListing);
+
+    while (current.length > 1) {
+      const groups = current.length > GROUP_CHUNK_SIZE ? chunkArray(current, GROUP_CHUNK_SIZE) : [current];
+
+      const mergedGroups = await runInParallelWaves(groups, 1, async (group) => {
+        try {
+          const data = await invokeWithRetry('AI grouping', () =>
+            invokeBulkAI({
+              mode: 'merge',
+              candidates: group.map((listing) => ({
+                title: listing.title,
+                description: listing.description,
+                category: listing.category,
+                price: listing.price,
+                currency: listing.currency,
+                images: listing.images,
+                sourceIds: listing.sourceIds || [],
+              })),
+            }),
+          );
+
+          const merged = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
+          return merged.length > 0 ? merged : group;
+        } catch (error) {
+          console.error('AI grouping batch failed', error);
+          return group;
+        } finally {
+          completedGroupingCalls += 1;
+          const pct =
+            UPLOAD_PROGRESS_SHARE +
+            ANALYZE_PROGRESS_SHARE +
+            Math.round((completedGroupingCalls / Math.max(totalGroupingCalls, 1)) * GROUP_PROGRESS_SHARE);
+          setProgress(Math.min(100, pct));
+          setProgressLabel(`Grouping products ${completedGroupingCalls} / ${Math.max(totalGroupingCalls, 1)}`);
+        }
+      });
+
+      current = mergedGroups.flat().map(normalizeListing);
+      if (groups.length === 1) break;
+    }
+
+    return current;
+  };
+
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const arr = Array.from(files);
+
+    const selectedFiles = Array.from(files);
     setUploading(true);
+    setAnalyzing(false);
     setProgress(0);
-    setProgressLabel(`Uploading 0 / ${arr.length}`);
+    setProgressLabel(`Uploading 0 / ${selectedFiles.length}`);
+
     try {
-      const urls: string[] = [];
-      for (let i = 0; i < arr.length; i++) {
-        const file = arr[i];
-        const ext = file.name.split('.').pop() || 'jpg';
-        const path = `bulk/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error } = await supabase.storage.from('item-images').upload(path, file, { contentType: file.type });
-        if (error) throw error;
-        const { data } = supabase.storage.from('item-images').getPublicUrl(path);
-        urls.push(data.publicUrl);
-        const pct = Math.round(((i + 1) / arr.length) * 50); // upload = first 50%
-        setProgress(pct);
-        setProgressLabel(`Uploading ${i + 1} / ${arr.length}`);
-      }
+      const preparedImages = await uploadAndPrepareImages(selectedFiles);
 
       setUploading(false);
       setAnalyzing(true);
 
-      // Process images in small chunks, running several in parallel for speed + reliability
-      const chunks: string[][] = [];
-      for (let i = 0; i < urls.length; i += CHUNK_SIZE) chunks.push(urls.slice(i, i + CHUNK_SIZE));
+      const analysisBatches = chunkArray(preparedImages, VISION_CHUNK_SIZE);
+      let completedAnalysisBatches = 0;
 
-      const detected: Listing[] = [];
-      let completedChunks = 0;
-      let failedChunks = 0;
-      setProgressLabel(`AI analyzing 0 / ${chunks.length} batches`);
+      const detectedListings = (
+        await runInParallelWaves(analysisBatches, ANALYSIS_PARALLEL, async (batch, index) => {
+          const batchListings = await analyzeChunk(batch, index + 1);
+          completedAnalysisBatches += 1;
+          const pct =
+            UPLOAD_PROGRESS_SHARE +
+            Math.round((completedAnalysisBatches / analysisBatches.length) * ANALYZE_PROGRESS_SHARE);
+          setProgress(Math.min(UPLOAD_PROGRESS_SHARE + ANALYZE_PROGRESS_SHARE, pct));
+          setProgressLabel(`AI analyzing ${completedAnalysisBatches} / ${analysisBatches.length} batches`);
+          return batchListings;
+        })
+      )
+        .flat()
+        .map(normalizeListing);
 
-      const runChunk = async (chunk: string[], idx: number): Promise<void> => {
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', {
-              body: { imageUrls: chunk },
-            });
-            if (error) throw error;
-            if (data?.error) throw new Error(data.error);
-            if (data?.listings?.length) detected.push(...data.listings);
-            return;
-          } catch (err: any) {
-            if (attempt === MAX_RETRIES) {
-              failedChunks++;
-              console.error(`Batch ${idx + 1} failed after retries`, err);
-              return;
-            }
-            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
-          }
-        }
-      };
+      const finalListings = await groupListings(detectedListings);
 
-      // Run chunks in parallel waves of PARALLEL
-      for (let i = 0; i < chunks.length; i += PARALLEL) {
-        const wave = chunks.slice(i, i + PARALLEL).map((c, j) => runChunk(c, i + j));
-        await Promise.all(wave);
-        completedChunks = Math.min(i + PARALLEL, chunks.length);
-        const pct = 50 + Math.round((completedChunks / chunks.length) * 50);
-        setProgress(pct);
-        setProgressLabel(`AI analyzing ${completedChunks} / ${chunks.length} batches`);
+      if (finalListings.length === 0) {
+        toast.error('AI could not prepare any product drafts from these uploads.');
+        return;
       }
 
-      if (failedChunks > 0 && detected.length === 0) {
-        toast.error(`All ${failedChunks} batch(es) failed. Please try again with fewer images.`);
-      } else if (failedChunks > 0) {
-        toast.warning(`${failedChunks} batch(es) failed, but ${detected.length} product(s) were detected.`);
-      }
-
-      if (!detected.length) {
-        toast.error('AI could not detect any products. Try clearer images.');
-      } else {
-        setListings((prev) => [...prev, ...detected]);
-        toast.success(`Detected ${detected.length} product(s)`);
-      }
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to process images');
+      setProgress(100);
+      setProgressLabel(`Completed ${finalListings.length} product draft(s)`);
+      setListings((prev) => [...prev, ...finalListings]);
+      toast.success(`Detected ${finalListings.length} product draft(s)`);
+    } catch (error: any) {
+      console.error('Bulk AI processing failed', error);
+      toast.error(error?.message || 'Failed to process uploaded images');
     } finally {
       setUploading(false);
       setAnalyzing(false);
-      setProgress(0);
-      setProgressLabel('');
+      setTimeout(() => {
+        setProgress(0);
+        setProgressLabel('');
+      }, 800);
       if (fileRef.current) fileRef.current.value = '';
     }
   };
