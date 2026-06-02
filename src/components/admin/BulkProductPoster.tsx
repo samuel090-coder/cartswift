@@ -12,7 +12,9 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Upload, Sparkles, Pencil, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CHUNK_SIZE = 6;
+const CHUNK_SIZE = 3; // images per AI call (keeps each request fast & reliable)
+const PARALLEL = 6;   // parallel AI calls (effective throughput ~18-50 images at once)
+const MAX_RETRIES = 2;
 
 type Listing = {
   title: string;
@@ -61,25 +63,50 @@ const BulkProductPoster = () => {
       setUploading(false);
       setAnalyzing(true);
 
-      // Process images in chunks to avoid edge-function timeouts
+      // Process images in small chunks, running several in parallel for speed + reliability
       const chunks: string[][] = [];
       for (let i = 0; i < urls.length; i += CHUNK_SIZE) chunks.push(urls.slice(i, i + CHUNK_SIZE));
 
       const detected: Listing[] = [];
-      for (let c = 0; c < chunks.length; c++) {
-        setProgressLabel(`AI analyzing batch ${c + 1} / ${chunks.length}`);
-        try {
-          const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', {
-            body: { imageUrls: chunks[c] },
-          });
-          if (error) throw error;
-          if (data?.listings?.length) detected.push(...data.listings);
-        } catch (err: any) {
-          console.error('Batch failed', err);
-          toast.error(`Batch ${c + 1} failed: ${err.message || 'request error'}`);
+      let completedChunks = 0;
+      let failedChunks = 0;
+      setProgressLabel(`AI analyzing 0 / ${chunks.length} batches`);
+
+      const runChunk = async (chunk: string[], idx: number): Promise<void> => {
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', {
+              body: { imageUrls: chunk },
+            });
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+            if (data?.listings?.length) detected.push(...data.listings);
+            return;
+          } catch (err: any) {
+            if (attempt === MAX_RETRIES) {
+              failedChunks++;
+              console.error(`Batch ${idx + 1} failed after retries`, err);
+              return;
+            }
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          }
         }
-        const pct = 50 + Math.round(((c + 1) / chunks.length) * 50);
+      };
+
+      // Run chunks in parallel waves of PARALLEL
+      for (let i = 0; i < chunks.length; i += PARALLEL) {
+        const wave = chunks.slice(i, i + PARALLEL).map((c, j) => runChunk(c, i + j));
+        await Promise.all(wave);
+        completedChunks = Math.min(i + PARALLEL, chunks.length);
+        const pct = 50 + Math.round((completedChunks / chunks.length) * 50);
         setProgress(pct);
+        setProgressLabel(`AI analyzing ${completedChunks} / ${chunks.length} batches`);
+      }
+
+      if (failedChunks > 0 && detected.length === 0) {
+        toast.error(`All ${failedChunks} batch(es) failed. Please try again with fewer images.`);
+      } else if (failedChunks > 0) {
+        toast.warning(`${failedChunks} batch(es) failed, but ${detected.length} product(s) were detected.`);
       }
 
       if (!detected.length) {
