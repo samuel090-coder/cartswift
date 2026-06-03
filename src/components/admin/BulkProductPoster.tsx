@@ -312,6 +312,12 @@ const BulkProductPoster = () => {
     if (!files || files.length === 0) return;
 
     const selectedFiles = Array.from(files);
+    const invalidFile = selectedFiles.find((file) => !isSupportedImageFile(file));
+    if (invalidFile) {
+      toast.error(`${invalidFile.name} is not a supported image. Use JPG, JPEG, PNG, WEBP, GIF, or BMP.`);
+      return;
+    }
+
     setUploading(true);
     setAnalyzing(false);
     setProgress(0);
@@ -440,7 +446,7 @@ const BulkProductPoster = () => {
             ref={fileRef}
             type="file"
             multiple
-            accept="image/*"
+            accept={UPLOAD_ACCEPT}
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -481,11 +487,11 @@ const BulkProductPoster = () => {
                 </div>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold flex-1">{l.title}</h3>
-                  <Badge variant="outline">{l.category}</Badge>
+                  <Badge variant="outline">{formatCategoryLabel(l.category)}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-3">{l.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-amber-500">${l.price.toLocaleString()}</span>
+                    <span className="text-lg font-bold text-amber-500">${l.price.toLocaleString()}</span>
                   {l.posted && <Badge className="bg-green-600">Posted</Badge>}
                 </div>
                 <div className="flex gap-2">
@@ -544,7 +550,7 @@ const BulkProductPoster = () => {
                   <Select value={listings[editIndex].category} onValueChange={(v) => updateListing(editIndex, { category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{formatCategoryLabel(c)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
