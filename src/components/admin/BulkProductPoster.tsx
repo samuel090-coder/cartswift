@@ -16,8 +16,6 @@ const VISION_CHUNK_SIZE = 6;
 const ANALYSIS_PARALLEL = 2;
 const GROUP_CHUNK_SIZE = 50;
 const MAX_RETRIES = 3;
-const MAX_ANALYSIS_DIMENSION = 896;
-const ANALYSIS_QUALITY = 0.82;
 const UPLOAD_PROGRESS_SHARE = 35;
 const ANALYZE_PROGRESS_SHARE = 45;
 const GROUP_PROGRESS_SHARE = 20;
@@ -38,10 +36,19 @@ type PreparedImage = {
   sourceId: string;
   name: string;
   url: string;
-  dataUrl: string;
 };
 
 const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
+const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], string> = {
+  fashion: 'Fashion',
+  books: 'Books',
+  tools: 'Tools',
+  vehicles: 'Vehicles',
+  animals: 'Animals',
+};
+const JPG_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg']);
+const SUPPORTED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']);
+const UPLOAD_ACCEPT = '.jpg,.jpeg,.png,.webp,.gif,.bmp,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,20 +61,50 @@ const chunkArray = <T,>(items: T[], size: number): T[][] => {
 const uniqueStrings = (items: string[] = []) => Array.from(new Set(items.filter(Boolean)));
 
 const filenameToTitle = (name: string) =>
-  name
-    .replace(/\.[^.]+$/, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Product';
+  (() => {
+    const cleaned = name
+      .replace(/\.[^.]+$/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned || /^\d+$/.test(cleaned)) return 'Uploaded Product';
+    return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+  })();
+
+const normalizeUploadMimeType = (file: File) => {
+  if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
+
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  if (extension === 'gif') return 'image/gif';
+  if (extension === 'bmp') return 'image/bmp';
+
+  return file.type.startsWith('image/') ? file.type : 'image/jpeg';
+};
+
+const isSupportedImageFile = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  return file.type.startsWith('image/') || SUPPORTED_IMAGE_EXTENSIONS.has(extension);
+};
+
+const formatCategoryLabel = (category: string) =>
+  CATEGORY_LABELS[(category || '').toLowerCase() as (typeof CATEGORIES)[number]] || 'Tools';
+
+const mapCategoryToDbValue = (category: string) => formatCategoryLabel(category);
 
 const normalizeListing = (listing: Partial<Listing>): Listing => {
   const category = CATEGORIES.includes((listing.category || '').toLowerCase() as (typeof CATEGORIES)[number])
     ? (listing.category || '').toLowerCase()
     : 'tools';
 
+  const trimmedTitle = (listing.title || '').trim();
+  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) ? 'Uploaded Product' : trimmedTitle;
+
   return {
-    title: (listing.title || 'Untitled product').trim(),
+    title: safeTitle,
     description: (listing.description || 'Review this AI-generated draft before posting.').trim(),
     category,
     price: Number.isFinite(Number(listing.price)) ? Math.max(0, Number(listing.price)) : 0,
@@ -102,41 +139,6 @@ const estimateGroupingCalls = (count: number) => {
   }
   return total;
 };
-
-const toOptimizedDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const image = new Image();
-
-      image.onload = () => {
-        const scale = Math.min(
-          MAX_ANALYSIS_DIMENSION / image.width,
-          MAX_ANALYSIS_DIMENSION / image.height,
-          1,
-        );
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Unable to prepare image for AI analysis'));
-          return;
-        }
-
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', ANALYSIS_QUALITY));
-      };
-
-      image.onerror = () => reject(new Error(`Failed to read image "${file.name}"`));
-      image.src = reader.result as string;
-    };
-
-    reader.onerror = () => reject(new Error(`Failed to load file "${file.name}"`));
-    reader.readAsDataURL(file);
-  });
 
 const BulkProductPoster = () => {
   const [uploading, setUploading] = useState(false);
