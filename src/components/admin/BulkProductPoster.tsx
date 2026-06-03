@@ -380,7 +380,7 @@ const BulkProductPoster = () => {
       const { error } = await supabase.from('items').insert({
         title: l.title,
         description: l.description,
-        category: l.category as any,
+        category: mapCategoryToDbValue(l.category) as any,
         price: l.price,
         currency: l.currency || 'USD',
         images: l.images,
