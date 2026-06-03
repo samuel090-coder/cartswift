@@ -8,7 +8,7 @@ const AnalyzeImageSchema = z.object({
   sourceId: z.string().min(1),
   name: z.string().min(1).optional().default("Uploaded image"),
   url: z.string().min(1),
-  dataUrl: z.string().startsWith("data:image/"),
+  dataUrl: z.string().startsWith("data:image/").optional(),
 });
 
 const CandidateListingSchema = z.object({
@@ -71,7 +71,7 @@ const parseToolArguments = (data: any) => {
 };
 
 const normalizeListing = (listing: any) => ({
-  title: String(listing?.title || "Untitled product").trim() || "Untitled product",
+  title: String(listing?.title || "Uploaded Product").trim() || "Uploaded Product",
   description: String(listing?.description || "Review this AI-generated draft before posting.").trim(),
   category: categories.includes(listing?.category) ? listing.category : "tools",
   price: Number.isFinite(Number(listing?.price)) ? Math.max(0, Number(listing.price)) : 0,
@@ -84,21 +84,22 @@ async function analyzeImages(images: z.infer<typeof AnalyzeImageSchema>[], apiKe
   const content: any[] = [
     {
       type: "text",
-      text: `You are the product image intelligence for an e-commerce admin panel.
-Analyze every uploaded image carefully and create product listing drafts.
+      text: `You are the same high-quality product analyzer used for a manual admin add-product flow.
+Analyze every uploaded image carefully and create professional product listing drafts.
 
 Rules:
-- Use the same product-detection quality as a high-quality single-image product analyzer.
 - If multiple images show the same exact product/model from different angles or colors, combine them into one listing.
 - If products are different, split them into separate listings.
-- For each listing return title, description, category, realistic price in USD, sourceIds, and public image URLs.
+- For each listing return a specific retail-ready title, a customer-facing description, the closest category, a realistic market price in USD, sourceIds, and public image URLs.
+- Never use file names, numeric ids, or generic placeholders as the title.
+- If the product appears to be shoes, boots, sneakers, sandals, or clothing, category must be fashion.
 - Never return an empty result when there are valid product photos; make your best professional draft.`,
     },
   ];
 
   images.forEach((image, index) => {
     content.push({ type: "text", text: `Image ${index + 1} | sourceId=${image.sourceId} | file=${image.name} | publicUrl=${image.url}` });
-    content.push({ type: "image_url", image_url: { url: image.dataUrl } });
+    content.push({ type: "image_url", image_url: { url: image.url } });
   });
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -106,7 +107,13 @@ Rules:
     headers: aiHeaders(apiKey),
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
-      messages: [{ role: "user", content }],
+      messages: [
+        {
+          role: "system",
+          content: "You are a senior e-commerce copywriter and visual product classifier. Return structured, usable listing drafts only.",
+        },
+        { role: "user", content },
+      ],
       tools: [{
         type: "function",
         function: {
@@ -158,7 +165,7 @@ Rules:
   return {
     listings: images.map((image) => normalizeListing({
       title: String(image.name || "Uploaded image").replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "Product",
-      description: "AI generated a draft for this uploaded product. Review and adjust before posting.",
+      description: "AI generated a fallback draft for this uploaded product. Review and adjust before posting.",
       category: "tools",
       price: 0,
       currency: "USD",
@@ -268,6 +275,13 @@ serve(async (req) => {
     if (result.errorStatus === 402) {
       return new Response(JSON.stringify({ error: "AI credits depleted." }), {
         status: 402,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (result.errorStatus) {
+      return new Response(JSON.stringify({ error: "AI image analysis failed.", details: result.errorBody }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -16,8 +16,6 @@ const VISION_CHUNK_SIZE = 6;
 const ANALYSIS_PARALLEL = 2;
 const GROUP_CHUNK_SIZE = 50;
 const MAX_RETRIES = 3;
-const MAX_ANALYSIS_DIMENSION = 896;
-const ANALYSIS_QUALITY = 0.82;
 const UPLOAD_PROGRESS_SHARE = 35;
 const ANALYZE_PROGRESS_SHARE = 45;
 const GROUP_PROGRESS_SHARE = 20;
@@ -38,10 +36,19 @@ type PreparedImage = {
   sourceId: string;
   name: string;
   url: string;
-  dataUrl: string;
 };
 
 const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
+const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], string> = {
+  fashion: 'Fashion',
+  books: 'Books',
+  tools: 'Tools',
+  vehicles: 'Vehicles',
+  animals: 'Animals',
+};
+const JPG_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg']);
+const SUPPORTED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']);
+const UPLOAD_ACCEPT = '.jpg,.jpeg,.png,.webp,.gif,.bmp,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,20 +61,50 @@ const chunkArray = <T,>(items: T[], size: number): T[][] => {
 const uniqueStrings = (items: string[] = []) => Array.from(new Set(items.filter(Boolean)));
 
 const filenameToTitle = (name: string) =>
-  name
-    .replace(/\.[^.]+$/, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Product';
+  (() => {
+    const cleaned = name
+      .replace(/\.[^.]+$/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned || /^\d+$/.test(cleaned)) return 'Uploaded Product';
+    return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+  })();
+
+const normalizeUploadMimeType = (file: File) => {
+  if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
+
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  if (extension === 'gif') return 'image/gif';
+  if (extension === 'bmp') return 'image/bmp';
+
+  return file.type.startsWith('image/') ? file.type : 'image/jpeg';
+};
+
+const isSupportedImageFile = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  return file.type.startsWith('image/') || SUPPORTED_IMAGE_EXTENSIONS.has(extension);
+};
+
+const formatCategoryLabel = (category: string) =>
+  CATEGORY_LABELS[(category || '').toLowerCase() as (typeof CATEGORIES)[number]] || 'Tools';
+
+const mapCategoryToDbValue = (category: string) => formatCategoryLabel(category);
 
 const normalizeListing = (listing: Partial<Listing>): Listing => {
   const category = CATEGORIES.includes((listing.category || '').toLowerCase() as (typeof CATEGORIES)[number])
     ? (listing.category || '').toLowerCase()
     : 'tools';
 
+  const trimmedTitle = (listing.title || '').trim();
+  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) ? 'Uploaded Product' : trimmedTitle;
+
   return {
-    title: (listing.title || 'Untitled product').trim(),
+    title: safeTitle,
     description: (listing.description || 'Review this AI-generated draft before posting.').trim(),
     category,
     price: Number.isFinite(Number(listing.price)) ? Math.max(0, Number(listing.price)) : 0,
@@ -102,41 +139,6 @@ const estimateGroupingCalls = (count: number) => {
   }
   return total;
 };
-
-const toOptimizedDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const image = new Image();
-
-      image.onload = () => {
-        const scale = Math.min(
-          MAX_ANALYSIS_DIMENSION / image.width,
-          MAX_ANALYSIS_DIMENSION / image.height,
-          1,
-        );
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Unable to prepare image for AI analysis'));
-          return;
-        }
-
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', ANALYSIS_QUALITY));
-      };
-
-      image.onerror = () => reject(new Error(`Failed to read image "${file.name}"`));
-      image.src = reader.result as string;
-    };
-
-    reader.onerror = () => reject(new Error(`Failed to load file "${file.name}"`));
-    reader.readAsDataURL(file);
-  });
 
 const BulkProductPoster = () => {
   const [uploading, setUploading] = useState(false);
@@ -193,13 +195,13 @@ const BulkProductPoster = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const sourceId = crypto.randomUUID();
-      const extension = file.name.split('.').pop() || 'jpg';
+      const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
 
-      const [dataUrl, uploadResult] = await Promise.all([
-        toOptimizedDataUrl(file),
-        supabase.storage.from('item-images').upload(path, file, { contentType: file.type || 'image/jpeg' }),
-      ]);
+      const uploadResult = await supabase.storage.from('item-images').upload(path, file, {
+        contentType: normalizeUploadMimeType(file),
+        upsert: false,
+      });
 
       if (uploadResult.error) throw uploadResult.error;
 
@@ -209,7 +211,6 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
-        dataUrl,
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
@@ -225,7 +226,7 @@ const BulkProductPoster = () => {
       const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
         invokeBulkAI({
           mode: 'analyze',
-          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
+          images: images.map(({ sourceId, name, url }) => ({ sourceId, name, url })),
         }),
       );
 
@@ -242,7 +243,7 @@ const BulkProductPoster = () => {
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
           invokeBulkAI({
             mode: 'analyze',
-            images: [{ sourceId: image.sourceId, name: image.name, url: image.url, dataUrl: image.dataUrl }],
+            images: [{ sourceId: image.sourceId, name: image.name, url: image.url }],
           }),
         );
 
@@ -311,6 +312,12 @@ const BulkProductPoster = () => {
     if (!files || files.length === 0) return;
 
     const selectedFiles = Array.from(files);
+    const invalidFile = selectedFiles.find((file) => !isSupportedImageFile(file));
+    if (invalidFile) {
+      toast.error(`${invalidFile.name} is not a supported image. Use JPG, JPEG, PNG, WEBP, GIF, or BMP.`);
+      return;
+    }
+
     setUploading(true);
     setAnalyzing(false);
     setProgress(0);
@@ -373,7 +380,7 @@ const BulkProductPoster = () => {
       const { error } = await supabase.from('items').insert({
         title: l.title,
         description: l.description,
-        category: l.category as any,
+        category: mapCategoryToDbValue(l.category) as any,
         price: l.price,
         currency: l.currency || 'USD',
         images: l.images,
@@ -439,7 +446,7 @@ const BulkProductPoster = () => {
             ref={fileRef}
             type="file"
             multiple
-            accept="image/*"
+            accept={UPLOAD_ACCEPT}
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -480,11 +487,11 @@ const BulkProductPoster = () => {
                 </div>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold flex-1">{l.title}</h3>
-                  <Badge variant="outline">{l.category}</Badge>
+                  <Badge variant="outline">{formatCategoryLabel(l.category)}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-3">{l.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-amber-500">${l.price.toLocaleString()}</span>
+                    <span className="text-lg font-bold text-amber-500">${l.price.toLocaleString()}</span>
                   {l.posted && <Badge className="bg-green-600">Posted</Badge>}
                 </div>
                 <div className="flex gap-2">
@@ -543,7 +550,7 @@ const BulkProductPoster = () => {
                   <Select value={listings[editIndex].category} onValueChange={(v) => updateListing(editIndex, { category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{formatCategoryLabel(c)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
