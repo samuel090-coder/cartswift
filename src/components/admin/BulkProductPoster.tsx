@@ -195,13 +195,13 @@ const BulkProductPoster = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const sourceId = crypto.randomUUID();
-      const extension = file.name.split('.').pop() || 'jpg';
+      const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
 
-      const [dataUrl, uploadResult] = await Promise.all([
-        toOptimizedDataUrl(file),
-        supabase.storage.from('item-images').upload(path, file, { contentType: file.type || 'image/jpeg' }),
-      ]);
+      const uploadResult = await supabase.storage.from('item-images').upload(path, file, {
+        contentType: normalizeUploadMimeType(file),
+        upsert: false,
+      });
 
       if (uploadResult.error) throw uploadResult.error;
 
@@ -211,7 +211,6 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
-        dataUrl,
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
@@ -227,7 +226,7 @@ const BulkProductPoster = () => {
       const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
         invokeBulkAI({
           mode: 'analyze',
-          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
+          images: images.map(({ sourceId, name, url }) => ({ sourceId, name, url })),
         }),
       );
 
@@ -244,7 +243,7 @@ const BulkProductPoster = () => {
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
           invokeBulkAI({
             mode: 'analyze',
-            images: [{ sourceId: image.sourceId, name: image.name, url: image.url, dataUrl: image.dataUrl }],
+            images: [{ sourceId: image.sourceId, name: image.name, url: image.url }],
           }),
         );
 
