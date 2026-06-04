@@ -244,6 +244,7 @@ const BulkProductPoster = () => {
       const sourceId = crypto.randomUUID();
       const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
+      const dataUrl = await fileToDataUrl(file);
 
       const uploadResult = await supabase.storage.from('item-images').upload(path, file, {
         contentType: normalizeUploadMimeType(file),
@@ -258,6 +259,7 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
+        dataUrl,
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
@@ -273,7 +275,7 @@ const BulkProductPoster = () => {
       const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
         invokeBulkAI({
           mode: 'analyze',
-          images: images.map(({ sourceId, name, url }) => ({ sourceId, name, url })),
+          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
         }),
       );
 
@@ -289,7 +291,7 @@ const BulkProductPoster = () => {
     for (const image of images) {
       try {
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
-          invokeSingleImageAI(image.url),
+          invokeSingleImageAI(image.dataUrl || image.url),
         );
 
         const enriched = normalizeListing({
