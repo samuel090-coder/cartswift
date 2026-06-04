@@ -88,19 +88,24 @@ const filenameToTitle = (name: string) =>
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
 
+const inferCategoryScores = (text: string) =>
+  CATEGORIES.reduce((acc, category) => {
+    acc[category] = CATEGORY_KEYWORDS[category].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
+    return acc;
+  }, {} as Record<(typeof CATEGORIES)[number], number>);
+
 const normalizeCategory = (...parts: string[]) => {
-  const raw = parts
-    .map((part) => (part || '').toLowerCase())
-    .join(' ')
-    .trim();
+  const [rawCategory = '', ...contextParts] = parts.map((part) => (part || '').toLowerCase().trim());
+  const context = contextParts.filter(Boolean).join(' ');
+  const scores = inferCategoryScores(`${rawCategory} ${context}`.trim());
+  const inferred = CATEGORIES.reduce((best, category) => (scores[category] > scores[best] ? category : best), 'tools' as (typeof CATEGORIES)[number]);
+  const rawIsKnown = CATEGORIES.includes(rawCategory as (typeof CATEGORIES)[number]);
+  const rawScore = rawIsKnown ? scores[rawCategory as (typeof CATEGORIES)[number]] : -1;
+  const inferredScore = scores[inferred];
 
-  if (!raw) return 'tools';
-  if (CATEGORIES.includes(raw as (typeof CATEGORIES)[number])) return raw as (typeof CATEGORIES)[number];
-
-  for (const category of CATEGORIES) {
-    if (CATEGORY_KEYWORDS[category].some((keyword) => raw.includes(keyword))) return category;
-  }
-
+  if (inferredScore > Math.max(rawScore, 0)) return inferred;
+  if (rawIsKnown) return rawCategory as (typeof CATEGORIES)[number];
+  if (inferredScore > 0) return inferred;
   return 'tools';
 };
 
