@@ -153,7 +153,7 @@ Rules:
 
   images.forEach((image, index) => {
     content.push({ type: "text", text: `Image ${index + 1}\nsourceId: ${image.sourceId}\nfilename: ${image.name}\npublicUrl: ${image.url}` });
-    content.push({ type: "image_url", image_url: { url: image.url } });
+    content.push({ type: "image_url", image_url: { url: image.dataUrl || image.url } });
   });
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -200,7 +200,6 @@ Rules:
         },
       }],
       tool_choice: { type: "function", function: { name: "bulk_product_listings" } },
-      reasoning: { effort: "low" },
     }),
   });
 
@@ -212,6 +211,9 @@ Rules:
 
   const data = await safeJson(response);
   const args = parseToolArguments(data);
+  if (!Array.isArray(args?.listings)) {
+    console.warn("AI analyze returned no structured listings", JSON.stringify(data)?.slice(0, 1200));
+  }
   const listings = Array.isArray(args?.listings)
     ? args.listings
         .map((listing: any) => normalizeListing({
