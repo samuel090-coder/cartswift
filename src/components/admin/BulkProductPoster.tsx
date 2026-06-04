@@ -46,6 +46,13 @@ const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], string> = {
   vehicles: 'Vehicles',
   animals: 'Animals',
 };
+const CATEGORY_KEYWORDS: Record<(typeof CATEGORIES)[number], string[]> = {
+  fashion: ['fashion', 'clothing', 'apparel', 'shoe', 'shoes', 'sneaker', 'heel', 'heels', 'boot', 'boots', 'sandal', 'sandals', 'bag', 'handbag', 'dress', 'shirt', 'watch', 'jewelry', 'jacket'],
+  books: ['book', 'books', 'novel', 'magazine', 'textbook', 'comic', 'manual', 'guide'],
+  tools: ['tool', 'tools', 'hardware', 'equipment', 'machine', 'kit', 'device', 'appliance', 'gadget'],
+  vehicles: ['vehicle', 'vehicles', 'car', 'cars', 'toyota', 'honda', 'bmw', 'benz', 'mercedes', 'lamborghini', 'truck', 'bike', 'bicycle', 'motorcycle', 'scooter', 'van', 'bus', 'suv', 'sedan'],
+  animals: ['animal', 'animals', 'pet', 'pets', 'dog', 'cat', 'bird', 'fish', 'horse', 'puppy', 'kitten'],
+};
 const JPG_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg']);
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']);
 const UPLOAD_ACCEPT = '.jpg,.jpeg,.png,.webp,.gif,.bmp,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp';
@@ -72,6 +79,27 @@ const filenameToTitle = (name: string) =>
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
 
+const normalizeCategory = (...parts: string[]) => {
+  const raw = parts
+    .map((part) => (part || '').toLowerCase())
+    .join(' ')
+    .trim();
+
+  if (!raw) return 'tools';
+  if (CATEGORIES.includes(raw as (typeof CATEGORIES)[number])) return raw as (typeof CATEGORIES)[number];
+
+  for (const category of CATEGORIES) {
+    if (CATEGORY_KEYWORDS[category].some((keyword) => raw.includes(keyword))) return category;
+  }
+
+  return 'tools';
+};
+
+const isGenericTitle = (title: string) => {
+  const value = title.trim().toLowerCase();
+  return !value || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
+};
+
 const normalizeUploadMimeType = (file: File) => {
   if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
 
@@ -91,17 +119,18 @@ const isSupportedImageFile = (file: File) => {
 };
 
 const formatCategoryLabel = (category: string) =>
-  CATEGORY_LABELS[(category || '').toLowerCase() as (typeof CATEGORIES)[number]] || 'Tools';
+  CATEGORY_LABELS[normalizeCategory(category) as (typeof CATEGORIES)[number]] || 'Tools';
 
 const mapCategoryToDbValue = (category: string) => formatCategoryLabel(category);
 
 const normalizeListing = (listing: Partial<Listing>): Listing => {
-  const category = CATEGORIES.includes((listing.category || '').toLowerCase() as (typeof CATEGORIES)[number])
-    ? (listing.category || '').toLowerCase()
-    : 'tools';
+  const category = normalizeCategory(listing.category || '', listing.title || '', listing.description || '');
 
   const trimmedTitle = (listing.title || '').trim();
-  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) ? 'Uploaded Product' : trimmedTitle;
+  const fallbackTitle = listing.images?.[0]
+    ? filenameToTitle(listing.images[0].split('/').pop() || '')
+    : 'Product Draft';
+  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) || isGenericTitle(trimmedTitle) ? fallbackTitle : trimmedTitle;
 
   return {
     title: safeTitle,
@@ -119,8 +148,8 @@ const normalizeListing = (listing: Partial<Listing>): Listing => {
 const fallbackListingFromImage = (image: PreparedImage): Listing =>
   normalizeListing({
     title: filenameToTitle(image.name),
-    description: 'AI generated a draft for this uploaded product. Review and adjust before posting.',
-    category: 'tools',
+    description: 'AI generated a draft from this uploaded image. Review and refine it before posting.',
+    category: normalizeCategory(image.name),
     price: 0,
     currency: 'USD',
     images: [image.url],
