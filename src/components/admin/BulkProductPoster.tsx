@@ -36,6 +36,7 @@ type PreparedImage = {
   sourceId: string;
   name: string;
   url: string;
+  dataUrl: string;
 };
 
 const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
@@ -46,11 +47,26 @@ const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], string> = {
   vehicles: 'Vehicles',
   animals: 'Animals',
 };
+const CATEGORY_KEYWORDS: Record<(typeof CATEGORIES)[number], string[]> = {
+  fashion: ['fashion', 'clothing', 'apparel', 'shoe', 'shoes', 'sneaker', 'heel', 'heels', 'boot', 'boots', 'sandal', 'sandals', 'bag', 'handbag', 'dress', 'shirt', 'watch', 'jewelry', 'jacket'],
+  books: ['book', 'books', 'novel', 'magazine', 'textbook', 'comic', 'manual', 'guide'],
+  tools: ['tool', 'tools', 'hardware', 'equipment', 'machine', 'kit', 'device', 'appliance', 'gadget'],
+  vehicles: ['vehicle', 'vehicles', 'car', 'cars', 'toyota', 'honda', 'bmw', 'benz', 'mercedes', 'lamborghini', 'truck', 'bike', 'bicycle', 'motorcycle', 'scooter', 'van', 'bus', 'suv', 'sedan'],
+  animals: ['animal', 'animals', 'pet', 'pets', 'dog', 'cat', 'bird', 'fish', 'horse', 'puppy', 'kitten'],
+};
 const JPG_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg']);
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']);
 const UPLOAD_ACCEPT = '.jpg,.jpeg,.png,.webp,.gif,.bmp,image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 const chunkArray = <T,>(items: T[], size: number): T[][] => {
   const chunks: T[][] = [];
@@ -72,6 +88,32 @@ const filenameToTitle = (name: string) =>
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
 
+const inferCategoryScores = (text: string) =>
+  CATEGORIES.reduce((acc, category) => {
+    acc[category] = CATEGORY_KEYWORDS[category].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
+    return acc;
+  }, {} as Record<(typeof CATEGORIES)[number], number>);
+
+const normalizeCategory = (...parts: string[]) => {
+  const [rawCategory = '', ...contextParts] = parts.map((part) => (part || '').toLowerCase().trim());
+  const context = contextParts.filter(Boolean).join(' ');
+  const scores = inferCategoryScores(`${rawCategory} ${context}`.trim());
+  const inferred = CATEGORIES.reduce((best, category) => (scores[category] > scores[best] ? category : best), 'tools' as (typeof CATEGORIES)[number]);
+  const rawIsKnown = CATEGORIES.includes(rawCategory as (typeof CATEGORIES)[number]);
+  const rawScore = rawIsKnown ? scores[rawCategory as (typeof CATEGORIES)[number]] : -1;
+  const inferredScore = scores[inferred];
+
+  if (inferredScore > Math.max(rawScore, 0)) return inferred;
+  if (rawIsKnown) return rawCategory as (typeof CATEGORIES)[number];
+  if (inferredScore > 0) return inferred;
+  return 'tools';
+};
+
+const isGenericTitle = (title: string) => {
+  const value = title.trim().toLowerCase();
+  return !value || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
+};
+
 const normalizeUploadMimeType = (file: File) => {
   if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
 
@@ -91,17 +133,18 @@ const isSupportedImageFile = (file: File) => {
 };
 
 const formatCategoryLabel = (category: string) =>
-  CATEGORY_LABELS[(category || '').toLowerCase() as (typeof CATEGORIES)[number]] || 'Tools';
+  CATEGORY_LABELS[normalizeCategory(category) as (typeof CATEGORIES)[number]] || 'Tools';
 
 const mapCategoryToDbValue = (category: string) => formatCategoryLabel(category);
 
 const normalizeListing = (listing: Partial<Listing>): Listing => {
-  const category = CATEGORIES.includes((listing.category || '').toLowerCase() as (typeof CATEGORIES)[number])
-    ? (listing.category || '').toLowerCase()
-    : 'tools';
+  const category = normalizeCategory(listing.category || '', listing.title || '', listing.description || '');
 
   const trimmedTitle = (listing.title || '').trim();
-  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) ? 'Uploaded Product' : trimmedTitle;
+  const fallbackTitle = listing.images?.[0]
+    ? filenameToTitle(listing.images[0].split('/').pop() || '')
+    : 'Product Draft';
+  const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) || isGenericTitle(trimmedTitle) ? fallbackTitle : trimmedTitle;
 
   return {
     title: safeTitle,
@@ -119,8 +162,8 @@ const normalizeListing = (listing: Partial<Listing>): Listing => {
 const fallbackListingFromImage = (image: PreparedImage): Listing =>
   normalizeListing({
     title: filenameToTitle(image.name),
-    description: 'AI generated a draft for this uploaded product. Review and adjust before posting.',
-    category: 'tools',
+    description: 'AI generated a draft from this uploaded image. Review and refine it before posting.',
+    category: normalizeCategory(image.name),
     price: 0,
     currency: 'USD',
     images: [image.url],
@@ -152,6 +195,15 @@ const BulkProductPoster = () => {
 
   const invokeBulkAI = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', { body });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const invokeSingleImageAI = async (imageUrl: string) => {
+    const { data, error } = await supabase.functions.invoke('analyze-product-image', {
+      body: { imageUrl },
+    });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
     return data;
@@ -197,6 +249,7 @@ const BulkProductPoster = () => {
       const sourceId = crypto.randomUUID();
       const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
+      const dataUrl = await fileToDataUrl(file);
 
       const uploadResult = await supabase.storage.from('item-images').upload(path, file, {
         contentType: normalizeUploadMimeType(file),
@@ -211,6 +264,7 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
+        dataUrl,
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
@@ -226,12 +280,13 @@ const BulkProductPoster = () => {
       const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
         invokeBulkAI({
           mode: 'analyze',
-          images: images.map(({ sourceId, name, url }) => ({ sourceId, name, url })),
+          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
         }),
       );
 
       const nextListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
-      if (nextListings.length > 0) return nextListings;
+      const hasMeaningfulMetadata = nextListings.some((listing) => !isGenericTitle(listing.title) && listing.description.length > 40);
+      if (nextListings.length > 0 && hasMeaningfulMetadata) return nextListings;
     } catch (error) {
       console.warn(`Vision batch ${batchNumber} failed, retrying one image at a time`, error);
     }
@@ -241,14 +296,20 @@ const BulkProductPoster = () => {
     for (const image of images) {
       try {
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
-          invokeBulkAI({
-            mode: 'analyze',
-            images: [{ sourceId: image.sourceId, name: image.name, url: image.url }],
-          }),
+          invokeSingleImageAI(image.dataUrl || image.url),
         );
 
-        const singleListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
-        recovered.push(...(singleListings.length > 0 ? singleListings : [fallbackListingFromImage(image)]));
+        const enriched = normalizeListing({
+          title: data?.title || filenameToTitle(image.name),
+          description: data?.description || 'AI generated a draft from this uploaded image. Review and refine it before posting.',
+          category: data?.category || normalizeCategory(image.name),
+          price: data?.price ?? 0,
+          currency: data?.currency || 'USD',
+          images: [image.url],
+          sourceIds: [image.sourceId],
+        });
+
+        recovered.push(isGenericTitle(enriched.title) ? fallbackListingFromImage(image) : enriched);
       } catch (error) {
         console.error(`Single-image recovery failed for ${image.name}`, error);
         recovered.push(fallbackListingFromImage(image));

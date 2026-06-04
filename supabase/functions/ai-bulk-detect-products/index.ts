@@ -3,6 +3,13 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod";
 
 const categories = ["fashion", "books", "tools", "vehicles", "animals"] as const;
+const categoryKeywords: Record<(typeof categories)[number], string[]> = {
+  fashion: ["fashion", "clothing", "apparel", "shoe", "shoes", "sneaker", "heel", "heels", "boot", "boots", "sandal", "sandals", "bag", "handbag", "purse", "dress", "shirt", "watch", "jewelry", "jacket"],
+  books: ["book", "books", "novel", "textbook", "magazine", "comic", "guide", "manual"],
+  tools: ["tool", "tools", "equipment", "machine", "hardware", "kit", "device", "appliance", "gadget"],
+  vehicles: ["vehicle", "vehicles", "car", "cars", "toyota", "honda", "bmw", "mercedes", "lamborghini", "truck", "bike", "bicycle", "motorcycle", "scooter", "van", "bus", "suv", "sedan", "pickup"],
+  animals: ["animal", "animals", "pet", "pets", "dog", "cat", "bird", "fish", "horse", "puppy", "kitten"],
+};
 
 const AnalyzeImageSchema = z.object({
   sourceId: z.string().min(1),
@@ -37,6 +44,60 @@ const aiHeaders = (key: string) => ({
   "Content-Type": "application/json",
 });
 
+const toText = (content: unknown): string => {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part && typeof part === "object" && "text" in part && typeof (part as { text?: unknown }).text === "string") {
+        return (part as { text: string }).text;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+};
+
+const parseJsonObject = (text: string) => {
+  const candidates = [
+    text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1],
+    text.match(/\{[\s\S]*\}/)?.[0],
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+  }
+
+  return {};
+};
+
+const inferCategoryScores = (text: string) =>
+  categories.reduce((acc, category) => {
+    acc[category] = categoryKeywords[category].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
+    return acc;
+  }, {} as Record<(typeof categories)[number], number>);
+
+const normalizeCategory = (...parts: unknown[]): (typeof categories)[number] => {
+  const [rawCategory, ...contextParts] = parts.map((part) => String(part || "").toLowerCase().trim());
+  const context = contextParts.filter(Boolean).join(" ");
+  const scores = inferCategoryScores(`${rawCategory} ${context}`.trim());
+  const inferred = categories.reduce((best, category) => (scores[category] > scores[best] ? category : best), "tools" as (typeof categories)[number]);
+  const rawIsKnown = categories.includes(rawCategory as (typeof categories)[number]);
+  const rawScore = rawIsKnown ? scores[rawCategory as (typeof categories)[number]] : -1;
+  const inferredScore = scores[inferred];
+
+  if (inferredScore > Math.max(rawScore, 0)) return inferred;
+  if (rawIsKnown) return rawCategory as (typeof categories)[number];
+  if (inferredScore > 0) return inferred;
+  return "tools";
+};
+
 const safeJson = async (response: Response) => {
   const text = await response.text();
   try {
@@ -58,14 +119,8 @@ const parseToolArguments = (data: any) => {
     }
   }
 
-  if (typeof message?.content === "string") {
-    try {
-      const match = message.content.match(/\{[\s\S]*\}/);
-      return match ? JSON.parse(match[0]) : {};
-    } catch (error) {
-      console.error("content parse error", error);
-    }
-  }
+  const parsedFromContent = parseJsonObject(toText(message?.content));
+  if (Object.keys(parsedFromContent).length > 0) return parsedFromContent;
 
   return {};
 };
@@ -73,8 +128,8 @@ const parseToolArguments = (data: any) => {
 const normalizeListing = (listing: any) => ({
   title: String(listing?.title || "Uploaded Product").trim() || "Uploaded Product",
   description: String(listing?.description || "Review this AI-generated draft before posting.").trim(),
-  category: categories.includes(listing?.category) ? listing.category : "tools",
-  price: Number.isFinite(Number(listing?.price)) ? Math.max(0, Number(listing.price)) : 0,
+  category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+  price: Number.isFinite(Number(listing?.price)) ? Math.max(1, Number(listing.price)) : 0,
   currency: String(listing?.currency || "USD").trim() || "USD",
   images: Array.from(new Set(Array.isArray(listing?.images) ? listing.images.filter(Boolean) : [])),
   sourceIds: Array.from(new Set(Array.isArray(listing?.sourceIds) ? listing.sourceIds.filter(Boolean) : [])),
@@ -84,33 +139,37 @@ async function analyzeImages(images: z.infer<typeof AnalyzeImageSchema>[], apiKe
   const content: any[] = [
     {
       type: "text",
-      text: `You are the same high-quality product analyzer used for a manual admin add-product flow.
-Analyze every uploaded image carefully and create professional product listing drafts.
+      text: `You are the same high-quality product analyzer used for the manual admin add-product AI flow.
+Analyze every uploaded image carefully and create polished e-commerce drafts.
 
 Rules:
-- If multiple images show the same exact product/model from different angles or colors, combine them into one listing.
-- If products are different, split them into separate listings.
-- For each listing return a specific retail-ready title, a customer-facing description, the closest category, a realistic market price in USD, sourceIds, and public image URLs.
-- Never use file names, numeric ids, or generic placeholders as the title.
-- If the product appears to be shoes, boots, sneakers, sandals, or clothing, category must be fashion.
-- Never return an empty result when there are valid product photos; make your best professional draft.`,
+- Group only images that clearly show the same exact product or same product model from different angles.
+- Keep different products separate.
+- For every listing, return a real product name based on what is visibly present in the images. Do not use generic placeholders like Uploaded Product, Product, Item, Goods, or file names.
+- Write a professional buyer-facing description that sounds ready for a real storefront.
+- Estimate a realistic market price in USD.
+- Choose the closest category from: fashion, books, tools, vehicles, animals.
+- Shoes, heels, sneakers, sandals, clothing, watches, bags, and accessories must be fashion.
+- Cars, motorcycles, bicycles, trucks, buses, and auto parts must be vehicles.
+- Use the given public image URLs in the images array and the related sourceIds for each listing.
+- Never return an empty result when clear product photos exist.`,
     },
   ];
 
   images.forEach((image, index) => {
-    content.push({ type: "text", text: `Image ${index + 1} | sourceId=${image.sourceId} | file=${image.name} | publicUrl=${image.url}` });
-    content.push({ type: "image_url", image_url: { url: image.url } });
+    content.push({ type: "text", text: `Image ${index + 1}\nsourceId: ${image.sourceId}\nfilename: ${image.name}\npublicUrl: ${image.url}` });
+    content.push({ type: "image_url", image_url: { url: image.dataUrl || image.url } });
   });
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: aiHeaders(apiKey),
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
-          content: "You are a senior e-commerce copywriter and visual product classifier. Return structured, usable listing drafts only.",
+          content: "You are a senior e-commerce copywriter and visual product classifier. Return structured, usable listing drafts only, with specific names, proper categories, and realistic prices.",
         },
         { role: "user", content },
       ],
@@ -129,7 +188,7 @@ Rules:
                   properties: {
                     title: { type: "string" },
                     description: { type: "string" },
-                    category: { type: "string", enum: [...categories] },
+                    category: { type: "string" },
                     price: { type: "number" },
                     currency: { type: "string" },
                     sourceIds: { type: "array", items: { type: "string" } },
@@ -146,7 +205,6 @@ Rules:
         },
       }],
       tool_choice: { type: "function", function: { name: "bulk_product_listings" } },
-      reasoning: { effort: "low" },
     }),
   });
 
@@ -158,15 +216,26 @@ Rules:
 
   const data = await safeJson(response);
   const args = parseToolArguments(data);
-  const listings = Array.isArray(args?.listings) ? args.listings.map(normalizeListing).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0) : [];
+  if (!Array.isArray(args?.listings)) {
+    console.warn("AI analyze returned no structured listings", JSON.stringify(data)?.slice(0, 1200));
+  }
+  const listings = Array.isArray(args?.listings)
+    ? args.listings
+        .map((listing: any) => normalizeListing({
+          ...listing,
+          category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+        }))
+        .filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0)
+        .filter((item: any) => item.title.toLowerCase() !== "uploaded product")
+    : [];
 
   if (listings.length > 0) return { listings };
 
   return {
     listings: images.map((image) => normalizeListing({
       title: String(image.name || "Uploaded image").replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "Product",
-      description: "AI generated a fallback draft for this uploaded product. Review and adjust before posting.",
-      category: "tools",
+      description: "AI could not fully classify this image, so a fallback draft was created. Review the details before posting.",
+      category: normalizeCategory(image.name),
       price: 0,
       currency: "USD",
       sourceIds: [image.sourceId],
@@ -182,11 +251,11 @@ async function mergeCandidates(candidates: z.infer<typeof CandidateListingSchema
     method: "POST",
     headers: aiHeaders(apiKey),
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
-          content: "You merge e-commerce draft listings. Combine only entries that clearly represent the same product/model. Keep different products separate.",
+          content: "You merge e-commerce draft listings. Combine only entries that clearly represent the same product or same model. Keep different products separate and preserve the best professional title, description, category, and realistic price.",
         },
         {
           role: "user",
@@ -212,7 +281,7 @@ ${JSON.stringify(candidates, null, 2)}`,
                   properties: {
                     title: { type: "string" },
                     description: { type: "string" },
-                    category: { type: "string", enum: [...categories] },
+                    category: { type: "string" },
                     price: { type: "number" },
                     currency: { type: "string" },
                     sourceIds: { type: "array", items: { type: "string" } },
@@ -241,7 +310,12 @@ ${JSON.stringify(candidates, null, 2)}`,
 
   const data = await safeJson(response);
   const args = parseToolArguments(data);
-  const listings = Array.isArray(args?.listings) ? args.listings.map(normalizeListing).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0) : [];
+  const listings = Array.isArray(args?.listings)
+    ? args.listings.map((listing: any) => normalizeListing({
+        ...listing,
+        category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+      })).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0)
+    : [];
   return { listings: listings.length > 0 ? listings : candidates.map(normalizeListing) };
 }
 
