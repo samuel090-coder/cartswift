@@ -77,19 +77,24 @@ const parseJsonObject = (text: string) => {
   return {};
 };
 
+const inferCategoryScores = (text: string) =>
+  categories.reduce((acc, category) => {
+    acc[category] = categoryKeywords[category].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
+    return acc;
+  }, {} as Record<(typeof categories)[number], number>);
+
 const normalizeCategory = (...parts: unknown[]): (typeof categories)[number] => {
-  const raw = parts
-    .map((part) => String(part || "").toLowerCase())
-    .join(" ")
-    .trim();
+  const [rawCategory, ...contextParts] = parts.map((part) => String(part || "").toLowerCase().trim());
+  const context = contextParts.filter(Boolean).join(" ");
+  const scores = inferCategoryScores(`${rawCategory} ${context}`.trim());
+  const inferred = categories.reduce((best, category) => (scores[category] > scores[best] ? category : best), "tools" as (typeof categories)[number]);
+  const rawIsKnown = categories.includes(rawCategory as (typeof categories)[number]);
+  const rawScore = rawIsKnown ? scores[rawCategory as (typeof categories)[number]] : -1;
+  const inferredScore = scores[inferred];
 
-  if (!raw) return "tools";
-  if (categories.includes(raw as (typeof categories)[number])) return raw as (typeof categories)[number];
-
-  for (const category of categories) {
-    if (categoryKeywords[category].some((keyword) => raw.includes(keyword))) return category;
-  }
-
+  if (inferredScore > Math.max(rawScore, 0)) return inferred;
+  if (rawIsKnown) return rawCategory as (typeof categories)[number];
+  if (inferredScore > 0) return inferred;
   return "tools";
 };
 
