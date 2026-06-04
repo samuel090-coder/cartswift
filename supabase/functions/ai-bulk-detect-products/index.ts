@@ -3,6 +3,13 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod";
 
 const categories = ["fashion", "books", "tools", "vehicles", "animals"] as const;
+const categoryKeywords: Record<(typeof categories)[number], string[]> = {
+  fashion: ["fashion", "clothing", "apparel", "shoe", "shoes", "sneaker", "heel", "heels", "boot", "boots", "sandal", "sandals", "bag", "handbag", "purse", "dress", "shirt", "watch", "jewelry", "jacket"],
+  books: ["book", "books", "novel", "textbook", "magazine", "comic", "guide", "manual"],
+  tools: ["tool", "tools", "equipment", "machine", "hardware", "kit", "device", "appliance", "gadget"],
+  vehicles: ["vehicle", "vehicles", "car", "cars", "toyota", "honda", "bmw", "mercedes", "lamborghini", "truck", "bike", "bicycle", "motorcycle", "scooter", "van", "bus", "suv", "sedan", "pickup"],
+  animals: ["animal", "animals", "pet", "pets", "dog", "cat", "bird", "fish", "horse", "puppy", "kitten"],
+};
 
 const AnalyzeImageSchema = z.object({
   sourceId: z.string().min(1),
@@ -37,6 +44,55 @@ const aiHeaders = (key: string) => ({
   "Content-Type": "application/json",
 });
 
+const toText = (content: unknown): string => {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part && typeof part === "object" && "text" in part && typeof (part as { text?: unknown }).text === "string") {
+        return (part as { text: string }).text;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+};
+
+const parseJsonObject = (text: string) => {
+  const candidates = [
+    text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1],
+    text.match(/\{[\s\S]*\}/)?.[0],
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+  }
+
+  return {};
+};
+
+const normalizeCategory = (...parts: unknown[]): (typeof categories)[number] => {
+  const raw = parts
+    .map((part) => String(part || "").toLowerCase())
+    .join(" ")
+    .trim();
+
+  if (!raw) return "tools";
+  if (categories.includes(raw as (typeof categories)[number])) return raw as (typeof categories)[number];
+
+  for (const category of categories) {
+    if (categoryKeywords[category].some((keyword) => raw.includes(keyword))) return category;
+  }
+
+  return "tools";
+};
+
 const safeJson = async (response: Response) => {
   const text = await response.text();
   try {
@@ -58,14 +114,8 @@ const parseToolArguments = (data: any) => {
     }
   }
 
-  if (typeof message?.content === "string") {
-    try {
-      const match = message.content.match(/\{[\s\S]*\}/);
-      return match ? JSON.parse(match[0]) : {};
-    } catch (error) {
-      console.error("content parse error", error);
-    }
-  }
+  const parsedFromContent = parseJsonObject(toText(message?.content));
+  if (Object.keys(parsedFromContent).length > 0) return parsedFromContent;
 
   return {};
 };
@@ -73,8 +123,8 @@ const parseToolArguments = (data: any) => {
 const normalizeListing = (listing: any) => ({
   title: String(listing?.title || "Uploaded Product").trim() || "Uploaded Product",
   description: String(listing?.description || "Review this AI-generated draft before posting.").trim(),
-  category: categories.includes(listing?.category) ? listing.category : "tools",
-  price: Number.isFinite(Number(listing?.price)) ? Math.max(0, Number(listing.price)) : 0,
+  category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+  price: Number.isFinite(Number(listing?.price)) ? Math.max(1, Number(listing.price)) : 0,
   currency: String(listing?.currency || "USD").trim() || "USD",
   images: Array.from(new Set(Array.isArray(listing?.images) ? listing.images.filter(Boolean) : [])),
   sourceIds: Array.from(new Set(Array.isArray(listing?.sourceIds) ? listing.sourceIds.filter(Boolean) : [])),
