@@ -134,21 +134,25 @@ async function analyzeImages(images: z.infer<typeof AnalyzeImageSchema>[], apiKe
   const content: any[] = [
     {
       type: "text",
-      text: `You are the same high-quality product analyzer used for a manual admin add-product flow.
-Analyze every uploaded image carefully and create professional product listing drafts.
+      text: `You are the same high-quality product analyzer used for the manual admin add-product AI flow.
+Analyze every uploaded image carefully and create polished e-commerce drafts.
 
 Rules:
-- If multiple images show the same exact product/model from different angles or colors, combine them into one listing.
-- If products are different, split them into separate listings.
-- For each listing return a specific retail-ready title, a customer-facing description, the closest category, a realistic market price in USD, sourceIds, and public image URLs.
-- Never use file names, numeric ids, or generic placeholders as the title.
-- If the product appears to be shoes, boots, sneakers, sandals, or clothing, category must be fashion.
-- Never return an empty result when there are valid product photos; make your best professional draft.`,
+- Group only images that clearly show the same exact product or same product model from different angles.
+- Keep different products separate.
+- For every listing, return a real product name based on what is visibly present in the images. Do not use generic placeholders like Uploaded Product, Product, Item, Goods, or file names.
+- Write a professional buyer-facing description that sounds ready for a real storefront.
+- Estimate a realistic market price in USD.
+- Choose the closest category from: fashion, books, tools, vehicles, animals.
+- Shoes, heels, sneakers, sandals, clothing, watches, bags, and accessories must be fashion.
+- Cars, motorcycles, bicycles, trucks, buses, and auto parts must be vehicles.
+- Use the given public image URLs in the images array and the related sourceIds for each listing.
+- Never return an empty result when clear product photos exist.`,
     },
   ];
 
   images.forEach((image, index) => {
-    content.push({ type: "text", text: `Image ${index + 1} | sourceId=${image.sourceId} | file=${image.name} | publicUrl=${image.url}` });
+    content.push({ type: "text", text: `Image ${index + 1}\nsourceId: ${image.sourceId}\nfilename: ${image.name}\npublicUrl: ${image.url}` });
     content.push({ type: "image_url", image_url: { url: image.url } });
   });
 
@@ -156,11 +160,11 @@ Rules:
     method: "POST",
     headers: aiHeaders(apiKey),
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
-          content: "You are a senior e-commerce copywriter and visual product classifier. Return structured, usable listing drafts only.",
+          content: "You are a senior e-commerce copywriter and visual product classifier. Return structured, usable listing drafts only, with specific names, proper categories, and realistic prices.",
         },
         { role: "user", content },
       ],
@@ -179,7 +183,7 @@ Rules:
                   properties: {
                     title: { type: "string" },
                     description: { type: "string" },
-                    category: { type: "string", enum: [...categories] },
+                    category: { type: "string" },
                     price: { type: "number" },
                     currency: { type: "string" },
                     sourceIds: { type: "array", items: { type: "string" } },
@@ -208,15 +212,23 @@ Rules:
 
   const data = await safeJson(response);
   const args = parseToolArguments(data);
-  const listings = Array.isArray(args?.listings) ? args.listings.map(normalizeListing).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0) : [];
+  const listings = Array.isArray(args?.listings)
+    ? args.listings
+        .map((listing: any) => normalizeListing({
+          ...listing,
+          category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+        }))
+        .filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0)
+        .filter((item: any) => item.title.toLowerCase() !== "uploaded product")
+    : [];
 
   if (listings.length > 0) return { listings };
 
   return {
     listings: images.map((image) => normalizeListing({
       title: String(image.name || "Uploaded image").replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "Product",
-      description: "AI generated a fallback draft for this uploaded product. Review and adjust before posting.",
-      category: "tools",
+      description: "AI could not fully classify this image, so a fallback draft was created. Review the details before posting.",
+      category: normalizeCategory(image.name),
       price: 0,
       currency: "USD",
       sourceIds: [image.sourceId],
@@ -232,11 +244,11 @@ async function mergeCandidates(candidates: z.infer<typeof CandidateListingSchema
     method: "POST",
     headers: aiHeaders(apiKey),
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
-          content: "You merge e-commerce draft listings. Combine only entries that clearly represent the same product/model. Keep different products separate.",
+          content: "You merge e-commerce draft listings. Combine only entries that clearly represent the same product or same model. Keep different products separate and preserve the best professional title, description, category, and realistic price.",
         },
         {
           role: "user",
@@ -262,7 +274,7 @@ ${JSON.stringify(candidates, null, 2)}`,
                   properties: {
                     title: { type: "string" },
                     description: { type: "string" },
-                    category: { type: "string", enum: [...categories] },
+                    category: { type: "string" },
                     price: { type: "number" },
                     currency: { type: "string" },
                     sourceIds: { type: "array", items: { type: "string" } },
@@ -291,7 +303,12 @@ ${JSON.stringify(candidates, null, 2)}`,
 
   const data = await safeJson(response);
   const args = parseToolArguments(data);
-  const listings = Array.isArray(args?.listings) ? args.listings.map(normalizeListing).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0) : [];
+  const listings = Array.isArray(args?.listings)
+    ? args.listings.map((listing: any) => normalizeListing({
+        ...listing,
+        category: normalizeCategory(listing?.category, listing?.title, listing?.description),
+      })).filter((item: any) => item.images.length > 0 || item.sourceIds.length > 0)
+    : [];
   return { listings: listings.length > 0 ? listings : candidates.map(normalizeListing) };
 }
 
