@@ -186,6 +186,15 @@ const BulkProductPoster = () => {
     return data;
   };
 
+  const invokeSingleImageAI = async (imageUrl: string) => {
+    const { data, error } = await supabase.functions.invoke('analyze-product-image', {
+      body: { imageUrl },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
   const invokeWithRetry = async <T,>(label: string, run: () => Promise<T>): Promise<T> => {
     let lastError: unknown;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -260,7 +269,8 @@ const BulkProductPoster = () => {
       );
 
       const nextListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
-      if (nextListings.length > 0) return nextListings;
+      const hasMeaningfulMetadata = nextListings.some((listing) => !isGenericTitle(listing.title) && listing.description.length > 40);
+      if (nextListings.length > 0 && hasMeaningfulMetadata) return nextListings;
     } catch (error) {
       console.warn(`Vision batch ${batchNumber} failed, retrying one image at a time`, error);
     }
@@ -270,14 +280,20 @@ const BulkProductPoster = () => {
     for (const image of images) {
       try {
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
-          invokeBulkAI({
-            mode: 'analyze',
-            images: [{ sourceId: image.sourceId, name: image.name, url: image.url }],
-          }),
+          invokeSingleImageAI(image.url),
         );
 
-        const singleListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
-        recovered.push(...(singleListings.length > 0 ? singleListings : [fallbackListingFromImage(image)]));
+        const enriched = normalizeListing({
+          title: data?.title || filenameToTitle(image.name),
+          description: data?.description || 'AI generated a draft from this uploaded image. Review and refine it before posting.',
+          category: data?.category || normalizeCategory(image.name),
+          price: data?.price ?? 0,
+          currency: data?.currency || 'USD',
+          images: [image.url],
+          sourceIds: [image.sourceId],
+        });
+
+        recovered.push(isGenericTitle(enriched.title) ? fallbackListingFromImage(image) : enriched);
       } catch (error) {
         console.error(`Single-image recovery failed for ${image.name}`, error);
         recovered.push(fallbackListingFromImage(image));
