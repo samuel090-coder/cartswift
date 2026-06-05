@@ -133,6 +133,43 @@ const hasMeaningfulDescription = (description: string) => {
 const listingNeedsRecovery = (listing: Listing) =>
   isGenericTitle(listing.title) || !hasMeaningfulDescription(listing.description) || listing.price <= 0;
 
+const listingQualityScore = (listing: Listing) => {
+  let score = 0;
+  if (!isGenericTitle(listing.title)) score += 3;
+  if (hasMeaningfulDescription(listing.description)) score += 2;
+  if (listing.price > 0) score += 2;
+  if (listing.category !== 'tools') score += 1;
+  if ((listing.images?.length || 0) > 0) score += 1;
+  if ((listing.sourceIds?.length || 0) > 0) score += 1;
+  return score;
+};
+
+const dedupeListings = (items: Listing[]) => {
+  const bestByKey = new Map<string, Listing>();
+
+  items.forEach((listing) => {
+    const keys = [
+      ...(listing.sourceIds || []).map((sourceId) => `source:${sourceId}`),
+      ...(listing.images || []).map((image) => `image:${image}`),
+    ];
+
+    const canonicalKey = keys[0] || `${listing.title}:${listing.description}`;
+    const existing = bestByKey.get(canonicalKey);
+    if (!existing || listingQualityScore(listing) > listingQualityScore(existing)) {
+      bestByKey.set(canonicalKey, listing);
+    }
+
+    keys.forEach((key) => {
+      const current = bestByKey.get(key);
+      if (!current || listingQualityScore(listing) > listingQualityScore(current)) {
+        bestByKey.set(key, listing);
+      }
+    });
+  });
+
+  return Array.from(new Set(bestByKey.values())).filter((listing) => listing.images.length > 0 || (listing.sourceIds?.length || 0) > 0);
+};
+
 const normalizeUploadMimeType = (file: File) => {
   if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
 
@@ -361,7 +398,7 @@ const BulkProductPoster = () => {
         const recoveredSourceIds = new Set(enhancedListings.flatMap((listing) => listing.sourceIds || []));
         const missingImages = images.filter((image) => !recoveredSourceIds.has(image.sourceId));
         const missingRecovered = await Promise.all(missingImages.map((image) => recoverListing(fallbackListingFromImage(image))));
-        return [...enhancedListings, ...missingRecovered];
+        return dedupeListings([...enhancedListings, ...missingRecovered].map(normalizeListing));
       }
     } catch (error) {
       console.warn(`Vision batch ${batchNumber} failed, retrying one image at a time`, error);
