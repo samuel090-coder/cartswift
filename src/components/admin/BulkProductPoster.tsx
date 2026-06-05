@@ -88,6 +88,11 @@ const filenameToTitle = (name: string) =>
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
 
+const isOpaqueIdentifier = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return /^[a-f0-9]{8,}(?:[\s-]?[a-f0-9]{4,}){2,}$/.test(normalized.replace(/\s+/g, ''));
+};
+
 const inferCategoryScores = (text: string) =>
   CATEGORIES.reduce((acc, category) => {
     acc[category] = CATEGORY_KEYWORDS[category].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
@@ -111,7 +116,7 @@ const normalizeCategory = (...parts: string[]) => {
 
 const isGenericTitle = (title: string) => {
   const value = title.trim().toLowerCase();
-  return !value || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
+  return !value || isOpaqueIdentifier(value) || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
 };
 
 const GENERIC_DESCRIPTION_FRAGMENTS = [
@@ -311,7 +316,7 @@ const BulkProductPoster = () => {
         );
 
         const enriched = normalizeListing({
-          title: data?.title || referenceImage.name,
+          title: data?.title || '',
           description: data?.description || listing.description,
           category: data?.category || listing.category,
           price: data?.price ?? listing.price,
@@ -372,7 +377,7 @@ const BulkProductPoster = () => {
         );
 
         const enriched = normalizeListing({
-          title: data?.title || filenameToTitle(image.name),
+          title: data?.title || '',
           description: data?.description || 'AI generated a draft from this uploaded image. Review and refine it before posting.',
           category: data?.category || normalizeCategory(image.name),
           price: data?.price ?? 0,
