@@ -249,14 +249,22 @@ const BulkProductPoster = () => {
       const sourceId = crypto.randomUUID();
       const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `bulk/${Date.now()}-${sourceId}.${extension}`;
-      const dataUrl = await fileToDataUrl(file);
 
       const uploadResult = await supabase.storage.from('item-images').upload(path, file, {
         contentType: normalizeUploadMimeType(file),
         upsert: false,
       });
 
-      if (uploadResult.error) throw uploadResult.error;
+      if (uploadResult.error) {
+        console.error('Storage upload failed', {
+          message: uploadResult.error.message,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          path,
+        });
+        throw new Error(`Image upload failed for "${file.name}": ${uploadResult.error.message}`);
+      }
 
       const { data } = supabase.storage.from('item-images').getPublicUrl(path);
 
@@ -264,7 +272,7 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
-        dataUrl,
+        dataUrl: '',
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
