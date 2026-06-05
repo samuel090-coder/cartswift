@@ -84,7 +84,7 @@ const filenameToTitle = (name: string) =>
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (!cleaned || /^\d+$/.test(cleaned)) return 'Uploaded Product';
+    if (!cleaned || /^\d+$/.test(cleaned) || isOpaqueIdentifier(cleaned)) return 'Product Draft';
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
 
