@@ -36,7 +36,7 @@ type PreparedImage = {
   sourceId: string;
   name: string;
   url: string;
-  dataUrl: string;
+  file: File;
 };
 
 const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
@@ -84,9 +84,14 @@ const filenameToTitle = (name: string) =>
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (!cleaned || /^\d+$/.test(cleaned)) return 'Uploaded Product';
+    if (!cleaned || /^\d+$/.test(cleaned) || isOpaqueIdentifier(cleaned)) return 'Product Draft';
     return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
   })();
+
+const isOpaqueIdentifier = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return /^[a-f0-9]{8,}(?:[\s-]?[a-f0-9]{4,}){2,}$/.test(normalized.replace(/\s+/g, ''));
+};
 
 const inferCategoryScores = (text: string) =>
   CATEGORIES.reduce((acc, category) => {
@@ -111,7 +116,58 @@ const normalizeCategory = (...parts: string[]) => {
 
 const isGenericTitle = (title: string) => {
   const value = title.trim().toLowerCase();
-  return !value || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
+  return !value || isOpaqueIdentifier(value) || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
+};
+
+const GENERIC_DESCRIPTION_FRAGMENTS = [
+  'review this ai-generated draft before posting',
+  'ai generated a draft from this uploaded image',
+  'ai could not fully classify this image',
+];
+
+const hasMeaningfulDescription = (description: string) => {
+  const value = description.trim().toLowerCase();
+  return value.length >= 40 && !GENERIC_DESCRIPTION_FRAGMENTS.some((fragment) => value.includes(fragment));
+};
+
+const listingNeedsRecovery = (listing: Listing) =>
+  isGenericTitle(listing.title) || !hasMeaningfulDescription(listing.description) || listing.price <= 0;
+
+const listingQualityScore = (listing: Listing) => {
+  let score = 0;
+  if (!isGenericTitle(listing.title)) score += 3;
+  if (hasMeaningfulDescription(listing.description)) score += 2;
+  if (listing.price > 0) score += 2;
+  if (listing.category !== 'tools') score += 1;
+  if ((listing.images?.length || 0) > 0) score += 1;
+  if ((listing.sourceIds?.length || 0) > 0) score += 1;
+  return score;
+};
+
+const dedupeListings = (items: Listing[]) => {
+  const bestByKey = new Map<string, Listing>();
+
+  items.forEach((listing) => {
+    const keys = [
+      ...(listing.sourceIds || []).map((sourceId) => `source:${sourceId}`),
+      ...(listing.images || []).map((image) => `image:${image}`),
+    ];
+
+    const canonicalKey = keys[0] || `${listing.title}:${listing.description}`;
+    const existing = bestByKey.get(canonicalKey);
+    if (!existing || listingQualityScore(listing) > listingQualityScore(existing)) {
+      bestByKey.set(canonicalKey, listing);
+    }
+
+    keys.forEach((key) => {
+      const current = bestByKey.get(key);
+      if (!current || listingQualityScore(listing) > listingQualityScore(current)) {
+        bestByKey.set(key, listing);
+      }
+    });
+  });
+
+  return Array.from(new Set(bestByKey.values())).filter((listing) => listing.images.length > 0 || (listing.sourceIds?.length || 0) > 0);
 };
 
 const normalizeUploadMimeType = (file: File) => {
@@ -141,9 +197,7 @@ const normalizeListing = (listing: Partial<Listing>): Listing => {
   const category = normalizeCategory(listing.category || '', listing.title || '', listing.description || '');
 
   const trimmedTitle = (listing.title || '').trim();
-  const fallbackTitle = listing.images?.[0]
-    ? filenameToTitle(listing.images[0].split('/').pop() || '')
-    : 'Product Draft';
+  const fallbackTitle = 'Product Draft';
   const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) || isGenericTitle(trimmedTitle) ? fallbackTitle : trimmedTitle;
 
   return {
@@ -272,7 +326,7 @@ const BulkProductPoster = () => {
         sourceId,
         name: file.name,
         url: data.publicUrl,
-        dataUrl: '',
+        file,
       });
 
       const pct = Math.round(((i + 1) / files.length) * UPLOAD_PROGRESS_SHARE);
@@ -284,17 +338,68 @@ const BulkProductPoster = () => {
   };
 
   const analyzeChunk = async (images: PreparedImage[], batchNumber: number) => {
+    const imageBySourceId = new Map(images.map((image) => [image.sourceId, image]));
+
+    const recoverListing = async (listing: Listing) => {
+      const referenceImage = listing.sourceIds?.map((sourceId) => imageBySourceId.get(sourceId)).find(Boolean)
+        || images.find((image) => listing.images.includes(image.url));
+
+      if (!referenceImage) return listing;
+
+      try {
+        const dataUrl = await fileToDataUrl(referenceImage.file);
+        const data = await invokeWithRetry(`Recovery image ${referenceImage.name}`, () =>
+          invokeSingleImageAI(dataUrl),
+        );
+
+        const enriched = normalizeListing({
+          title: data?.title || '',
+          description: data?.description || listing.description,
+          category: data?.category || listing.category,
+          price: data?.price ?? listing.price,
+          currency: data?.currency || listing.currency,
+          images: listing.images.length > 0 ? listing.images : [referenceImage.url],
+          sourceIds: listing.sourceIds?.length ? listing.sourceIds : [referenceImage.sourceId],
+        });
+
+        return listingNeedsRecovery(enriched)
+          ? normalizeListing({
+              ...listing,
+              title: filenameToTitle(referenceImage.name),
+              images: listing.images.length > 0 ? listing.images : [referenceImage.url],
+              sourceIds: listing.sourceIds?.length ? listing.sourceIds : [referenceImage.sourceId],
+            })
+          : enriched;
+      } catch (error) {
+        console.error(`Single-image recovery failed for ${referenceImage.name}`, error);
+        return normalizeListing({
+          ...listing,
+          title: filenameToTitle(referenceImage.name),
+          images: listing.images.length > 0 ? listing.images : [referenceImage.url],
+          sourceIds: listing.sourceIds?.length ? listing.sourceIds : [referenceImage.sourceId],
+        });
+      }
+    };
+
     try {
       const data = await invokeWithRetry(`Vision batch ${batchNumber}`, () =>
         invokeBulkAI({
           mode: 'analyze',
-          images: images.map(({ sourceId, name, url, dataUrl }) => ({ sourceId, name, url, dataUrl })),
+          images: images.map(({ sourceId, name, url }) => ({ sourceId, name, url })),
         }),
       );
 
       const nextListings = Array.isArray(data?.listings) ? data.listings.map(normalizeListing) : [];
-      const hasMeaningfulMetadata = nextListings.some((listing) => !isGenericTitle(listing.title) && listing.description.length > 40);
-      if (nextListings.length > 0 && hasMeaningfulMetadata) return nextListings;
+      if (nextListings.length > 0) {
+        const enhancedListings = await Promise.all(nextListings.map((listing) => (
+          listingNeedsRecovery(listing) ? recoverListing(listing) : Promise.resolve(listing)
+        )));
+
+        const recoveredSourceIds = new Set(enhancedListings.flatMap((listing) => listing.sourceIds || []));
+        const missingImages = images.filter((image) => !recoveredSourceIds.has(image.sourceId));
+        const missingRecovered = await Promise.all(missingImages.map((image) => recoverListing(fallbackListingFromImage(image))));
+        return dedupeListings([...enhancedListings, ...missingRecovered].map(normalizeListing));
+      }
     } catch (error) {
       console.warn(`Vision batch ${batchNumber} failed, retrying one image at a time`, error);
     }
@@ -303,12 +408,13 @@ const BulkProductPoster = () => {
 
     for (const image of images) {
       try {
+        const dataUrl = await fileToDataUrl(image.file);
         const data = await invokeWithRetry(`Recovery image ${image.name}`, () =>
-          invokeSingleImageAI(image.dataUrl || image.url),
+          invokeSingleImageAI(dataUrl),
         );
 
         const enriched = normalizeListing({
-          title: data?.title || filenameToTitle(image.name),
+          title: data?.title || '',
           description: data?.description || 'AI generated a draft from this uploaded image. Review and refine it before posting.',
           category: data?.category || normalizeCategory(image.name),
           price: data?.price ?? 0,
