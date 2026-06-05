@@ -36,7 +36,7 @@ type PreparedImage = {
   sourceId: string;
   name: string;
   url: string;
-  dataUrl: string;
+  file: File;
 };
 
 const CATEGORIES = ['fashion', 'books', 'tools', 'vehicles', 'animals'] as const;
@@ -114,6 +114,20 @@ const isGenericTitle = (title: string) => {
   return !value || ['uploaded product', 'product', 'uploaded image', 'item', 'goods'].includes(value);
 };
 
+const GENERIC_DESCRIPTION_FRAGMENTS = [
+  'review this ai-generated draft before posting',
+  'ai generated a draft from this uploaded image',
+  'ai could not fully classify this image',
+];
+
+const hasMeaningfulDescription = (description: string) => {
+  const value = description.trim().toLowerCase();
+  return value.length >= 40 && !GENERIC_DESCRIPTION_FRAGMENTS.some((fragment) => value.includes(fragment));
+};
+
+const listingNeedsRecovery = (listing: Listing) =>
+  isGenericTitle(listing.title) || !hasMeaningfulDescription(listing.description) || listing.price <= 0;
+
 const normalizeUploadMimeType = (file: File) => {
   if (JPG_MIME_TYPES.has(file.type.toLowerCase())) return 'image/jpeg';
 
@@ -141,9 +155,7 @@ const normalizeListing = (listing: Partial<Listing>): Listing => {
   const category = normalizeCategory(listing.category || '', listing.title || '', listing.description || '');
 
   const trimmedTitle = (listing.title || '').trim();
-  const fallbackTitle = listing.images?.[0]
-    ? filenameToTitle(listing.images[0].split('/').pop() || '')
-    : 'Product Draft';
+  const fallbackTitle = 'Product Draft';
   const safeTitle = !trimmedTitle || /^\d+$/.test(trimmedTitle) || isGenericTitle(trimmedTitle) ? fallbackTitle : trimmedTitle;
 
   return {
