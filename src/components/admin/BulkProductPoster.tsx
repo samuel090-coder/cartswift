@@ -16,6 +16,7 @@ const VISION_CHUNK_SIZE = 6;
 const ANALYSIS_PARALLEL = 2;
 const GROUP_CHUNK_SIZE = 50;
 const MAX_RETRIES = 3;
+const DETAIL_GENERATION_PARALLEL = 2;
 const UPLOAD_PROGRESS_SHARE = 35;
 const ANALYZE_PROGRESS_SHARE = 45;
 const GROUP_PROGRESS_SHARE = 20;
@@ -248,6 +249,7 @@ const BulkProductPoster = () => {
   const [generatingDetails, setGeneratingDetails] = useState(false);
   const [generateProgress, setGenerateProgress] = useState({ done: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
+  const preparedFilesRef = useRef(new Map<string, File>());
 
   const invokeBulkAI = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke('ai-bulk-detect-products', { body });
@@ -297,6 +299,17 @@ const BulkProductPoster = () => {
     return results;
   };
 
+  const resolveListingImageInput = async (listing: Listing) => {
+    const matchingFile = (listing.sourceIds || []).map((sourceId) => preparedFilesRef.current.get(sourceId)).find(Boolean)
+      || listing.images.map((imageUrl) => preparedFilesRef.current.get(imageUrl)).find(Boolean);
+
+    if (matchingFile) {
+      return fileToDataUrl(matchingFile);
+    }
+
+    return listing.images[0] || '';
+  };
+
   const uploadAndPrepareImages = async (files: File[]) => {
     const prepared: PreparedImage[] = [];
 
@@ -323,6 +336,9 @@ const BulkProductPoster = () => {
       }
 
       const { data } = supabase.storage.from('item-images').getPublicUrl(path);
+
+      preparedFilesRef.current.set(sourceId, file);
+      preparedFilesRef.current.set(data.publicUrl, file);
 
       prepared.push({
         sourceId,
@@ -598,17 +614,17 @@ const BulkProductPoster = () => {
     setGenerateProgress({ done: 0, total: targets.length });
 
     let ok = 0;
-    const PARALLEL = 3;
 
-    for (let i = 0; i < targets.length; i += PARALLEL) {
-      const wave = targets.slice(i, i + PARALLEL);
+    for (let i = 0; i < targets.length; i += DETAIL_GENERATION_PARALLEL) {
+      const wave = targets.slice(i, i + DETAIL_GENERATION_PARALLEL);
       await Promise.all(
         wave.map(async ({ l, idx }) => {
-          const imageUrl = l.images[0];
-          if (!imageUrl) return;
           try {
+            const imageInput = await resolveListingImageInput(l);
+            if (!imageInput) throw new Error('No image found for this draft');
+
             const data = await invokeWithRetry(`Generate details ${idx + 1}`, () =>
-              invokeSingleImageAI(imageUrl),
+              invokeSingleImageAI(imageInput),
             );
             const enriched = normalizeListing({
               ...l,
