@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Pencil, Send, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Loader2, Pencil, Send, Sparkles, Trash2, Upload, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const VISION_CHUNK_SIZE = 6;
