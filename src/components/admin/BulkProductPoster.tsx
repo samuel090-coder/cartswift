@@ -245,6 +245,8 @@ const BulkProductPoster = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [postingAll, setPostingAll] = useState(false);
+  const [generatingDetails, setGeneratingDetails] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState({ done: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const invokeBulkAI = async (body: Record<string, unknown>) => {
