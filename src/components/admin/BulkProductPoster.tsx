@@ -584,6 +584,56 @@ const BulkProductPoster = () => {
     if (ok > 0) toast.success(`Posted ${ok} product(s) to the site!`);
   };
 
+  const generateAllDetails = async () => {
+    const targets = listings
+      .map((l, idx) => ({ l, idx }))
+      .filter(({ l }) => !l.posted && (l.images.length > 0 || (l.sourceIds?.length || 0) > 0));
+
+    if (targets.length === 0) {
+      toast.error('No drafts to generate details for.');
+      return;
+    }
+
+    setGeneratingDetails(true);
+    setGenerateProgress({ done: 0, total: targets.length });
+
+    let ok = 0;
+    const PARALLEL = 3;
+
+    for (let i = 0; i < targets.length; i += PARALLEL) {
+      const wave = targets.slice(i, i + PARALLEL);
+      await Promise.all(
+        wave.map(async ({ l, idx }) => {
+          const imageUrl = l.images[0];
+          if (!imageUrl) return;
+          try {
+            const data = await invokeWithRetry(`Generate details ${idx + 1}`, () =>
+              invokeSingleImageAI(imageUrl),
+            );
+            const enriched = normalizeListing({
+              ...l,
+              title: data?.title || l.title,
+              description: data?.description || l.description,
+              category: data?.category || l.category,
+              price: Number.isFinite(Number(data?.price)) && Number(data.price) > 0 ? Number(data.price) : l.price,
+              currency: data?.currency || l.currency,
+            });
+            setListings((prev) => prev.map((x, j) => (j === idx ? { ...enriched, posted: x.posted, posting: x.posting } : x)));
+            ok++;
+          } catch (error: any) {
+            console.error(`Generate details failed for listing ${idx}`, error);
+          } finally {
+            setGenerateProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+          }
+        }),
+      );
+    }
+
+    setGeneratingDetails(false);
+    if (ok > 0) toast.success(`AI generated details for ${ok} product(s)`);
+    else toast.error('AI could not generate details. Try again.');
+  };
+
   const removeListing = (idx: number) => {
     setListings((prev) => prev.filter((_, i) => i !== idx));
   };
