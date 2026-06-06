@@ -656,14 +656,27 @@ const BulkProductPoster = () => {
           </p>
         </div>
         {pendingCount > 0 && (
-          <Button
-            onClick={postAll}
-            disabled={postingAll}
-            className="bg-gradient-to-r from-amber-500 to-amber-700 text-white"
-          >
-            {postingAll ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
-            Post All ({pendingCount})
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={generateAllDetails}
+              disabled={generatingDetails || postingAll}
+              variant="outline"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            >
+              {generatingDetails ? <Loader2 className="animate-spin mr-2" size={16} /> : <Wand2 className="mr-2" size={16} />}
+              {generatingDetails
+                ? `Generating ${generateProgress.done}/${generateProgress.total}`
+                : `Generate Details (${pendingCount})`}
+            </Button>
+            <Button
+              onClick={postAll}
+              disabled={postingAll || generatingDetails}
+              className="bg-gradient-to-r from-amber-500 to-amber-700 text-white"
+            >
+              {postingAll ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
+              Post All ({pendingCount})
+            </Button>
+          </div>
         )}
       </div>
 
