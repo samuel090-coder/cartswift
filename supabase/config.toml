@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.ai-bulk-detect-products]
 verify_jwt = false
+
+[functions.analyze-product-image]
+verify_jwt = false

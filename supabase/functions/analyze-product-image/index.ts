@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const categories = ["fashion", "books", "tools", "vehicles", "animals"] as const;
 
@@ -99,6 +95,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_completion_tokens: 1200,
         messages: [
           {
             role: "system",
@@ -155,6 +152,14 @@ serve(async (req) => {
 
     const data = await res.json();
     const args = parseToolArgs(data);
+
+    console.log("analyze-product-image result", JSON.stringify({
+      hasTitle: Boolean(args.title),
+      hasDescription: Boolean(args.description),
+      price: args.price,
+      category: args.category,
+      finishReason: data?.choices?.[0]?.finish_reason ?? null,
+    }));
 
     return new Response(JSON.stringify({
       success: true,
