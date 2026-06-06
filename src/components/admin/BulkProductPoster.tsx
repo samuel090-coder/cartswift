@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Pencil, Send, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Loader2, Pencil, Send, Sparkles, Trash2, Upload, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const VISION_CHUNK_SIZE = 6;
@@ -245,6 +245,8 @@ const BulkProductPoster = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [postingAll, setPostingAll] = useState(false);
+  const [generatingDetails, setGeneratingDetails] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState({ done: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const invokeBulkAI = async (body: Record<string, unknown>) => {
@@ -582,6 +584,56 @@ const BulkProductPoster = () => {
     if (ok > 0) toast.success(`Posted ${ok} product(s) to the site!`);
   };
 
+  const generateAllDetails = async () => {
+    const targets = listings
+      .map((l, idx) => ({ l, idx }))
+      .filter(({ l }) => !l.posted && (l.images.length > 0 || (l.sourceIds?.length || 0) > 0));
+
+    if (targets.length === 0) {
+      toast.error('No drafts to generate details for.');
+      return;
+    }
+
+    setGeneratingDetails(true);
+    setGenerateProgress({ done: 0, total: targets.length });
+
+    let ok = 0;
+    const PARALLEL = 3;
+
+    for (let i = 0; i < targets.length; i += PARALLEL) {
+      const wave = targets.slice(i, i + PARALLEL);
+      await Promise.all(
+        wave.map(async ({ l, idx }) => {
+          const imageUrl = l.images[0];
+          if (!imageUrl) return;
+          try {
+            const data = await invokeWithRetry(`Generate details ${idx + 1}`, () =>
+              invokeSingleImageAI(imageUrl),
+            );
+            const enriched = normalizeListing({
+              ...l,
+              title: data?.title || l.title,
+              description: data?.description || l.description,
+              category: data?.category || l.category,
+              price: Number.isFinite(Number(data?.price)) && Number(data.price) > 0 ? Number(data.price) : l.price,
+              currency: data?.currency || l.currency,
+            });
+            setListings((prev) => prev.map((x, j) => (j === idx ? { ...enriched, posted: x.posted, posting: x.posting } : x)));
+            ok++;
+          } catch (error: any) {
+            console.error(`Generate details failed for listing ${idx}`, error);
+          } finally {
+            setGenerateProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+          }
+        }),
+      );
+    }
+
+    setGeneratingDetails(false);
+    if (ok > 0) toast.success(`AI generated details for ${ok} product(s)`);
+    else toast.error('AI could not generate details. Try again.');
+  };
+
   const removeListing = (idx: number) => {
     setListings((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -604,14 +656,27 @@ const BulkProductPoster = () => {
           </p>
         </div>
         {pendingCount > 0 && (
-          <Button
-            onClick={postAll}
-            disabled={postingAll}
-            className="bg-gradient-to-r from-amber-500 to-amber-700 text-white"
-          >
-            {postingAll ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
-            Post All ({pendingCount})
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={generateAllDetails}
+              disabled={generatingDetails || postingAll}
+              variant="outline"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            >
+              {generatingDetails ? <Loader2 className="animate-spin mr-2" size={16} /> : <Wand2 className="mr-2" size={16} />}
+              {generatingDetails
+                ? `Generating ${generateProgress.done}/${generateProgress.total}`
+                : `Generate Details (${pendingCount})`}
+            </Button>
+            <Button
+              onClick={postAll}
+              disabled={postingAll || generatingDetails}
+              className="bg-gradient-to-r from-amber-500 to-amber-700 text-white"
+            >
+              {postingAll ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
+              Post All ({pendingCount})
+            </Button>
+          </div>
         )}
       </div>
 
