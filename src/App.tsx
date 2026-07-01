@@ -34,6 +34,12 @@ import Explore from "./pages/Explore";
 import Messages from "./pages/Messages";
 import Track from "./pages/Track";
 import NotFound from "./pages/NotFound";
+import RewardPopup from "./components/rewards/RewardPopup";
+import RewardClaim from "./pages/RewardClaim";
+import RewardCheckout from "./pages/RewardCheckout";
+import RewardCelebration from "./pages/RewardCelebration";
+import RewardBonus from "./pages/RewardBonus";
+import RewardBonusCheckout from "./pages/RewardBonusCheckout";
 
 const queryClient = new QueryClient();
 
@@ -75,9 +81,15 @@ const App = () => (
                 <Route path="/admin/check" element={<AdminStatusChecker />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/track" element={<Track />} />
+                <Route path="/reward/claim" element={<RewardClaim />} />
+                <Route path="/reward/checkout" element={<RewardCheckout />} />
+                <Route path="/reward/celebration" element={<RewardCelebration />} />
+                <Route path="/reward/bonus" element={<RewardBonus />} />
+                <Route path="/reward/bonus/checkout" element={<RewardBonusCheckout />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AISupportLauncher />
+              <RewardPopup />
             </BrowserRouter>
           </CartProvider>
         </AuthProvider>
