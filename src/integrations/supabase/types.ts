@@ -1991,6 +1991,104 @@ export type Database = {
           },
         ]
       }
+      reward_bonus_bundles: {
+        Row: {
+          amount_paid: number | null
+          bonus_items: Json
+          claim_id: string
+          created_at: string
+          currency: string | null
+          id: string
+          payment_reference: string | null
+          recipient: Json | null
+          recipient_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          bonus_items: Json
+          claim_id: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          payment_reference?: string | null
+          recipient?: Json | null
+          recipient_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number | null
+          bonus_items?: Json
+          claim_id?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          payment_reference?: string | null
+          recipient?: Json | null
+          recipient_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_bonus_bundles_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "reward_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_claims: {
+        Row: {
+          amount_paid: number | null
+          created_at: string
+          currency: string | null
+          delivery: Json | null
+          expires_at: string | null
+          id: string
+          payment_reference: string | null
+          primary_reward: Json
+          session_id: string
+          shipping_fee: number | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string
+          currency?: string | null
+          delivery?: Json | null
+          expires_at?: string | null
+          id?: string
+          payment_reference?: string | null
+          primary_reward: Json
+          session_id: string
+          shipping_fee?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string
+          currency?: string | null
+          delivery?: Json | null
+          expires_at?: string | null
+          id?: string
+          payment_reference?: string | null
+          primary_reward?: Json
+          session_id?: string
+          shipping_fee?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       seller_applications: {
         Row: {
           account_holder_name: string | null
