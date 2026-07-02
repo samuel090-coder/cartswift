@@ -21,11 +21,23 @@ export default function RewardPopup() {
     const t = setTimeout(async () => {
       setOpen(true);
       setLoading(true);
+      const tryInvoke = async (attempt: number): Promise<any> => {
+        try {
+          const { data, error } = await supabase.functions.invoke('smart-rewards-generate', {
+            body: { sessionId: getSessionId() },
+          });
+          if (error) throw error;
+          return data;
+        } catch (e) {
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 1500));
+            return tryInvoke(attempt + 1);
+          }
+          throw e;
+        }
+      };
       try {
-        const { data, error } = await supabase.functions.invoke('smart-rewards-generate', {
-          body: { sessionId: getSessionId() },
-        });
-        if (error) throw error;
+        const data = await tryInvoke(0);
         setClaim(data.claim);
         setActiveClaim(data.claim);
       } catch (e) {

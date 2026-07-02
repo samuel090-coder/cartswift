@@ -30,6 +30,7 @@ import NotificationBell from '@/components/admin/NotificationBell';
 import EmailTester from '@/components/admin/EmailTester';
 import TemuIntegration from '@/components/admin/TemuIntegration';
 import SupportChatManagement from '@/components/admin/SupportChatManagement';
+import RewardsManagement from '@/components/admin/RewardsManagement';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -297,7 +298,18 @@ const AdminDashboard = () => {
                 <Headphones size={16} />
                 <span className="hidden sm:inline">Support</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="rewards" 
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
+              >
+                <Sparkles size={16} />
+                <span className="hidden sm:inline">Rewards</span>
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="rewards">
+              <RewardsManagement />
+            </TabsContent>
 
             <TabsContent value="support">
               <SupportChatManagement />
