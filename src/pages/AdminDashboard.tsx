@@ -30,6 +30,7 @@ import NotificationBell from '@/components/admin/NotificationBell';
 import EmailTester from '@/components/admin/EmailTester';
 import TemuIntegration from '@/components/admin/TemuIntegration';
 import SupportChatManagement from '@/components/admin/SupportChatManagement';
+import RewardsManagement from '@/components/admin/RewardsManagement';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
