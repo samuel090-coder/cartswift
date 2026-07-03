@@ -46,7 +46,7 @@ export default function RewardClaim() {
             <h1 className="mb-2 text-3xl font-bold">{p.title}</h1>
             <div className="mb-4 flex items-baseline gap-3">
               <span className="text-3xl font-bold text-primary">FREE</span>
-              <span className="text-lg text-muted-foreground line-through">${p.original_price}</span>
+              <span className="text-lg text-muted-foreground line-through">₦{Math.round(Number(p.original_price_ngn || p.original_price || 0)).toLocaleString('en-NG')}</span>
               <span className="rounded-full border px-2 py-0.5 text-xs capitalize">{p.rarity}</span>
             </div>
             <p className="mb-6 text-muted-foreground">{p.description}</p>
