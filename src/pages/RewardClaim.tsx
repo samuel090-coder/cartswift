@@ -63,7 +63,7 @@ export default function RewardClaim() {
             <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 text-sm">
                 <Truck className="h-4 w-4 text-primary" />
-                <span>Product free. You cover shipping <b>${claim.shipping_fee}</b>. Est. arrival 5–9 business days.</span>
+                <span>Product free. You cover shipping <b>₦{Math.round(Number(claim.shipping_fee || 10000)).toLocaleString('en-NG')}</b>. Est. arrival 5–9 business days.</span>
               </div>
             </div>
 
