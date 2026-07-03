@@ -7,20 +7,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getActiveClaim, setActiveClaim, loadPaystack } from '@/lib/rewardSession';
+import { useAuth } from '@/contexts/AuthContext';
+import { getActiveClaim, setActiveClaim } from '@/lib/rewardSession';
+
+const fmtNGN = (n: number) => `₦${Math.round(Number(n || 0)).toLocaleString('en-NG')}`;
 
 export default function RewardCheckout() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const claim = getActiveClaim<any>();
   const [f, setF] = useState({
-    full_name: '', email: '', phone: '',
+    full_name: '',
+    email: user?.email || '',
+    phone: '',
     state: '', city: '', address: '', postal_code: '', instructions: '',
   });
   const [processing, setProcessing] = useState(false);
 
   if (!claim) { navigate('/'); return null; }
   const p = claim.primary_reward;
-  const total = Number(claim.shipping_fee || 5);
+  const total = Number(claim.shipping_fee || 10000);
 
   const update = (k: string, v: string) => setF({ ...f, [k]: v });
 
@@ -31,37 +37,26 @@ export default function RewardCheckout() {
     }
     setProcessing(true);
     try {
-      const reference = `rw_${claim.id}_${Date.now()}`;
+      // Persist delivery details first so webhook / return flow have them
+      await supabase.from('reward_claims').update({ delivery: f }).eq('id', claim.id);
+      setActiveClaim({ ...claim, delivery: f });
+
+      const reference = `rw_${claim.id.replace(/-/g,'').slice(0,10)}_${Date.now()}`;
+      const callback_url = `${window.location.origin}/reward/celebration?ref=${encodeURIComponent(reference)}&claim=${encodeURIComponent(claim.id)}`;
+
       const { data, error } = await supabase.functions.invoke('paystack-initialize', {
         body: {
           email: f.email,
           amount: total,
+          currency: 'NGN',
           reference,
-          metadata: { claim_id: claim.id, kind: 'primary_reward' },
+          callback_url,
+          metadata: { claim_id: claim.id, user_id: user?.id, kind: 'primary_reward' },
         },
       });
-      if (error || !data?.access_code) throw new Error(data?.error || 'Init failed');
-
-      const Paystack = await loadPaystack();
-      const handler = Paystack.setup({
-        key: 'pk_test_placeholder', // not used with access_code path
-        email: f.email,
-        amount: Math.round(total * 1600 * 100),
-        currency: 'NGN',
-        ref: reference,
-        access_code: data.access_code,
-        callback: async (res: any) => {
-          const verify = await supabase.functions.invoke('paystack-verify', {
-            body: { reference: res.reference, target: 'claim', id: claim.id, delivery: f },
-          });
-          if (verify.error) { toast.error('Verification failed'); return; }
-          const updated = { ...claim, status: 'paid', delivery: f };
-          setActiveClaim(updated);
-          navigate('/reward/celebration');
-        },
-        onClose: () => { setProcessing(false); toast('Payment cancelled'); },
-      });
-      handler.openIframe();
+      if (error) throw new Error(error.message || 'Init failed');
+      if (!data?.authorization_url) throw new Error(data?.error || 'No authorization URL returned');
+      window.location.href = data.authorization_url;
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Payment failed');
@@ -100,20 +95,20 @@ export default function RewardCheckout() {
             <h2 className="mb-3 font-semibold">Order summary</h2>
             <div className="mb-3 flex items-center gap-3">
               {p.image_url && <img src={p.image_url} className="h-14 w-14 rounded-lg object-cover" />}
-              <div className="text-sm">
-                <div className="font-medium">{p.title}</div>
-                <div className="text-muted-foreground">Value <s>${p.original_price}</s> → <b className="text-primary">FREE</b></div>
+              <div className="text-sm min-w-0">
+                <div className="font-semibold truncate">{p.title}</div>
+                <div className="text-xs text-muted-foreground">Reward · FREE product</div>
               </div>
             </div>
-            <div className="border-t py-2 text-sm space-y-1">
-              <div className="flex justify-between"><span>Product</span><span className="text-primary">$0.00</span></div>
-              <div className="flex justify-between"><span>Shipping fee</span><span>${total.toFixed(2)}</span></div>
-              <div className="flex justify-between font-bold pt-1 border-t"><span>Total</span><span>${total.toFixed(2)}</span></div>
+            <div className="space-y-1 text-sm border-t pt-3">
+              <div className="flex justify-between"><span className="text-muted-foreground">Product</span><span>FREE</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{fmtNGN(total)}</span></div>
+              <div className="flex justify-between font-bold pt-2 border-t mt-2"><span>Total</span><span>{fmtNGN(total)}</span></div>
             </div>
-            <Button onClick={pay} disabled={processing} className="mt-4 w-full bg-gradient-to-r from-primary to-accent" size="lg">
-              <Lock className="mr-2 h-4 w-4" /> {processing ? 'Processing…' : 'Pay Securely'}
+            <Button disabled={processing} onClick={pay} className="mt-4 w-full bg-gradient-to-r from-primary to-accent">
+              <Lock className="mr-2 h-4 w-4" /> {processing ? 'Redirecting…' : `Pay ${fmtNGN(total)}`}
             </Button>
-            <p className="mt-2 text-xs text-muted-foreground text-center">Secured by Paystack · 256-bit SSL</p>
+            <p className="mt-2 text-[11px] text-muted-foreground text-center">Secure payment via Paystack</p>
           </div>
         </div>
       </div>

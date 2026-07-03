@@ -46,7 +46,7 @@ export default function RewardClaim() {
             <h1 className="mb-2 text-3xl font-bold">{p.title}</h1>
             <div className="mb-4 flex items-baseline gap-3">
               <span className="text-3xl font-bold text-primary">FREE</span>
-              <span className="text-lg text-muted-foreground line-through">${p.original_price}</span>
+              <span className="text-lg text-muted-foreground line-through">₦{Math.round(Number(p.original_price_ngn || p.original_price || 0)).toLocaleString('en-NG')}</span>
               <span className="rounded-full border px-2 py-0.5 text-xs capitalize">{p.rarity}</span>
             </div>
             <p className="mb-6 text-muted-foreground">{p.description}</p>
@@ -63,7 +63,7 @@ export default function RewardClaim() {
             <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 text-sm">
                 <Truck className="h-4 w-4 text-primary" />
-                <span>Product free. You cover shipping <b>${claim.shipping_fee}</b>. Est. arrival 5–9 business days.</span>
+                <span>Product free. You cover shipping <b>₦{Math.round(Number(claim.shipping_fee || 10000)).toLocaleString('en-NG')}</b>. Est. arrival 5–9 business days.</span>
               </div>
             </div>
 

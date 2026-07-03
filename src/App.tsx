@@ -40,6 +40,7 @@ import RewardCheckout from "./pages/RewardCheckout";
 import RewardCelebration from "./pages/RewardCelebration";
 import RewardBonus from "./pages/RewardBonus";
 import RewardBonusCheckout from "./pages/RewardBonusCheckout";
+import Rewards from "./pages/Rewards";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
                 <Route path="/reward/celebration" element={<RewardCelebration />} />
                 <Route path="/reward/bonus" element={<RewardBonus />} />
                 <Route path="/reward/bonus/checkout" element={<RewardBonusCheckout />} />
+                <Route path="/rewards" element={<Rewards />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AISupportLauncher />

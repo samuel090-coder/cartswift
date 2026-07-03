@@ -38,38 +38,28 @@ export default function RewardBonusCheckout() {
     setProcessing(true);
     try {
       const email = claim?.delivery?.email || 'buyer@example.com';
-      const reference = `rwb_${bundle.id}_${Date.now()}`;
-      const { data, error } = await supabase.functions.invoke('paystack-initialize', {
-        body: { email, amount: total, reference, metadata: { bundle_id: bundle.id, kind: 'bonus' } },
-      });
-      if (error || !data?.access_code) throw new Error(data?.error || 'Init failed');
+      const reference = `rwb_${bundle.id.replace(/-/g,'').slice(0,10)}_${Date.now()}`;
+      const callback_url = `${window.location.origin}/reward/celebration?ref=${encodeURIComponent(reference)}&claim=${encodeURIComponent(claim.id)}`;
+      // Persist recipient details before redirect
+      await supabase.from('reward_bonus_bundles').update({
+        recipient_type: mode,
+        recipient: mode === 'gift' ? recipient : claim.delivery,
+      }).eq('id', bundle.id);
 
-      const Paystack = await loadPaystack();
-      const handler = Paystack.setup({
-        key: 'pk_test_placeholder',
-        email,
-        amount: Math.round(total * 1600 * 100),
-        currency: 'NGN',
-        ref: reference,
-        access_code: data.access_code,
-        callback: async (res: any) => {
-          const verify = await supabase.functions.invoke('paystack-verify', {
-            body: {
-              reference: res.reference,
-              target: 'bundle',
-              id: bundle.id,
-              recipient_type: mode,
-              recipient: mode === 'gift' ? recipient : claim.delivery,
-            },
-          });
-          if (verify.error) { toast.error('Verification failed'); return; }
-          toast.success('Bonus rewards secured!');
-          clearActiveClaim();
-          navigate('/');
+      const { data, error } = await supabase.functions.invoke('paystack-initialize', {
+        body: {
+          email,
+          amount: total,
+          currency: 'NGN',
+          reference,
+          callback_url,
+          metadata: { bundle_id: bundle.id, claim_id: claim.id, kind: 'bonus' },
         },
-        onClose: () => { setProcessing(false); toast('Payment cancelled'); },
       });
-      handler.openIframe();
+      if (error) throw new Error(error.message || 'Init failed');
+      if (!data?.authorization_url) throw new Error(data?.error || 'No authorization URL returned');
+      clearActiveClaim();
+      window.location.href = data.authorization_url;
     } catch (e: any) {
       toast.error(e.message || 'Failed');
       setProcessing(false);
