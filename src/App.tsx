@@ -40,6 +40,7 @@ import RewardCheckout from "./pages/RewardCheckout";
 import RewardCelebration from "./pages/RewardCelebration";
 import RewardBonus from "./pages/RewardBonus";
 import RewardBonusCheckout from "./pages/RewardBonusCheckout";
+import Rewards from "./pages/Rewards";
 
 const queryClient = new QueryClient();
 
