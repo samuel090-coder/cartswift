@@ -83,7 +83,7 @@ export default function RewardClaim() {
               <AccordionItem value="rules">
                 <AccordionTrigger className="text-left text-sm">Campaign Rules</AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground">
-                  One reward per visitor. Shipping fee is non-refundable. Reward reserved for 48 hours. Delivery times may vary by location. All prices shown are in USD.
+                  One reward per account. Shipping fee (₦10,000) is non-refundable. Reward reserved for 48 hours. Delivery times may vary by location.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
