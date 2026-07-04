@@ -2089,6 +2089,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_mystery_state: {
+        Row: {
+          created_at: string
+          last_boxes: Json
+          refresh_count: number
+          shown_titles: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_boxes?: Json
+          refresh_count?: number
+          shown_titles?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_boxes?: Json
+          refresh_count?: number
+          shown_titles?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       seller_applications: {
         Row: {
           account_holder_name: string | null

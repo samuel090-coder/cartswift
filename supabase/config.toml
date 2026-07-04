@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.smart-rewards-mystery]
+verify_jwt = false
+
+[functions.smart-rewards-commit]
+verify_jwt = false
