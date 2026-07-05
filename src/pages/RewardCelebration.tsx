@@ -5,6 +5,7 @@ import { CheckCircle2, Sparkles, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveClaim, setActiveClaim } from '@/lib/rewardSession';
+import { verifyPaystackPayment } from '@/lib/paystack';
 
 export default function RewardCelebration() {
   const navigate = useNavigate();
@@ -18,10 +19,8 @@ export default function RewardCelebration() {
     (async () => {
       if (!ref) { setStatus('success'); return; } // came from direct nav
       try {
-        const { data, error } = await supabase.functions.invoke('paystack-verify', {
-          body: { reference: ref, target: 'claim', id: claimId },
-        });
-        if (error || data?.error) throw new Error(data?.error || error?.message);
+        const data = await verifyPaystackPayment({ reference: ref, target: 'claim', id: claimId });
+        if (data?.error) throw new Error(data.error);
         // refresh claim
         if (claimId) {
           const { data: c } = await supabase.from('reward_claims').select('*').eq('id', claimId).maybeSingle();

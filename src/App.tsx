@@ -41,6 +41,7 @@ import RewardCelebration from "./pages/RewardCelebration";
 import RewardBonus from "./pages/RewardBonus";
 import RewardBonusCheckout from "./pages/RewardBonusCheckout";
 import Rewards from "./pages/Rewards";
+import PaymentReturn from "./pages/PaymentReturn";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/payment/return" element={<PaymentReturn />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/profile" element={<Profile />} />

@@ -6,18 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
-import PaymentMethod from '@/components/PaymentMethod';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Download, Shield, Clock } from 'lucide-react';
+import { CreditCard, Download, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatNaira, getPaystackAmountNgn, initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
 
 const DownloadPayment = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [email, setEmail] = useState('');
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [targetCurrency, setTargetCurrency] = useState('');
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
@@ -83,9 +81,7 @@ const DownloadPayment = () => {
     return sessionId;
   };
 
-  const handlePaymentComplete = async (paymentReference?: string, giftCardData?: any, proofUrl?: string) => {
-    setShowPaymentDialog(false);
-    
+  const handlePaystackCheckout = async () => {
     if (!email) {
       toast({
         title: "Email Required",
@@ -95,8 +91,10 @@ const DownloadPayment = () => {
       return;
     }
 
+    setIsProcessing(true);
     try {
       const sessionId = getSessionId();
+      const reference = makePaymentReference('cs_download', itemId);
       
       // Generate download token
       const { data: tokenData, error: tokenError } = await supabase
@@ -115,7 +113,7 @@ const DownloadPayment = () => {
           session_id: sessionId,
           total_amount: Number(item?.price || 0),
           currency: item?.currency || 'USD',
-          payment_method: selectedPaymentMethod as any,
+          payment_method: 'credit_card' as any,
           status: 'pending',
           email: email,
           full_name: email.split('@')[0], // Use email prefix as name
@@ -124,9 +122,9 @@ const DownloadPayment = () => {
           state: 'N/A',
           postal_code: '00000',
           country: 'Digital',
-          payment_reference: paymentReference || tokenData,
+          payment_reference: reference,
         })
-        .select()
+        .select('id, tracking_code')
         .single();
 
       if (orderError) {
@@ -150,27 +148,8 @@ const DownloadPayment = () => {
         throw itemError;
       }
 
-      // Create payment proof record if we have a proof URL
-      if (proofUrl) {
-        console.log('Creating payment proof with URL:', proofUrl);
-        const { error: proofError } = await supabase
-          .from('payment_proofs')
-          .insert({
-            order_id: orderData.id,
-            file_url: proofUrl,
-            payment_method: selectedPaymentMethod as any,
-            proof_type: selectedPaymentMethod === 'gift_card' ? 'gift_card' : 'screenshot',
-            status: 'pending',
-          });
-
-        if (proofError) {
-          console.error('Payment proof error:', proofError);
-          // Don't throw - order is created, proof is optional
-        }
-      }
-
       // Create download record
-      const { error: downloadError } = await supabase
+      const { data: downloadData, error: downloadError } = await supabase
         .from('downloads')
         .insert({
           item_id: itemId,
@@ -179,27 +158,42 @@ const DownloadPayment = () => {
           session_id: sessionId,
           payment_verified: false,
           expires_at: expiresAt.toISOString(),
-        });
+        })
+        .select('id')
+        .single();
 
       if (downloadError) {
         console.error('Download record error:', downloadError);
         // Don't throw - order is created
       }
 
-      toast({
-        title: "Payment Submitted!",
-        description: "Your payment is being verified. You'll receive download link via email once approved.",
+      const paystackAmountNgn = getPaystackAmountNgn(Number(item?.price || 0), item?.currency || 'USD');
+      console.info('[DownloadPayment] initializing Paystack', { orderId: orderData.id, downloadId: downloadData?.id, reference, paystackAmountNgn });
+      const payment = await initializePaystackPayment({
+        email,
+        amount: paystackAmountNgn,
+        currency: 'NGN',
+        reference,
+        callback_url: `${window.location.origin}/payment/return?target=order&id=${encodeURIComponent(orderData.id)}&kind=download`,
+        metadata: {
+          kind: 'download',
+          order_id: orderData.id,
+          download_id: downloadData?.id,
+          item_id: itemId,
+          original_amount: Number(item?.price || 0),
+          original_currency: item?.currency || 'USD',
+        },
       });
-
-      // Navigate to confirmation page
-      navigate(`/download/${itemId}/confirmation`);
+      if (!payment.authorization_url) throw new Error('No Paystack authorization URL returned');
+      window.location.href = payment.authorization_url;
     } catch (error) {
       console.error('Error creating download order:', error);
       toast({
         title: "Error",
-        description: "Failed to process your request. Please try again or contact support.",
+        description: "Failed to start Paystack payment. Please try again or contact support.",
         variant: "destructive",
       });
+      setIsProcessing(false);
     }
   };
 
@@ -226,7 +220,7 @@ const DownloadPayment = () => {
     );
   }
 
-  const allowedMethods = item.allowed_payment_methods || ['crypto', 'bank_transfer', 'gift_card'];
+  const paystackAmountNgn = getPaystackAmountNgn(Number(item?.price || 0), item?.currency || 'USD');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -276,7 +270,7 @@ const DownloadPayment = () => {
                 <div className="text-sm">
                   <p className="font-semibold text-blue-900">Secure Download</p>
                   <p className="text-blue-700">
-                    After payment confirmation, you'll receive a download link via email valid for 24 hours.
+                    Pay securely with Paystack. After payment confirmation, you'll receive a download link via email valid for 24 hours.
                   </p>
                 </div>
               </div>
@@ -351,39 +345,12 @@ const DownloadPayment = () => {
                 )}
               </div>
 
-              {/* Payment Method Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Select Payment Method *
-                </label>
-                <Select onValueChange={setSelectedPaymentMethod} value={selectedPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose your payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allowedMethods.includes('crypto') && (
-                      <SelectItem value="crypto_eth">Cryptocurrency (ETH)</SelectItem>
-                    )}
-                    {allowedMethods.includes('bank_transfer') && (
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    )}
-                    {allowedMethods.includes('gift_card') && (
-                      <SelectItem value="gift_card">Gift Card</SelectItem>
-                    )}
-                    {allowedMethods.includes('stripe') && (
-                      <SelectItem value="credit_card">Credit/Debit Card</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Processing Time Notice */}
-              <div className="flex gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <Clock className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <CreditCard className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-semibold text-yellow-900">Payment Verification</p>
-                  <p className="text-yellow-700">
-                    Manual payments are verified within 30 minutes to 2 hours during business hours.
+                  <p className="font-semibold text-green-900">Paystack Checkout</p>
+                  <p className="text-green-700">
+                    You will be redirected to Paystack to pay {formatNaira(paystackAmountNgn)} securely.
                   </p>
                 </div>
               </div>
@@ -399,45 +366,16 @@ const DownloadPayment = () => {
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={() => setShowPaymentDialog(true)}
-                  disabled={!selectedPaymentMethod || !email}
+                  onClick={handlePaystackCheckout}
+                  disabled={!email || isProcessing}
                 >
-                  Make Payment
+                  {isProcessing ? 'Redirecting…' : 'Pay with Paystack'}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
-
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-2xl">
-          <PaymentMethod
-            method={selectedPaymentMethod}
-            total={Number(item?.price || 0)}
-            currency={item?.currency || 'USD'}
-            onPaymentSuccess={handlePaymentComplete}
-            onFileUpload={async (file, type) => {
-              // Upload file to storage
-              const fileExt = file.name.split('.').pop();
-              const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-              const filePath = `${type}/${fileName}`;
-              
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('payment-proofs')
-                .upload(filePath, file);
-              
-              if (uploadError) throw uploadError;
-              
-              const { data: urlData } = supabase.storage
-                .from('payment-proofs')
-                .getPublicUrl(filePath);
-              
-              return urlData.publicUrl;
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
