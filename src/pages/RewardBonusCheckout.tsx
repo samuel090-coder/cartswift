@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getActiveClaim, loadPaystack, clearActiveClaim } from '@/lib/rewardSession';
+import { getActiveClaim, clearActiveClaim } from '@/lib/rewardSession';
+import { initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
 
 export default function RewardBonusCheckout() {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function RewardBonusCheckout() {
     setProcessing(true);
     try {
       const email = claim?.delivery?.email || 'buyer@example.com';
-      const reference = `rwb_${bundle.id.replace(/-/g,'').slice(0,10)}_${Date.now()}`;
+      const reference = makePaymentReference('rwb', bundle.id);
       const callback_url = `${window.location.origin}/reward/celebration?ref=${encodeURIComponent(reference)}&claim=${encodeURIComponent(claim.id)}`;
       // Persist recipient details before redirect
       await supabase.from('reward_bonus_bundles').update({
@@ -46,22 +47,26 @@ export default function RewardBonusCheckout() {
         recipient: mode === 'gift' ? recipient : claim.delivery,
       }).eq('id', bundle.id);
 
-      const { data, error } = await supabase.functions.invoke('paystack-initialize', {
-        body: {
-          email,
-          amount: total,
-          currency: 'NGN',
-          reference,
-          callback_url,
-          metadata: { bundle_id: bundle.id, claim_id: claim.id, kind: 'bonus' },
-        },
+      console.info('[RewardBonusCheckout] initializing Paystack', {
+        bundleId: bundle.id,
+        claimId: claim.id,
+        reference,
+        amount: total,
       });
-      if (error) throw new Error(error.message || 'Init failed');
-      if (!data?.authorization_url) throw new Error(data?.error || 'No authorization URL returned');
+      const data = await initializePaystackPayment({
+        email,
+        amount: total,
+        currency: 'NGN',
+        reference,
+        callback_url,
+        metadata: { bundle_id: bundle.id, claim_id: claim.id, kind: 'bonus' },
+      });
+      if (!data?.authorization_url) throw new Error('No authorization URL returned');
       clearActiveClaim();
       window.location.href = data.authorization_url;
     } catch (e: any) {
-      toast.error(e.message || 'Failed');
+      console.error('[RewardBonusCheckout] Paystack failed', e);
+      toast.error(e.message || 'Payment could not start. Please try again.');
       setProcessing(false);
     }
   };
