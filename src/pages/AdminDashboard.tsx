@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,8 +22,11 @@ import DepositPaymentMethodsManagement from '@/components/admin/DepositPaymentMe
 import PriceFormatSetting from '@/components/admin/PriceFormatSetting';
 import { MarketAdvert } from '@/components/admin/MarketAdvert';
 import { VisitorAnalytics } from '@/components/admin/VisitorAnalytics';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star, FolderOpen, Settings, Bell, Crown, Mail, Users, Store, ClipboardList, Rocket, Wallet, Send, Headphones, Sparkles } from 'lucide-react';
+import {
+  LogOut, Package, ShoppingCart, FileText, Share, Zap, BarChart3, Star,
+  FolderOpen, Settings, Bell, Mail, Users, Store, ClipboardList, Rocket,
+  Wallet, Send, Headphones, Sparkles, ChevronLeft, Search,
+} from 'lucide-react';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationBell from '@/components/admin/NotificationBell';
@@ -32,373 +35,337 @@ import TemuIntegration from '@/components/admin/TemuIntegration';
 import SupportChatManagement from '@/components/admin/SupportChatManagement';
 import RewardsManagement from '@/components/admin/RewardsManagement';
 
+type SectionId =
+  | 'rewards' | 'items' | 'ai-bulk' | 'orders' | 'notifications' | 'reviews'
+  | 'shares' | 'viral' | 'gift-cards' | 'payments' | 'analytics' | 'media'
+  | 'visitors' | 'market' | 'sellers' | 'applications' | 'boosts'
+  | 'deposits' | 'emails' | 'temu' | 'support';
+
+interface SectionMeta {
+  id: SectionId;
+  title: string;
+  subtitle: string;
+  icon: any;
+  group: 'Featured' | 'Commerce' | 'Growth' | 'Community' | 'System';
+}
+
+const SECTIONS: SectionMeta[] = [
+  { id: 'rewards',      title: 'Smart Rewards',     subtitle: 'Mystery boxes · claims · payouts',   icon: Sparkles,      group: 'Featured' },
+  { id: 'orders',       title: 'Orders',            subtitle: 'Track and manage every order',       icon: ShoppingCart,  group: 'Featured' },
+  { id: 'items',        title: 'Products',          subtitle: 'Catalog, stock & pricing',           icon: Package,       group: 'Commerce' },
+  { id: 'ai-bulk',      title: 'AI Bulk Poster',    subtitle: 'Post many products at once',         icon: Sparkles,      group: 'Commerce' },
+  { id: 'gift-cards',   title: 'Gift Cards',        subtitle: 'Gift card requests & payouts',       icon: FileText,      group: 'Commerce' },
+  { id: 'payments',     title: 'Payments',          subtitle: 'Paystack, price format, proofs',     icon: Settings,      group: 'Commerce' },
+  { id: 'deposits',     title: 'Wallet Deposits',   subtitle: 'Deposit methods & approvals',        icon: Wallet,        group: 'Commerce' },
+  { id: 'shares',       title: 'Share Pages',       subtitle: 'Product share URLs',                 icon: Share,         group: 'Growth' },
+  { id: 'viral',        title: 'Viral Features',    subtitle: 'Trending, boosts, engagement',       icon: Zap,           group: 'Growth' },
+  { id: 'market',       title: 'Marketing',         subtitle: 'Email blasts & campaigns',           icon: Mail,          group: 'Growth' },
+  { id: 'notifications',title: 'Notifications',     subtitle: 'Push & in-app messages',             icon: Bell,          group: 'Growth' },
+  { id: 'emails',       title: 'Email Tester',      subtitle: 'Preview transactional emails',       icon: Send,          group: 'Growth' },
+  { id: 'sellers',      title: 'Sellers',           subtitle: 'Approved seller directory',          icon: Store,         group: 'Community' },
+  { id: 'applications', title: 'Applications',      subtitle: 'Seller & partner requests',          icon: ClipboardList, group: 'Community' },
+  { id: 'boosts',       title: 'Boost Requests',    subtitle: 'Product boost approvals',            icon: Rocket,        group: 'Community' },
+  { id: 'reviews',      title: 'Reviews',           subtitle: 'Ratings & moderation',               icon: Star,          group: 'Community' },
+  { id: 'support',      title: 'Support Chat',      subtitle: 'Live chat with buyers',              icon: Headphones,    group: 'Community' },
+  { id: 'analytics',    title: 'Analytics',         subtitle: 'Sales & performance',                icon: BarChart3,     group: 'System' },
+  { id: 'visitors',     title: 'Visitors',          subtitle: 'Live traffic analytics',             icon: Users,         group: 'System' },
+  { id: 'media',        title: 'Media',             subtitle: 'Uploads & static assets',            icon: FolderOpen,    group: 'System' },
+  { id: 'temu',         title: 'Marketplace Sync',  subtitle: 'External catalog import',            icon: Package,       group: 'System' },
+];
+
+const renderSection = (id: SectionId) => {
+  switch (id) {
+    case 'rewards':      return <RewardsManagement />;
+    case 'items':        return <ItemManagement />;
+    case 'ai-bulk':      return <BulkProductPoster />;
+    case 'orders':       return <OrderManagement />;
+    case 'notifications':return <NotificationManagement />;
+    case 'reviews':      return <ReviewsManagement />;
+    case 'shares':       return <ShareManagement />;
+    case 'viral':        return <ViralFeaturesManagement />;
+    case 'gift-cards':   return <GiftCardPaymentManagement />;
+    case 'payments':     return (
+      <div className="space-y-6">
+        <PriceFormatSetting />
+        <PaymentSettingsManagement />
+        <PaymentProofsManagement />
+      </div>
+    );
+    case 'analytics':    return <AnalyticsManagement />;
+    case 'media':        return <MediaManagement />;
+    case 'visitors':     return <VisitorAnalytics />;
+    case 'market':       return <MarketAdvert />;
+    case 'sellers':      return <SellerManagement />;
+    case 'applications': return <ApplicationsManagement />;
+    case 'boosts':       return <BoostRequestsManagement />;
+    case 'deposits':     return (
+      <div className="space-y-6">
+        <DepositPaymentMethodsManagement />
+        <DepositManagement />
+      </div>
+    );
+    case 'emails':       return <EmailTester />;
+    case 'temu':         return <TemuIntegration />;
+    case 'support':      return <SupportChatManagement />;
+  }
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState<SectionId | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-          console.error('User fetch error:', userError);
-          navigate('/admin');
-          return;
-        }
-
-        if (!user) {
-          navigate('/admin');
-          return;
-        }
-
-        // Check if user email is in allowed_admins table
+        if (userError || !user) { navigate('/admin'); return; }
         const { data: allowedAdmin, error: adminError } = await supabase
-          .from('allowed_admins')
-          .select('email')
-          .eq('email', user.email)
-          .single();
-
+          .from('allowed_admins').select('email').eq('email', user.email).single();
         if (adminError || !allowedAdmin) {
-          console.error('Admin check error:', adminError);
-          toast({
-            title: "Access denied",
-            description: "Your email is not authorized for admin access.",
-            variant: "destructive",
-          });
-          navigate('/admin');
-          return;
+          toast({ title: 'Access denied', description: 'Your email is not authorized for admin access.', variant: 'destructive' });
+          navigate('/admin'); return;
         }
-
-        // Access granted
-
         setUser(user);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        toast({
-          title: "Error",
-          description: "An error occurred while checking authentication.",
-          variant: "destructive",
-        });
+      } catch {
         navigate('/admin');
       } finally {
         setLoading(false);
       }
     };
-
     checkAuth();
   }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({
-      title: "Logged out",
-      description: "Successfully logged out of admin panel.",
-    });
+    toast({ title: 'Logged out', description: 'Successfully logged out of admin panel.' });
     navigate('/admin');
   };
 
   const handleOrderClick = (orderId: string) => {
-    const orderElement = document.getElementById(`order-${orderId}`);
-    if (orderElement) {
-      orderElement.scrollIntoView({ behavior: 'smooth' });
-      orderElement.classList.add('highlight-order');
-      setTimeout(() => {
-        orderElement.classList.remove('highlight-order');
-      }, 3000);
-    }
+    setActive('orders');
+    setTimeout(() => {
+      const el = document.getElementById(`order-${orderId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        el.classList.add('highlight-order');
+        setTimeout(() => el.classList.remove('highlight-order'), 3000);
+      }
+    }, 250);
   };
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return SECTIONS;
+    const q = query.toLowerCase();
+    return SECTIONS.filter(s => s.title.toLowerCase().includes(q) || s.subtitle.toLowerCase().includes(q));
+  }, [query]);
+
+  const grouped = useMemo(() => {
+    const g: Record<string, SectionMeta[]> = {};
+    filtered.forEach(s => { (g[s.group] = g[s.group] || []).push(s); });
+    return g;
+  }, [filtered]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <div className="text-amber-300">Verifying admin access...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4" />
+          <div className="text-pink-300">Verifying admin access…</div>
         </div>
       </div>
     );
   }
 
+  const activeMeta = active ? SECTIONS.find(s => s.id === active) : null;
+
   return (
     <NotificationProvider adminUserId={user?.id}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        {/* Header */}
-        <header className="bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 border-b border-amber-500/30 shadow-lg shadow-amber-500/5">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-amber-500 to-amber-700 p-2 rounded-lg">
-                  <Crown className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
-                    CARTSWIFT Admin
-                  </h1>
-                  <p className="text-xs text-amber-400/60">Management Dashboard</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <NotificationBell onOrderClick={handleOrderClick} />
-                <span className="text-sm text-amber-300/70 hidden md:block">Welcome, {user?.email}</span>
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  className="border-amber-500/50 text-amber-300 hover:bg-amber-950/50 hover:text-amber-200"
+      <div className="min-h-screen bg-[#0a0a0f] text-white">
+        {/* Mobile-app framed shell */}
+        <div className="mx-auto w-full max-w-[420px] min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0810] to-[#0a0a0f] relative">
+
+          {/* Header */}
+          <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/85 border-b border-pink-500/10">
+            <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+              {active ? (
+                <button
+                  onClick={() => setActive(null)}
+                  className="flex items-center gap-1 text-sm text-pink-300 hover:text-pink-200"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
+                  <ChevronLeft className="h-5 w-5" /> Dashboard
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 grid place-items-center shadow-lg shadow-pink-500/30">
+                    <Sparkles className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold leading-none">
+                      <span className="text-white">Cart</span><span className="text-pink-500">Swift</span>
+                    </div>
+                    <div className="text-[10px] text-pink-300/60 mt-0.5">Admin Console</div>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <NotificationBell onOrderClick={handleOrderClick} />
+                <button
+                  onClick={handleLogout}
+                  className="h-9 w-9 grid place-items-center rounded-full bg-white/5 border border-white/10 text-pink-300 hover:bg-pink-500/10"
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          </div>
-        </header>
 
-        <div className="container mx-auto px-4 py-8">
-          <Tabs defaultValue="items" className="space-y-6">
-            <TabsList className="w-full inline-flex overflow-x-auto flex-nowrap justify-start md:grid md:grid-cols-12 gap-1 bg-slate-900/80 border border-amber-500/20 p-1 rounded-lg">
-              <TabsTrigger 
-                value="items" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Package size={16} />
-                <span className="hidden sm:inline">Items</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="ai-bulk" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Sparkles size={16} />
-                <span className="hidden sm:inline">AI Bulk</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="orders" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <ShoppingCart size={16} />
-                <span className="hidden sm:inline">Orders</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="notifications" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Bell size={16} />
-                <span className="hidden sm:inline">Notify</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="reviews" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Star size={16} />
-                <span className="hidden sm:inline">Reviews</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="shares" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Share size={16} />
-                <span className="hidden sm:inline">Shares</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="viral" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Zap size={16} />
-                <span className="hidden sm:inline">Viral</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="gift-cards" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <FileText size={16} />
-                <span className="hidden sm:inline">Gift Cards</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="payments" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Settings size={16} />
-                <span className="hidden sm:inline">Payments</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="analytics" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <BarChart3 size={16} />
-                <span className="hidden sm:inline">Analytics</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="media" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <FolderOpen size={16} />
-                <span className="hidden sm:inline">Media</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="visitors" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Users size={16} />
-                <span className="hidden sm:inline">Visitors</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="market" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Mail size={16} />
-                <span className="hidden sm:inline">Marketing</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="sellers" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Store size={16} />
-                <span className="hidden sm:inline">Sellers</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="applications" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <ClipboardList size={16} />
-                <span className="hidden sm:inline">Applications</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="boosts" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Rocket size={16} />
-                <span className="hidden sm:inline">Boosts</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="deposits" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Wallet size={16} />
-                <span className="hidden sm:inline">Deposits</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="emails" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Send size={16} />
-                <span className="hidden sm:inline">Emails</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="temu" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Package size={16} />
-                <span className="hidden sm:inline">Marketplace</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="support" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Headphones size={16} />
-                <span className="hidden sm:inline">Support</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="rewards" 
-                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-amber-600 data-[state=active]:text-white text-slate-400 hover:text-amber-300"
-              >
-                <Sparkles size={16} />
-                <span className="hidden sm:inline">Rewards</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="rewards">
-              <RewardsManagement />
-            </TabsContent>
-
-            <TabsContent value="support">
-              <SupportChatManagement />
-            </TabsContent>
-            
-            <TabsContent value="items">
-              <ItemManagement />
-            </TabsContent>
-
-            <TabsContent value="ai-bulk">
-              <BulkProductPoster />
-            </TabsContent>
-
-            
-            <TabsContent value="orders">
-              <OrderManagement />
-            </TabsContent>
-            
-            <TabsContent value="notifications">
-              <NotificationManagement />
-            </TabsContent>
-            
-            <TabsContent value="reviews">
-              <ReviewsManagement />
-            </TabsContent>
-            
-            <TabsContent value="shares">
-              <ShareManagement />
-            </TabsContent>
-            
-            <TabsContent value="viral">
-              <ViralFeaturesManagement />
-            </TabsContent>
-            
-            <TabsContent value="gift-cards">
-              <GiftCardPaymentManagement />
-            </TabsContent>
-            
-            <TabsContent value="payments">
-              <div className="space-y-6">
-                <PriceFormatSetting />
-                <PaymentSettingsManagement />
-                <PaymentProofsManagement />
+            {!active && (
+              <div className="px-4 pb-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-300/60" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search sections…"
+                    className="w-full h-11 rounded-2xl bg-white/5 border border-white/10 pl-9 pr-4 text-sm placeholder:text-white/30 focus:outline-none focus:border-pink-500/40 focus:bg-white/[0.07]"
+                  />
+                </div>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="analytics">
-              <AnalyticsManagement />
-            </TabsContent>
-            
-            <TabsContent value="media">
-              <MediaManagement />
-            </TabsContent>
-            
-            <TabsContent value="visitors">
-              <VisitorAnalytics />
-            </TabsContent>
-            
-            <TabsContent value="market">
-              <MarketAdvert />
-            </TabsContent>
-            
-            <TabsContent value="sellers">
-              <SellerManagement />
-            </TabsContent>
-            
-            <TabsContent value="applications">
-              <ApplicationsManagement />
-            </TabsContent>
-            
-            <TabsContent value="boosts">
-              <BoostRequestsManagement />
-            </TabsContent>
-            
-            <TabsContent value="deposits">
-              <div className="space-y-6">
-                <DepositPaymentMethodsManagement />
-                <DepositManagement />
+            )}
+          </header>
+
+          {/* Body */}
+          <main className="px-4 pt-4 pb-40">
+            {active ? (
+              <div>
+                <div className="mb-4">
+                  <div className="text-[11px] uppercase tracking-widest text-pink-400/70">{activeMeta?.group}</div>
+                  <h2 className="text-xl font-bold mt-0.5">{activeMeta?.title}</h2>
+                  <p className="text-xs text-white/50 mt-0.5">{activeMeta?.subtitle}</p>
+                </div>
+                <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-3 overflow-x-auto">
+                  {renderSection(active)}
+                </div>
               </div>
-            </TabsContent>
+            ) : (
+              <>
+                {/* Hero */}
+                <div className="rounded-3xl p-5 mb-5 relative overflow-hidden border border-pink-500/20 bg-gradient-to-br from-pink-600/25 via-fuchsia-700/15 to-rose-900/25">
+                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-pink-500/25 blur-3xl" />
+                  <div className="relative">
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                      <Sparkles className="h-3 w-3 text-pink-300" /> LIVE CONTROL CENTER
+                    </div>
+                    <h1 className="mt-2.5 text-2xl font-extrabold leading-tight">
+                      Welcome back<span className="text-pink-400">.</span>
+                    </h1>
+                    <p className="text-xs text-white/70 mt-1 truncate">{user?.email}</p>
+                    <button
+                      onClick={() => setActive('rewards')}
+                      className="mt-4 w-full rounded-2xl bg-white text-slate-900 font-semibold text-sm py-3 flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 active:scale-[0.98] transition"
+                    >
+                      <Sparkles className="h-4 w-4 text-pink-500" /> Manage Smart Rewards
+                    </button>
+                  </div>
+                </div>
 
-            <TabsContent value="emails">
-              <EmailTester />
-            </TabsContent>
+                {/* Quick stats row */}
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  {[
+                    { label: 'Orders',   icon: ShoppingCart, id: 'orders' as const },
+                    { label: 'Rewards',  icon: Sparkles,     id: 'rewards' as const },
+                    { label: 'Sellers',  icon: Store,        id: 'sellers' as const },
+                  ].map(q => (
+                    <button
+                      key={q.id}
+                      onClick={() => setActive(q.id)}
+                      className="rounded-2xl bg-white/[0.04] border border-white/10 p-3 flex flex-col items-center gap-1.5 hover:border-pink-500/40 hover:bg-pink-500/[0.06] transition"
+                    >
+                      <q.icon className="h-5 w-5 text-pink-400" />
+                      <span className="text-[11px] text-white/80 font-medium">{q.label}</span>
+                    </button>
+                  ))}
+                </div>
 
-            <TabsContent value="temu">
-              <TemuIntegration />
-            </TabsContent>
-          </Tabs>
+                {/* Grouped sections */}
+                {Object.entries(grouped).map(([group, list]) => (
+                  <section key={group} className="mb-6">
+                    <div className="flex items-center justify-between mb-2.5 px-1">
+                      <h3 className="text-[11px] uppercase tracking-widest text-pink-300/70 font-semibold">{group}</h3>
+                      <span className="text-[10px] text-white/30">{list.length}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {list.map(s => {
+                        const Icon = s.icon;
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => setActive(s.id)}
+                            className="group text-left rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 p-3 hover:border-pink-500/40 hover:from-pink-500/[0.08] transition active:scale-[0.98]"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-pink-500/15 border border-pink-500/30 grid place-items-center mb-2">
+                              <Icon className="h-4 w-4 text-pink-400" />
+                            </div>
+                            <div className="text-sm font-semibold text-white truncate">{s.title}</div>
+                            <div className="text-[10px] text-white/50 line-clamp-2 mt-0.5">{s.subtitle}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+
+                {filtered.length === 0 && (
+                  <div className="text-center text-white/40 text-sm py-16">No sections match "{query}"</div>
+                )}
+              </>
+            )}
+          </main>
+
+          {/* Bottom quick-nav */}
+          <nav className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
+            <div className="mx-auto max-w-[420px] px-3 pb-4">
+              <div className="pointer-events-auto rounded-2xl bg-[#0a0a0f]/90 backdrop-blur-xl border border-white/10 shadow-2xl shadow-pink-500/10 px-2 py-1.5 flex items-center justify-around">
+                {[
+                  { id: null,          label: 'Home',    icon: BarChart3 },
+                  { id: 'orders' as const,   label: 'Orders',  icon: ShoppingCart },
+                  { id: 'rewards' as const,  label: 'Rewards', icon: Sparkles, primary: true },
+                  { id: 'items' as const,    label: 'Items',   icon: Package },
+                  { id: 'support' as const,  label: 'Support', icon: Headphones },
+                ].map((it: any, i) => {
+                  const Icon = it.icon;
+                  const isActive = active === it.id || (it.id === null && !active);
+                  if (it.primary) {
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setActive(it.id)}
+                        className="-mt-6 h-14 w-14 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 grid place-items-center shadow-xl shadow-pink-500/50 border-4 border-[#0a0a0f]"
+                        aria-label={it.label}
+                      >
+                        <Icon className="h-6 w-6 text-white" />
+                      </button>
+                    );
+                  }
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setActive(it.id)}
+                      className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl transition ${
+                        isActive ? 'text-pink-400' : 'text-white/50 hover:text-white/80'
+                      }`}
+                    >
+                      <Icon className="h-4.5 w-4.5" />
+                      <span className="text-[9px] font-medium">{it.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </nav>
         </div>
       </div>
     </NotificationProvider>
