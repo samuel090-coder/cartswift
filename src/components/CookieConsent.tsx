@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Cookie, X } from 'lucide-react';
+import { Cookie, ShieldCheck, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -130,39 +130,49 @@ export const CookieConsent = () => {
     <AnimatePresence>
       {showBanner && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
+          initial={{ y: 48, opacity: 0, scale: 0.97 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-0 left-0 right-0 z-50 p-4"
+          exit={{ y: 48, opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-x-0 bottom-0 z-50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-5"
         >
-          <Card className="max-w-2xl mx-auto bg-background/95 backdrop-blur-lg border-primary/20 shadow-2xl">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/10 p-2 rounded-full shrink-0">
-                  <Cookie className="h-6 w-6 text-primary" />
+          <Card className="mx-auto max-w-[420px] overflow-hidden rounded-2xl border-border/80 bg-card/95 shadow-2xl backdrop-blur-2xl">
+            <div className="h-1 bg-gradient-to-r from-primary via-neon-violet to-neon-cyan" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                  <Cookie className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex-1 space-y-3">
-                  <h3 className="font-semibold text-lg">We Value Your Privacy 🍪</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We use cookies to enhance your shopping experience, analyze site traffic, 
-                    and personalize content. By clicking "Accept", you consent to our use of cookies.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Button onClick={handleAccept} className="gap-2">
-                      Accept All Cookies
-                    </Button>
-                    <Button variant="outline" onClick={handleDecline}>
-                      Decline
-                    </Button>
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase text-primary">Privacy controls</p>
+                  <h3 className="mt-0.5 text-lg font-semibold text-foreground">Your privacy, protected</h3>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0"
+                  className="h-9 w-9 shrink-0 rounded-full text-muted-foreground"
                   onClick={handleDecline}
+                  aria-label="Close privacy notice"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                We use cookies to improve shopping, understand traffic, and personalize your experience.
+              </p>
+
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-secondary-foreground">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-neon-emerald" />
+                Your choices remain in your control.
+              </div>
+
+              <div className="mt-4 grid grid-cols-[1fr_1.6fr] gap-2.5">
+                <Button variant="outline" onClick={handleDecline} className="h-11 rounded-xl">
+                  Decline
+                </Button>
+                <Button onClick={handleAccept} className="h-11 rounded-xl font-semibold shadow-lg shadow-primary/15">
+                  Accept all
                 </Button>
               </div>
             </div>
