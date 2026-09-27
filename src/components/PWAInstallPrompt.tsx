@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { X, Download, Smartphone, Zap, Bell, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
