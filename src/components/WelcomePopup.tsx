@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { BookOpen, CarFront, ChevronRight, PawPrint, Shirt, Sparkles, Wrench } from 'lucide-react';
 
 interface WelcomePopupProps {
   onCategorySelect: (category: string) => void;
 }
 
 const categories = [
-  { id: 'Animals', name: 'Animals', icon: '🐾', image: 'https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=300' },
-  { id: 'Fashion', name: 'Fashion', icon: '👗', image: 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=300' },
-  { id: 'Tools', name: 'Tools', icon: '🔧', image: 'https://images.unsplash.com/photo-1473091534298-04dcbce3278c?w=300' },
-  { id: 'Vehicles', name: 'Vehicles', icon: '🚗', image: 'https://images.unsplash.com/photo-1487887235947-a955ef187fcc?w=300' },
-  { id: 'Books', name: 'Books', icon: '📚', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300' }
+  { id: 'Animals', name: 'Animals', detail: 'Pets & care', icon: PawPrint, accent: 'text-neon-cyan bg-neon-cyan/10' },
+  { id: 'Fashion', name: 'Fashion', detail: 'Style & beauty', icon: Shirt, accent: 'text-neon-rose bg-neon-rose/10' },
+  { id: 'Tools', name: 'Tools', detail: 'Build & repair', icon: Wrench, accent: 'text-neon-amber bg-neon-amber/10' },
+  { id: 'Vehicles', name: 'Vehicles', detail: 'Cars & parts', icon: CarFront, accent: 'text-neon-emerald bg-neon-emerald/10' },
+  { id: 'Books', name: 'Books', detail: 'Read & discover', icon: BookOpen, accent: 'text-neon-violet bg-neon-violet/10' }
 ];
 
 const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
@@ -40,28 +41,28 @@ const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg mx-auto bg-white border-0 shadow-2xl">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="w-[calc(100%-1.25rem)] max-w-[390px] max-h-[calc(100dvh-1.25rem)] overflow-y-auto rounded-2xl border-border/70 bg-card/95 p-0 shadow-2xl backdrop-blur-2xl">
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0, y: 18 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="text-center p-6"
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="p-5 sm:p-6"
         >
           <motion.div
             initial={{ y: -20 }}
             animate={{ y: 0 }}
             transition={{ delay: 0.2, duration: 0.3 }}
           >
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Welcome to Cartswift!
-            </h2>
-            <p className="text-gray-600 mb-6">
-              What would you like to explore today?
-            </p>
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <p className="mb-1 text-xs font-semibold uppercase text-primary">Your marketplace, your way</p>
+            <h2 className="pr-8 text-2xl font-bold text-foreground">Welcome to CartSwift</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Choose where to start. You can explore everything anytime.</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
             {categories.map((category, index) => (
               <motion.div
                 key={category.id}
@@ -71,13 +72,17 @@ const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
               >
                 <Button
                   variant="outline"
-                  className="w-full h-20 flex flex-col items-center justify-center gap-2 border-2 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
+                  className={`group h-[94px] w-full flex-col items-start justify-between overflow-hidden rounded-xl border-border/70 bg-secondary/45 p-3 text-left shadow-sm transition-all hover:border-primary/40 hover:bg-secondary ${index === categories.length - 1 ? 'col-span-2 h-[76px] flex-row items-center' : ''}`}
                   onClick={() => handleCategorySelect(category.id)}
                 >
-                  <span className="text-2xl group-hover:scale-110 transition-transform">
-                    {category.icon}
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${category.accent}`}>
+                    <category.icon className="h-[18px] w-[18px]" />
                   </span>
-                  <span className="text-sm font-medium">{category.name}</span>
+                  <span className={index === categories.length - 1 ? 'flex-1' : 'w-full'}>
+                    <span className="block text-sm font-semibold text-foreground">{category.name}</span>
+                    <span className="block text-[11px] font-normal text-muted-foreground">{category.detail}</span>
+                  </span>
+                  {index === categories.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </Button>
               </motion.div>
             ))}
@@ -89,11 +94,10 @@ const WelcomePopup = ({ onCategorySelect }: WelcomePopupProps) => {
             transition={{ delay: 0.8, duration: 0.3 }}
           >
             <Button
-              variant="ghost"
               onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="mt-4 h-12 w-full rounded-xl font-semibold shadow-lg shadow-primary/15"
             >
-              Browse All Products
+              Browse all products <ChevronRight className="h-4 w-4" />
             </Button>
           </motion.div>
         </motion.div>
