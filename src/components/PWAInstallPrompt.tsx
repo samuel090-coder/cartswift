@@ -80,11 +80,11 @@ const PWAInstallPrompt = () => {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
+        exit={{ opacity: 0, y: -40 }}
         transition={{ type: 'spring', damping: 26, stiffness: 260 }}
-        className="fixed inset-x-3 bottom-40 z-50 mx-auto max-w-sm md:bottom-6 md:left-auto md:right-6 md:mx-0"
+        className="fixed inset-x-3 top-3 z-[60] mx-auto max-w-sm md:top-auto md:bottom-6 md:left-auto md:right-6 md:mx-0"
         role="dialog"
         aria-label="Install CartSwift"
       >
