@@ -12,6 +12,15 @@ const PWAInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [consentDone, setConsentDone] = useState(() =>
+    document.cookie.includes('cartswift_cookie_consent=accepted')
+  );
+
+  useEffect(() => {
+    const onClosed = () => setConsentDone(true);
+    window.addEventListener('cookie-consent-closed', onClosed);
+    return () => window.removeEventListener('cookie-consent-closed', onClosed);
+  }, []);
 
   useEffect(() => {
     // Check if already installed
@@ -66,7 +75,7 @@ const PWAInstallPrompt = () => {
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isInstalled || !showPrompt) return null;
+  if (isInstalled || !showPrompt || !consentDone) return null;
 
   return (
     <AnimatePresence>
