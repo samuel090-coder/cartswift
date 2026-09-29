@@ -12,6 +12,15 @@ const PWAInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [consentDone, setConsentDone] = useState(() =>
+    document.cookie.includes('cartswift_cookie_consent=accepted')
+  );
+
+  useEffect(() => {
+    const onClosed = () => setConsentDone(true);
+    window.addEventListener('cookie-consent-closed', onClosed);
+    return () => window.removeEventListener('cookie-consent-closed', onClosed);
+  }, []);
 
   useEffect(() => {
     // Check if already installed
@@ -66,16 +75,16 @@ const PWAInstallPrompt = () => {
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isInstalled || !showPrompt) return null;
+  if (isInstalled || !showPrompt || !consentDone) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
+        exit={{ opacity: 0, y: -40 }}
         transition={{ type: 'spring', damping: 26, stiffness: 260 }}
-        className="fixed inset-x-3 bottom-40 z-50 mx-auto max-w-sm md:bottom-6 md:left-auto md:right-6 md:mx-0"
+        className="fixed inset-x-3 top-3 z-[60] mx-auto max-w-sm md:top-auto md:bottom-6 md:left-auto md:right-6 md:mx-0"
         role="dialog"
         aria-label="Install CartSwift"
       >

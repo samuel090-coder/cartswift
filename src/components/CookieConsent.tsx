@@ -119,11 +119,13 @@ export const CookieConsent = () => {
   const handleAccept = async () => {
     setConsentCookie();
     setShowBanner(false);
+    window.dispatchEvent(new Event('cookie-consent-closed'));
     await trackVisitor();
   };
 
   const handleDecline = () => {
     setShowBanner(false);
+    window.dispatchEvent(new Event('cookie-consent-closed'));
   };
 
   return (
