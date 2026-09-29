@@ -10,14 +10,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import AnimatedCartIcon from '@/components/AnimatedCartIcon';
+import PaymentMethod from '@/components/PaymentMethod';
 import { motion } from 'framer-motion';
-import { CreditCard, Lock } from 'lucide-react';
-import { formatNaira, getPaystackAmountNgn, initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
+import { CheckCircle2, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { MANUAL_PAYMENT_METHODS, getCurrencySymbol, recordPaymentProof, uploadPaymentProof } from '@/lib/manualPayment';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, total, clearCart, getCurrencySymbol } = useCart();
   const [processing, setProcessing] = useState(false);
+  const [step, setStep] = useState<'details' | 'payment' | 'done'>('details');
+  const [method, setMethod] = useState<'bank_transfer' | 'crypto_eth' | 'gift_card'>('bank_transfer');
+  const [order, setOrder] = useState<{ id: string; tracking_code: string } | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -41,32 +45,25 @@ const Checkout = () => {
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submission started, validating form data...');
-    
-    // Comprehensive form validation
-    const requiredFields = {
+
+    const requiredFields: Record<string, string> = {
       fullName: 'Full Name',
-      phoneNumber: 'Phone Number', 
+      phoneNumber: 'Phone Number',
       addressLine1: 'Address Line 1',
       city: 'City',
       state: 'State',
       postalCode: 'Postal Code',
     };
 
-    // Check for missing required fields
-    const missingFields = [];
-    for (const [field, label] of Object.entries(requiredFields)) {
-      if (!formData[field as keyof typeof formData]?.trim()) {
-        missingFields.push(label);
-      }
-    }
+    const missingFields = Object.entries(requiredFields)
+      .filter(([field]) => !formData[field as keyof typeof formData]?.trim())
+      .map(([, label]) => label);
 
     if (missingFields.length > 0) {
-      console.error('Form validation failed - missing fields:', missingFields);
       toast({
-        title: "Missing Required Information",
+        title: 'Missing Required Information',
         description: `Please fill in: ${missingFields.join(', ')}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -77,13 +74,8 @@ const Checkout = () => {
     try {
       const sessionId = getSessionId();
       const orderCurrency = items[0]?.currency || 'USD';
-      const reference = makePaymentReference('cs_order');
-      const paystackAmountNgn = getPaystackAmountNgn(total, orderCurrency);
-      const orderItems = items.map(item => ({ title: item.title, quantity: item.quantity, price: item.price }));
 
-      console.info('[Checkout] creating Paystack order', { reference, total, orderCurrency, paystackAmountNgn, itemCount: items.length });
-
-      const { data: order, error: orderError } = await supabase
+      const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
           session_id: sessionId,
@@ -97,8 +89,7 @@ const Checkout = () => {
           postal_code: formData.postalCode,
           country: 'US',
           delivery_instructions: formData.deliveryInstructions || null,
-          payment_method: 'credit_card' as any,
-          payment_reference: reference,
+          payment_method: method as any,
           total_amount: total,
           currency: orderCurrency,
           status: 'pending' as any,
@@ -108,65 +99,120 @@ const Checkout = () => {
 
       if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
 
-      const { error: itemsError } = await supabase.from('order_items').insert(items.map((item) => ({
-        order_id: order.id,
-        item_id: item.id,
-        quantity: item.quantity,
-        price_at_time: item.price,
-      })));
+      const { error: itemsError } = await supabase.from('order_items').insert(
+        items.map((item) => ({
+          order_id: createdOrder.id,
+          item_id: item.id,
+          quantity: item.quantity,
+          price_at_time: item.price,
+        }))
+      );
       if (itemsError) throw new Error(`Failed to add items to order: ${itemsError.message}`);
+
+      setOrder(createdOrder);
+      setStep('payment');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error: any) {
+      console.error('[Checkout] order creation failed', error);
+      toast({
+        title: 'Could not create order',
+        description: error?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (reference?: string, giftCardData?: any, proofUrl?: string) => {
+    if (!order) return;
+    setProcessing(true);
+    try {
+      if (proofUrl) {
+        await recordPaymentProof({
+          orderId: order.id,
+          paymentMethod: method,
+          proofType: method === 'bank_transfer' ? 'bank_receipt' : method === 'crypto_eth' ? 'crypto_screenshot' : 'gift_card_image',
+          fileUrl: proofUrl,
+        });
+      }
+
+      await supabase
+        .from('orders')
+        .update({
+          payment_method: method as any,
+          payment_reference: reference || null,
+          gift_card_data: giftCardData || null,
+        } as any)
+        .eq('id', order.id);
 
       try {
         await supabase.functions.invoke('send-order-notification', {
-          body: { orderId: order.id, customerName: formData.fullName, customerEmail: formData.email, totalAmount: total, paymentMethod: 'Paystack', items: orderItems },
+          body: {
+            orderId: order.id,
+            customerName: formData.fullName,
+            customerEmail: formData.email,
+            totalAmount: total,
+            paymentMethod: method,
+            items: items.map((item) => ({ title: item.title, quantity: item.quantity, price: item.price })),
+          },
         });
       } catch (notificationError) {
         console.warn('Order notification failed', notificationError);
       }
 
-      const callback_url = `${window.location.origin}/payment/return?target=order&id=${encodeURIComponent(order.id)}&kind=order`;
-      const payment = await initializePaystackPayment({
-        email: formData.email,
-        amount: paystackAmountNgn,
-        currency: 'NGN',
-        reference,
-        callback_url,
-        metadata: {
-          kind: 'order',
-          order_id: order.id,
-          session_id: sessionId,
-          original_amount: total,
-          original_currency: orderCurrency,
-          tracking_code: order.tracking_code,
-        },
-      });
-
-      if (!payment.authorization_url) throw new Error('No Paystack authorization URL returned');
       clearCart();
-      window.location.href = payment.authorization_url;
+      setStep('done');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
-      console.error('[Checkout] Paystack checkout failed', error);
+      console.error('[Checkout] payment submission failed', error);
       toast({
-        title: "Payment could not start",
-        description: error?.message || "Paystack initialization failed. Please try again.",
-        variant: "destructive",
+        title: 'Submission failed',
+        description: error?.message || 'Please try again.',
+        variant: 'destructive',
       });
+    } finally {
       setProcessing(false);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  if (items.length === 0) {
-    console.log('Checkout page: No items in cart, redirecting to cart page');
+  if (items.length === 0 && step === 'details') {
     navigate('/cart');
     return null;
   }
 
   const orderCurrency = items[0]?.currency || 'USD';
-  const paystackAmountNgn = getPaystackAmountNgn(total, orderCurrency);
+
+  if (step === 'done' && order) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center">
+            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Payment Submitted!</h1>
+            <p className="text-muted-foreground mb-6">
+              Your proof of payment has been received. We'll confirm your payment within 30 minutes to 2 hours and your order will be processed.
+            </p>
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground mb-1">Your tracking code</p>
+                <p className="text-2xl font-mono font-bold tracking-widest">{order.tracking_code}</p>
+              </CardContent>
+            </Card>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => navigate('/track')}>Track Order</Button>
+              <Button onClick={() => navigate('/')}>Continue Shopping</Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,12 +223,9 @@ const Checkout = () => {
             <AnimatedCartIcon />
             <h1 className="text-2xl font-bold">Checkout</h1>
           </div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            {step === 'details' && (
               <form onSubmit={handleDetailsSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Contact & Shipping Information */}
                 <div className="space-y-6">
@@ -292,17 +335,6 @@ const Checkout = () => {
                       </div>
                     </CardContent>
                   </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Secure Payment</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-                        All orders are paid securely by Paystack. No screenshots, bank transfer, crypto, or gift card payment proof is collected.
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
 
                 {/* Order Summary */}
@@ -315,11 +347,7 @@ const Checkout = () => {
                       {items.map((item) => (
                         <div key={item.id} className="flex justify-between items-center">
                           <div className="flex items-center space-x-3">
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-12 h-12 object-cover rounded"
-                            />
+                            <img src={item.image} alt={item.title} className="w-12 h-12 object-cover rounded" />
                             <div>
                               <p className="font-medium text-sm">{item.title}</p>
                               <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
@@ -330,11 +358,11 @@ const Checkout = () => {
                           </span>
                         </div>
                       ))}
-                      
+
                       <div className="border-t pt-4 space-y-2">
                         <div className="flex justify-between">
                           <span>Subtotal</span>
-                          <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
+                          <span>{getCurrencySymbol(orderCurrency)}{total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Shipping</span>
@@ -346,27 +374,77 @@ const Checkout = () => {
                         </div>
                         <div className="flex justify-between font-bold text-lg border-t pt-2">
                           <span>Total</span>
-                          <span>{items.length > 0 ? getCurrencySymbol(items[0].currency) : '$'}{total.toFixed(2)}</span>
+                          <span>{getCurrencySymbol(orderCurrency)}{total.toFixed(2)}</span>
                         </div>
                       </div>
-                      
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-2 text-sm text-blue-900">
-                          <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-                          <div>
-                            <div className="font-semibold">Paystack secure checkout</div>
-                            <div>Paystack charge amount: <b>{formatNaira(paystackAmountNgn)}</b></div>
-                          </div>
+
+                      <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div>
+                          <div className="font-semibold">Flexible payment options</div>
+                          <div>Pay by bank transfer, cryptocurrency, or gift card on the next step.</div>
                         </div>
                       </div>
-                      
+
                       <Button type="submit" className="w-full" size="lg" disabled={processing}>
-                        {processing ? 'Redirecting to Paystack…' : 'Pay securely with Paystack'}
+                        {processing ? 'Creating order…' : 'Continue to Payment'}
                       </Button>
                     </CardContent>
                   </Card>
                 </div>
               </form>
+            )}
+
+            {step === 'payment' && order && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <button
+                  onClick={() => setStep('details')}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back to details
+                </button>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Choose Payment Method</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {MANUAL_PAYMENT_METHODS.map((m) => {
+                        const Icon = m.icon;
+                        const active = method === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setMethod(m.id)}
+                            className={`rounded-xl border-2 p-4 text-left transition-all ${
+                              active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                            }`}
+                          >
+                            <Icon className={`h-6 w-6 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <div className="font-semibold text-sm">{m.label}</div>
+                            <div className="text-xs text-muted-foreground mt-1">{m.description}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <PaymentMethod
+                  method={method}
+                  total={total}
+                  currency={orderCurrency}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onFileUpload={async (file, type) => uploadPaymentProof(file, type)}
+                />
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Order total: <b>{getCurrencySymbol(orderCurrency)}{total.toFixed(2)}</b> · Tracking code: <span className="font-mono">{order.tracking_code}</span>
+                </p>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
