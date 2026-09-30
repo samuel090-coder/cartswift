@@ -7,9 +7,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
-import { CreditCard, Download, Shield } from 'lucide-react';
+import { CheckCircle2, Download, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { formatNaira, getPaystackAmountNgn, initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
+import PaymentMethod from '@/components/PaymentMethod';
+import { MANUAL_PAYMENT_METHODS, getCurrencySymbol, recordPaymentProof, uploadPaymentProof } from '@/lib/manualPayment';
 
 const DownloadPayment = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -19,28 +20,15 @@ const DownloadPayment = () => {
   const [targetCurrency, setTargetCurrency] = useState('');
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
-
-  const getCurrencySymbol = (currency: string) => {
-    const symbols: Record<string, string> = {
-      'USD': '$',
-      'NGN': '₦',
-      'EUR': '€',
-      'GBP': '£',
-      'JPY': '¥',
-      'CNY': '¥',
-      'INR': '₹',
-      'AUD': 'A$',
-      'CAD': 'C$',
-    };
-    return symbols[currency] || currency;
-  };
+  const [method, setMethod] = useState<'bank_transfer' | 'crypto_eth' | 'gift_card'>('bank_transfer');
+  const [submitted, setSubmitted] = useState(false);
 
   const fetchExchangeRate = async (from: string, to: string) => {
     if (!to || to === 'none' || from === to) {
       setExchangeRate(null);
       return;
     }
-    
+
     setIsLoadingRate(true);
     try {
       const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
@@ -49,9 +37,9 @@ const DownloadPayment = () => {
     } catch (error) {
       console.error('Error fetching exchange rate:', error);
       toast({
-        title: "Exchange Rate Error",
-        description: "Could not fetch current exchange rates. Showing original price.",
-        variant: "destructive",
+        title: 'Exchange Rate Error',
+        description: 'Could not fetch current exchange rates. Showing original price.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingRate(false);
@@ -81,12 +69,12 @@ const DownloadPayment = () => {
     return sessionId;
   };
 
-  const handlePaystackCheckout = async () => {
+  const handlePaymentSuccess = async (reference?: string, giftCardData?: any, proofUrl?: string) => {
     if (!email) {
       toast({
-        title: "Email Required",
-        description: "Please enter your email address to receive the download link.",
-        variant: "destructive",
+        title: 'Email Required',
+        description: 'Please enter your email address to receive the download link.',
+        variant: 'destructive',
       });
       return;
     }
@@ -94,105 +82,73 @@ const DownloadPayment = () => {
     setIsProcessing(true);
     try {
       const sessionId = getSessionId();
-      const reference = makePaymentReference('cs_download', itemId);
-      
-      // Generate download token
-      const { data: tokenData, error: tokenError } = await supabase
-        .rpc('generate_download_token');
-      
+
+      const { data: tokenData, error: tokenError } = await supabase.rpc('generate_download_token');
       if (tokenError) throw tokenError;
-      
+
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
 
-      // Create an order for this APK/file purchase (digital download - use placeholder address)
-      console.log('Creating order for APK/file purchase...');
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           session_id: sessionId,
           total_amount: Number(item?.price || 0),
           currency: item?.currency || 'USD',
-          payment_method: 'credit_card' as any,
+          payment_method: method as any,
           status: 'pending',
           email: email,
-          full_name: email.split('@')[0], // Use email prefix as name
+          full_name: email.split('@')[0],
           address_line1: 'Digital Download',
           city: 'Digital',
           state: 'N/A',
           postal_code: '00000',
           country: 'Digital',
-          payment_reference: reference,
-        })
+          payment_reference: reference || null,
+          gift_card_data: giftCardData || null,
+        } as any)
         .select('id, tracking_code')
         .single();
 
-      if (orderError) {
-        console.error('Order creation error:', orderError);
-        throw orderError;
-      }
-      console.log('Order created:', orderData);
+      if (orderError) throw orderError;
 
-      // Add order item
-      const { error: itemError } = await supabase
-        .from('order_items')
-        .insert({
-          order_id: orderData.id,
-          item_id: itemId,
-          quantity: 1,
-          price_at_time: Number(item?.price || 0),
-        });
-
-      if (itemError) {
-        console.error('Order item error:', itemError);
-        throw itemError;
-      }
-
-      // Create download record
-      const { data: downloadData, error: downloadError } = await supabase
-        .from('downloads')
-        .insert({
-          item_id: itemId,
-          email: email,
-          download_token: tokenData,
-          session_id: sessionId,
-          payment_verified: false,
-          expires_at: expiresAt.toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (downloadError) {
-        console.error('Download record error:', downloadError);
-        // Don't throw - order is created
-      }
-
-      const paystackAmountNgn = getPaystackAmountNgn(Number(item?.price || 0), item?.currency || 'USD');
-      console.info('[DownloadPayment] initializing Paystack', { orderId: orderData.id, downloadId: downloadData?.id, reference, paystackAmountNgn });
-      const payment = await initializePaystackPayment({
-        email,
-        amount: paystackAmountNgn,
-        currency: 'NGN',
-        reference,
-        callback_url: `${window.location.origin}/payment/return?target=order&id=${encodeURIComponent(orderData.id)}&kind=download`,
-        metadata: {
-          kind: 'download',
-          order_id: orderData.id,
-          download_id: downloadData?.id,
-          item_id: itemId,
-          original_amount: Number(item?.price || 0),
-          original_currency: item?.currency || 'USD',
-        },
+      const { error: itemError } = await supabase.from('order_items').insert({
+        order_id: orderData.id,
+        item_id: itemId,
+        quantity: 1,
+        price_at_time: Number(item?.price || 0),
       });
-      if (!payment.authorization_url) throw new Error('No Paystack authorization URL returned');
-      window.location.href = payment.authorization_url;
+      if (itemError) throw itemError;
+
+      const { error: downloadError } = await supabase.from('downloads').insert({
+        item_id: itemId,
+        email: email,
+        download_token: tokenData,
+        session_id: sessionId,
+        payment_verified: false,
+        expires_at: expiresAt.toISOString(),
+      });
+      if (downloadError) console.error('Download record error:', downloadError);
+
+      if (proofUrl) {
+        await recordPaymentProof({
+          orderId: orderData.id,
+          paymentMethod: method,
+          proofType: method === 'bank_transfer' ? 'bank_receipt' : method === 'crypto_eth' ? 'crypto_screenshot' : 'gift_card_image',
+          fileUrl: proofUrl,
+        });
+      }
+
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Error creating download order:', error);
       toast({
-        title: "Error",
-        description: "Failed to start Paystack payment. Please try again or contact support.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to submit your payment. Please try again or contact support.',
+        variant: 'destructive',
       });
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -220,17 +176,29 @@ const DownloadPayment = () => {
     );
   }
 
-  const paystackAmountNgn = getPaystackAmountNgn(Number(item?.price || 0), item?.currency || 'USD');
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center">
+            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Payment Submitted!</h1>
+            <p className="text-muted-foreground mb-6">
+              Once your payment is confirmed, your download link will be sent to <b>{email}</b>. This usually takes 30 minutes to 2 hours.
+            </p>
+            <Button onClick={() => navigate('/')}>Return to Home</Button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -242,11 +210,7 @@ const DownloadPayment = () => {
               {/* Item Details */}
               <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
                 {item.images && item.images[0] && (
-                  <img
-                    src={item.images[0]}
-                    alt={item.title}
-                    className="w-20 h-20 object-cover rounded"
-                  />
+                  <img src={item.images[0]} alt={item.title} className="w-20 h-20 object-cover rounded" />
                 )}
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg">{item.title}</h3>
@@ -270,16 +234,14 @@ const DownloadPayment = () => {
                 <div className="text-sm">
                   <p className="font-semibold text-blue-900">Secure Download</p>
                   <p className="text-blue-700">
-                    Pay securely with Paystack. After payment confirmation, you'll receive a download link via email valid for 24 hours.
+                    After your payment is confirmed, you'll receive a download link via email valid for 24 hours.
                   </p>
                 </div>
               </div>
 
               {/* Email Input */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Email Address *
-                </label>
+                <label className="block text-sm font-medium mb-2">Email Address *</label>
                 <input
                   type="email"
                   required
@@ -288,18 +250,14 @@ const DownloadPayment = () => {
                   placeholder="your@email.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Your download link will be sent to this email
-                </p>
+                <p className="text-xs text-gray-500 mt-1">Your download link will be sent to this email</p>
               </div>
 
               {/* Currency Converter */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
-                <label className="block text-sm font-medium mb-2">
-                  Convert to Your Currency (Optional)
-                </label>
-                <Select 
-                  value={targetCurrency} 
+                <label className="block text-sm font-medium mb-2">Convert to Your Currency (Optional)</label>
+                <Select
+                  value={targetCurrency}
                   onValueChange={(value) => {
                     setTargetCurrency(value);
                     if (value && value !== 'none' && item?.currency) {
@@ -325,11 +283,9 @@ const DownloadPayment = () => {
                     <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
                   </SelectContent>
                 </Select>
-                
-                {isLoadingRate && (
-                  <p className="text-sm text-blue-600 mt-2">Fetching exchange rate...</p>
-                )}
-                
+
+                {isLoadingRate && <p className="text-sm text-blue-600 mt-2">Fetching exchange rate...</p>}
+
                 {exchangeRate && targetCurrency && item && (
                   <div className="mt-3 p-3 bg-white rounded border border-blue-200">
                     <p className="text-sm text-gray-600 mb-1">
@@ -344,36 +300,49 @@ const DownloadPayment = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <CreditCard className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-green-900">Paystack Checkout</p>
-                  <p className="text-green-700">
-                    You will be redirected to Paystack to pay {formatNaira(paystackAmountNgn)} securely.
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => navigate('/')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handlePaystackCheckout}
-                  disabled={!email || isProcessing}
-                >
-                  {isProcessing ? 'Redirecting…' : 'Pay with Paystack'}
-                </Button>
+          {/* Payment Method Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Choose Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {MANUAL_PAYMENT_METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const active = method === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMethod(m.id)}
+                      className={`rounded-xl border-2 p-4 text-left transition-all ${
+                        active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <Icon className={`h-6 w-6 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div className="font-semibold text-sm">{m.label}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{m.description}</div>
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
+
+          <PaymentMethod
+            method={method}
+            total={Number(item.price || 0)}
+            currency={item.currency || 'USD'}
+            onPaymentSuccess={handlePaymentSuccess}
+            onFileUpload={async (file, type) => uploadPaymentProof(file, type)}
+          />
+
+          <Button variant="outline" className="w-full" onClick={() => navigate('/')}>
+            Cancel
+          </Button>
         </motion.div>
       </div>
     </div>

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveClaim, clearActiveClaim } from '@/lib/rewardSession';
-import { initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
+import PaymentMethod from '@/components/PaymentMethod';
+import { MANUAL_PAYMENT_METHODS, recordPaymentProof, uploadPaymentProof } from '@/lib/manualPayment';
 
 export default function RewardBonusCheckout() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function RewardBonusCheckout() {
   const [mode, setMode] = useState<'self' | 'gift'>('self');
   const [recipient, setRecipient] = useState({ relationship: 'Family Member', name: '', phone: '', state: '', city: '', address: '', message: '', instructions: '' });
   const [processing, setProcessing] = useState(false);
+  const [method, setMethod] = useState<'bank_transfer' | 'crypto_eth' | 'gift_card'>('bank_transfer');
 
   useEffect(() => {
     (async () => {
@@ -32,41 +34,33 @@ export default function RewardBonusCheckout() {
 
   const total = Number(bundle.amount_paid || 0);
 
-  const pay = async () => {
+  const handlePaymentSuccess = async (reference?: string, giftCardData?: any, proofUrl?: string) => {
     if (mode === 'gift' && (!recipient.name || !recipient.phone || !recipient.address)) {
       toast.error('Please fill recipient details'); return;
     }
     setProcessing(true);
     try {
-      const email = claim?.delivery?.email || 'buyer@example.com';
-      const reference = makePaymentReference('rwb', bundle.id);
-      const callback_url = `${window.location.origin}/reward/celebration?ref=${encodeURIComponent(reference)}&claim=${encodeURIComponent(claim.id)}`;
-      // Persist recipient details before redirect
+      if (proofUrl) {
+        await recordPaymentProof({
+          paymentMethod: method,
+          proofType: method === 'bank_transfer' ? 'bank_receipt' : method === 'crypto_eth' ? 'crypto_screenshot' : 'gift_card_image',
+          fileUrl: proofUrl,
+        });
+      }
+
       await supabase.from('reward_bonus_bundles').update({
         recipient_type: mode,
-        recipient: mode === 'gift' ? recipient : claim.delivery,
+        recipient: mode === 'gift' ? { ...recipient, payment_method: method, gift_card_data: giftCardData || null, proof_url: proofUrl || null } : { ...claim.delivery, payment_method: method, gift_card_data: giftCardData || null, proof_url: proofUrl || null },
+        status: 'payment_submitted',
+        payment_reference: reference || null,
       }).eq('id', bundle.id);
 
-      console.info('[RewardBonusCheckout] initializing Paystack', {
-        bundleId: bundle.id,
-        claimId: claim.id,
-        reference,
-        amount: total,
-      });
-      const data = await initializePaystackPayment({
-        email,
-        amount: total,
-        currency: 'NGN',
-        reference,
-        callback_url,
-        metadata: { bundle_id: bundle.id, claim_id: claim.id, kind: 'bonus' },
-      });
-      if (!data?.authorization_url) throw new Error('No authorization URL returned');
       clearActiveClaim();
-      window.location.href = data.authorization_url;
+      toast.success('Payment submitted! We will confirm it shortly.');
+      navigate('/rewards');
     } catch (e: any) {
-      console.error('[RewardBonusCheckout] Paystack failed', e);
-      toast.error(e.message || 'Payment could not start. Please try again.');
+      console.error('[RewardBonusCheckout] payment submission failed', e);
+      toast.error(e.message || 'Submission failed. Please try again.');
       setProcessing(false);
     }
   };
@@ -140,9 +134,39 @@ export default function RewardBonusCheckout() {
             ))}
             <div className="mt-3 flex justify-between font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
             <div className="mt-2 text-xs text-muted-foreground">Ships with your first reward — no extra shipping fee.</div>
-            <Button onClick={pay} disabled={processing} className="mt-4 w-full bg-gradient-to-r from-primary to-accent" size="lg">
-              <Lock className="mr-2 h-4 w-4" /> {processing ? 'Processing…' : `Pay $${total.toFixed(2)} Securely`}
-            </Button>
+
+            <div className="mt-4">
+              <h3 className="mb-3 text-sm font-semibold">Choose Payment Method</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {MANUAL_PAYMENT_METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const active = method === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMethod(m.id)}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 mb-1 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div className="font-semibold text-xs">{m.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <PaymentMethod
+                method={method}
+                total={total}
+                currency="USD"
+                onPaymentSuccess={handlePaymentSuccess}
+                onFileUpload={async (file, type) => uploadPaymentProof(file, type)}
+              />
+            </div>
           </div>
         )}
       </div>
