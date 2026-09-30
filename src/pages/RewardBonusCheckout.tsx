@@ -34,41 +34,33 @@ export default function RewardBonusCheckout() {
 
   const total = Number(bundle.amount_paid || 0);
 
-  const pay = async () => {
+  const handlePaymentSuccess = async (reference?: string, giftCardData?: any, proofUrl?: string) => {
     if (mode === 'gift' && (!recipient.name || !recipient.phone || !recipient.address)) {
       toast.error('Please fill recipient details'); return;
     }
     setProcessing(true);
     try {
-      const email = claim?.delivery?.email || 'buyer@example.com';
-      const reference = makePaymentReference('rwb', bundle.id);
-      const callback_url = `${window.location.origin}/reward/celebration?ref=${encodeURIComponent(reference)}&claim=${encodeURIComponent(claim.id)}`;
-      // Persist recipient details before redirect
+      if (proofUrl) {
+        await recordPaymentProof({
+          paymentMethod: method,
+          proofType: method === 'bank_transfer' ? 'bank_receipt' : method === 'crypto_eth' ? 'crypto_screenshot' : 'gift_card_image',
+          fileUrl: proofUrl,
+        });
+      }
+
       await supabase.from('reward_bonus_bundles').update({
         recipient_type: mode,
-        recipient: mode === 'gift' ? recipient : claim.delivery,
+        recipient: mode === 'gift' ? { ...recipient, payment_method: method, gift_card_data: giftCardData || null, proof_url: proofUrl || null } : { ...claim.delivery, payment_method: method, gift_card_data: giftCardData || null, proof_url: proofUrl || null },
+        status: 'payment_submitted',
+        payment_reference: reference || null,
       }).eq('id', bundle.id);
 
-      console.info('[RewardBonusCheckout] initializing Paystack', {
-        bundleId: bundle.id,
-        claimId: claim.id,
-        reference,
-        amount: total,
-      });
-      const data = await initializePaystackPayment({
-        email,
-        amount: total,
-        currency: 'NGN',
-        reference,
-        callback_url,
-        metadata: { bundle_id: bundle.id, claim_id: claim.id, kind: 'bonus' },
-      });
-      if (!data?.authorization_url) throw new Error('No authorization URL returned');
       clearActiveClaim();
-      window.location.href = data.authorization_url;
+      toast.success('Payment submitted! We will confirm it shortly.');
+      navigate('/rewards');
     } catch (e: any) {
-      console.error('[RewardBonusCheckout] Paystack failed', e);
-      toast.error(e.message || 'Payment could not start. Please try again.');
+      console.error('[RewardBonusCheckout] payment submission failed', e);
+      toast.error(e.message || 'Submission failed. Please try again.');
       setProcessing(false);
     }
   };
