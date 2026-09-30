@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveClaim, clearActiveClaim } from '@/lib/rewardSession';
-import { initializePaystackPayment, makePaymentReference } from '@/lib/paystack';
+import PaymentMethod from '@/components/PaymentMethod';
+import { MANUAL_PAYMENT_METHODS, recordPaymentProof, uploadPaymentProof } from '@/lib/manualPayment';
 
 export default function RewardBonusCheckout() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function RewardBonusCheckout() {
   const [mode, setMode] = useState<'self' | 'gift'>('self');
   const [recipient, setRecipient] = useState({ relationship: 'Family Member', name: '', phone: '', state: '', city: '', address: '', message: '', instructions: '' });
   const [processing, setProcessing] = useState(false);
+  const [method, setMethod] = useState<'bank_transfer' | 'crypto_eth' | 'gift_card'>('bank_transfer');
 
   useEffect(() => {
     (async () => {
