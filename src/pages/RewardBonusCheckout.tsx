@@ -134,9 +134,39 @@ export default function RewardBonusCheckout() {
             ))}
             <div className="mt-3 flex justify-between font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
             <div className="mt-2 text-xs text-muted-foreground">Ships with your first reward — no extra shipping fee.</div>
-            <Button onClick={pay} disabled={processing} className="mt-4 w-full bg-gradient-to-r from-primary to-accent" size="lg">
-              <Lock className="mr-2 h-4 w-4" /> {processing ? 'Processing…' : `Pay $${total.toFixed(2)} Securely`}
-            </Button>
+
+            <div className="mt-4">
+              <h3 className="mb-3 text-sm font-semibold">Choose Payment Method</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {MANUAL_PAYMENT_METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const active = method === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMethod(m.id)}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 mb-1 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div className="font-semibold text-xs">{m.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <PaymentMethod
+                method={method}
+                total={total}
+                currency="USD"
+                onPaymentSuccess={handlePaymentSuccess}
+                onFileUpload={async (file, type) => uploadPaymentProof(file, type)}
+              />
+            </div>
           </div>
         )}
       </div>
