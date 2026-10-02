@@ -106,7 +106,6 @@ const App = () => {
       </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
   );
 };
 
