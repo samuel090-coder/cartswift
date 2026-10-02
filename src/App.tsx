@@ -42,11 +42,17 @@ import RewardBonus from "./pages/RewardBonus";
 import RewardBonusCheckout from "./pages/RewardBonusCheckout";
 import Rewards from "./pages/Rewards";
 import PaymentReturn from "./pages/PaymentReturn";
+import SplashScreen from "./components/SplashScreen";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  const [splash, setSplash] = useState(() => typeof window !== "undefined" && !sessionStorage.getItem("cs_splash_seen"));
+  const finishSplash = () => { sessionStorage.setItem("cs_splash_seen", "1"); setSplash(false); };
+  return (
   <QueryClientProvider client={queryClient}>
+    {splash && <SplashScreen onFinish={finishSplash} />}
     <TooltipProvider>
       <LanguageProvider>
         <AuthProvider>
@@ -100,6 +106,7 @@ const App = () => (
       </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
