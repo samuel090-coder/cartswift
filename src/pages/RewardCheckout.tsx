@@ -107,7 +107,7 @@ export default function RewardCheckout() {
               ))}
               <div>
                 <Label htmlFor="instructions">Delivery instructions</Label>
-                <Textarea id="instructions" rows={2} value={f.instructions} onChange={(e) => update(k, e.target.value)} />
+                <Textarea id="instructions" rows={2} value={f.instructions} onChange={(e) => update('instructions', e.target.value)} />
               </div>
             </div>
 
