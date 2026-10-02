@@ -1,3 +1,4 @@
+import { ProductGridSkeleton } from './BrandedSkeleton';
 import { Database } from '@/integrations/supabase/types';
 import ItemCard from './ItemCard';
 
