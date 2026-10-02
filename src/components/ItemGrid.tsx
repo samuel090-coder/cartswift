@@ -10,18 +10,7 @@ interface ItemGridProps {
 
 const ItemGrid = ({ items, isLoading }: ItemGridProps) => {
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg p-4 animate-pulse border border-border/30">
-            <div className="bg-secondary aspect-square rounded-lg mb-3"></div>
-            <div className="bg-secondary h-4 rounded mb-2"></div>
-            <div className="bg-secondary h-3 rounded mb-2"></div>
-            <div className="bg-secondary h-4 rounded w-20"></div>
-          </div>
-        ))}
-      </div>
-    );
+    return <ProductGridSkeleton count={10} />;
   }
 
   if (items.length === 0) {
