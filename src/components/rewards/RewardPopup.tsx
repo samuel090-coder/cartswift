@@ -71,9 +71,24 @@ export default function RewardPopup() {
     if (HIDDEN_ROUTES.some((p) => location.pathname.startsWith(p))) return;
     if (triggered.current === user.id) return;
     triggered.current = user.id;
-    setOpen(true);
-    setPhase('loading');
-    loadBoxes('initial');
+
+    // Only ever show the popup to first-time users: if the account already
+    // has mystery state or a claim, they manage rewards on the rewards page.
+    (async () => {
+      try {
+        const [{ data: mysteryState }, { data: claim }] = await Promise.all([
+          supabase.from('reward_mystery_state').select('user_id').eq('user_id', user.id).maybeSingle(),
+          supabase.from('reward_claims').select('id').eq('user_id', user.id).maybeSingle(),
+        ]);
+        if (mysteryState || claim) return; // already seen — never disturb again
+      } catch {
+        // If the check fails, err on the side of not annoying the user.
+        return;
+      }
+      setOpen(true);
+      setPhase('loading');
+      loadBoxes('initial');
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, location.pathname]);
 
