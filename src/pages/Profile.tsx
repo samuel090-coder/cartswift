@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,10 +23,35 @@ import { motion } from 'framer-motion';
 import StatusUploadModal from '@/components/StatusUploadModal';
 import WalletCard from '@/components/wallet/WalletCard';
 import StatusTabContent from '@/components/profile/StatusTabContent';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Settings, ChevronRight, ShoppingBag, MessageCircle, Star, Gift } from 'lucide-react';
+import { createSessionSupabaseClient, getSessionId } from '@/lib/sessionSupabase';
+import profileGift from '@/assets/profile-gift.png';
+const sessionClient = createSessionSupabaseClient();
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile, loading, updateProfile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'personal';
+  const [editing, setEditing] = useState(false);
+  const setTab = (tab: string) => setSearchParams(tab === 'personal' ? {} : { tab });
+  const { data: accountSummary } = useQuery({
+    queryKey: ['profile-summary', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const sessionId = getSessionId();
+      const [orders, reviews, wallet, favorites] = await Promise.all([
+        sessionClient.from('orders').select('id', { count: 'exact', head: true }).eq('session_id', sessionId),
+        sessionClient.from('reviews').select('id', { count: 'exact', head: true }).eq('session_id', sessionId),
+        supabase.from('wallets').select('balance, bonus_balance').eq('user_id', user?.id).maybeSingle(),
+        sessionClient.from('wishlists').select('id, items(id, title, images, price)').eq('session_id', sessionId),
+      ]);
+      return { orders: orders.error ? null : orders.count, reviews: reviews.error ? null : reviews.count,
+        balance: wallet.error ? null : (wallet.data?.balance || 0) + (wallet.data?.bonus_balance || 0),
+        favorites: favorites.data || [] };
+    },
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
@@ -142,7 +167,8 @@ const Profile = () => {
     if (error) {
       toast.error('Failed to update profile');
     } else {
-      toast.success('Profile updated successfully! ✨');
+      toast.success('Profile updated successfully!');
+      setEditing(false);
     }
   };
 
@@ -239,287 +265,107 @@ const Profile = () => {
     return <SellerApplicationForm />;
   };
 
+  const number = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString('en-US');
+  const details = [
+    { key: 'full_name', label: 'Full Name', value: formData.full_name || 'Add your name', icon: User, tone: 'rose' },
+    { key: 'phone', label: 'Phone Number', value: formData.phone || 'Add phone number', icon: Phone, tone: 'green' },
+    { key: 'email', label: 'Email Address', value: user?.email || '', icon: Mail, tone: 'blue' },
+    { key: 'bio', label: 'Bio', value: formData.bio || 'Tell us a bit about yourself…', icon: Star, tone: 'gold' },
+  ];
+  const stats = [
+    { label: 'Total Orders', value: number(accountSummary?.orders), icon: ShoppingBag, tone: 'rose', action: () => navigate('/orders') },
+    { label: 'Wallet Balance', value: accountSummary?.balance == null ? '—' : '$' + accountSummary.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: Wallet, tone: 'green', action: () => setTab('wallet') },
+    { label: 'Reviews', value: number(accountSummary?.reviews), icon: Star, tone: 'gold', action: () => setTab('reviews') },
+    { label: 'Followers', value: number(profile?.followers_count || 0), icon: Users, tone: 'violet', action: () => navigate(`/user/${user?.id}`) },
+  ];
+  const shortcuts = [
+    { label: 'My Orders', icon: ShoppingBag, tone: 'rose', action: () => navigate('/orders') },
+    { label: 'My Wallet', icon: Wallet, tone: 'green', action: () => setTab('wallet') },
+    { label: 'My Favorites', icon: Heart, tone: 'violet', action: () => setTab('wishlist') },
+    { label: 'Messages', icon: MessageCircle, tone: 'blue', action: () => navigate('/messages') },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-soft via-background to-peach/20">
-      <Header />
-      
-      {/* Cover Image */}
-      <div 
-        className="h-40 md:h-56 bg-gradient-to-r from-primary/30 via-pink-medium/40 to-coral/30 relative"
-        style={(profile as any)?.background_image_url ? {
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.1)), url(${(profile as any).background_image_url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        } : {}}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => backgroundInputRef.current?.click()}
-          disabled={uploadingBackground}
-          className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm hover:bg-white gap-2"
-        >
-          {uploadingBackground ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <Image className="w-4 h-4" />
-              Change Cover
-            </>
-          )}
-        </Button>
-        <input
-          ref={backgroundInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'background')}
-        />
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/')}
-          className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm hover:bg-white"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-      </div>
+    <div className="profile-page min-h-screen bg-background text-foreground">
+      <div className="hidden md:block"><Header /></div>
+      <main className="relative mx-auto w-full max-w-3xl px-4 pt-8 sm:px-6 sm:pt-10 pb-44">
+        <section className="profile-identity relative mb-6 flex items-center gap-4 pr-9 sm:gap-6">
+          <div className="relative shrink-0">
+            <Avatar className="profile-avatar h-20 w-20 sm:h-28 sm:w-28 border-4 border-background ring-2 ring-primary/70 ring-offset-4 ring-offset-background">
+              <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'Your profile'} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-bold">{getInitials(profile?.full_name)}</AvatarFallback>
+            </Avatar>
+            <Button size="icon" aria-label="Change profile photo" title="Change profile photo" disabled={uploadingAvatar} onClick={() => avatarInputRef.current?.click()} className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full border-2 border-background">
+              {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-muted-foreground sm:text-base">Hello,</p>
+            <h1 className="mt-0.5 text-xl sm:text-3xl font-bold leading-tight break-words">{profile?.full_name || 'Your Profile'}</h1>
+            {(sellerApplication?.status === 'approved' || profile?.is_seller) && <Badge className="mt-2 gap-1 rounded-full text-[10px] sm:text-xs"><CheckCircle className="h-3 w-3" /> Verified Seller</Badge>}
+            {sellerApplication?.status === 'pending' && <Badge variant="secondary" className="mt-2 text-[10px]">Seller application pending</Badge>}
+            <div className="mt-2 flex items-start gap-1.5 text-xs sm:text-sm text-muted-foreground"><Mail className="mt-0.5 h-4 w-4 shrink-0" /><span className="break-all">{user?.email}</span></div>
+          </div>
+          <Button variant="secondary" size="icon" aria-label="Edit profile" title="Edit profile" onClick={() => setEditing(true)} className="absolute right-0 top-0 h-9 w-9 rounded-lg"><Settings className="h-5 w-5" /></Button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'avatar')} />
+        </section>
 
-      <div className="container mx-auto px-4 -mt-16 relative z-10 max-w-4xl pb-8">
-        {/* Profile Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-0 shadow-lg mb-6 bg-background/95 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-24 w-24 border-4 border-background ring-4 ring-primary/20 shadow-lg">
-                    <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-pink-vibrant text-white text-2xl font-bold">
-                      {getInitials(profile?.full_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button
-                    size="icon"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary hover:bg-primary/90 shadow-lg"
-                  >
-                    {uploadingAvatar ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Camera className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'avatar')}
-                  />
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-2xl font-bold">{profile?.full_name || 'Your Profile'}</h1>
-                    {(sellerApplication?.status === 'approved' || profile?.is_seller) && (
-                      <Badge className="bg-gradient-to-r from-primary to-pink-vibrant text-white gap-1">
-                        <Store className="w-3 h-3" />
-                        Verified Seller
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-4 h-4" />
-                      {user?.email}
-                    </span>
-                    {profile?.city && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {profile.city}{profile.country && `, ${profile.country}`}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {sellerApplication?.status === 'pending' && (
-                    <Badge className="mt-2 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 gap-1">
-                      <Clock className="w-3 h-3" />
-                      Seller Application Pending
-                    </Badge>
-                  )}
+        <section aria-label="Account summary" className="profile-stat-strip grid grid-cols-4 rounded-lg border border-border py-4 mb-3">
+          {stats.map(({ label, value, icon: Icon, tone, action }) => <Button key={label} variant="ghost" onClick={action} className="profile-stat h-auto min-w-0 flex-col items-start gap-1 rounded-none px-2 sm:px-5 border-r border-border last:border-0">
+            <Icon className={'profile-tone-' + tone + ' h-5 w-5 mb-1'} />
+            <span className="text-sm sm:text-xl font-bold max-w-full break-all">{value}</span>
+            <span className="text-[10px] sm:text-xs leading-tight text-muted-foreground whitespace-normal text-left">{label}</span>
+          </Button>)}
+        </section>
 
-                  {isAdmin && (
-                    <Button
-                      onClick={() => navigate('/admin/dashboard')}
-                      className="mt-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white gap-2"
-                      size="sm"
-                    >
-                      <Crown className="w-4 h-4" />
-                      Open Admin Panel
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <section aria-label="Account shortcuts" className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
+          {shortcuts.map(({ label, icon: Icon, tone, action }) => <Button key={label} variant="outline" onClick={action} className="profile-shortcut relative h-24 sm:h-28 min-w-0 flex-col items-start gap-3 rounded-lg px-2 sm:px-4">
+            <span className={'profile-icon profile-icon-' + tone}><Icon className="h-5 w-5" /></span><ChevronRight className="absolute right-2 top-7 h-3 w-3 text-muted-foreground" />
+            <span className="text-[10px] sm:text-sm whitespace-normal text-left leading-tight">{label}</span>
+          </Button>)}
+        </section>
 
-        <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 bg-background/80 backdrop-blur-sm border border-primary/20">
-            <TabsTrigger value="personal" className="flex items-center gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-              <User className="w-3 h-3" />
-              Personal
-            </TabsTrigger>
-            <TabsTrigger value="wallet" className="flex items-center gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Wallet className="w-3 h-3" />
-              Wallet
-            </TabsTrigger>
-            <TabsTrigger value="status" className="flex items-center gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Radio className="w-3 h-3" />
-              Status
-            </TabsTrigger>
-            <TabsTrigger value="seller" className="flex items-center gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Store className="w-3 h-3" />
-              Seller
-            </TabsTrigger>
+        <section className="profile-vip relative flex items-center gap-3 overflow-hidden rounded-lg border border-primary/20 p-4 sm:p-5 mb-5">
+          <span className="profile-icon profile-icon-gold h-12 w-12 shrink-0"><Crown className="h-7 w-7" /></span>
+          <div className="relative z-10 min-w-0 flex-1"><h2 className="font-bold text-base sm:text-xl">Become a VIP Member</h2><p className="mt-1 text-xs text-muted-foreground">Exclusive deals and more, just for you.</p><Button onClick={() => navigate('/subscriptions')} size="sm" className="mt-3 rounded-full gap-1 text-xs">Upgrade Now <ChevronRight className="h-3 w-3" /></Button></div>
+          <img src={profileGift} alt="Pink gift box" width={512} height={512} className="w-20 sm:w-28 shrink-0 self-end object-contain" />
+        </section>
+
+        {isAdmin && <Button variant="outline" onClick={() => navigate('/admin/dashboard')} className="mb-4 w-full gap-2 text-neon-amber"><Crown className="h-4 w-4" /> Open Admin Panel</Button>}
+
+        <Tabs value={activeTab} onValueChange={setTab} className="min-w-0">
+          <TabsContent value="personal" className="mt-0">
+            <section className="profile-information rounded-lg border border-border px-4 sm:px-6">
+              <div className="flex items-center gap-3 py-5 border-b border-border"><span className="profile-icon profile-icon-rose shrink-0"><User className="h-6 w-6" /></span><div className="min-w-0"><h2 className="text-lg font-bold">Personal Information</h2><p className="text-xs text-muted-foreground mt-1">Your personal details and contact information</p></div></div>
+              {details.map(({ key, label, value, icon: Icon, tone }) => <Button key={key} variant="ghost" onClick={() => setEditing(true)} className="h-auto w-full justify-start gap-3 rounded-none border-b border-border last:border-0 px-0 py-4 whitespace-normal text-left">
+                <span className={'profile-icon profile-icon-' + tone + ' shrink-0'}><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="block text-xs text-muted-foreground mb-1">{label}</span><span className="block text-sm break-words [overflow-wrap:anywhere]">{value}</span></span><ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </Button>)}
+            </section>
+          </TabsContent>
+          <TabsContent value="wallet"><WalletCard /></TabsContent>
+          <TabsContent value="status"><StatusTabContent /></TabsContent>
+          <TabsContent value="seller">{renderSellerContent()}</TabsContent>
+          <TabsContent value="wishlist"><h2 className="text-lg font-bold mb-4">My Favorites</h2><div className="grid grid-cols-2 gap-3">{accountSummary?.favorites.map(favorite => {
+            const item = favorite.items;
+            return item ? <Button key={favorite.id} variant="outline" onClick={() => navigate(`/share/${item.id}`)} className="h-auto flex-col items-start p-3 whitespace-normal text-left"><img src={item.images?.[0]} alt={item.title} className="aspect-square w-full object-cover rounded-md mb-3" /><span className="line-clamp-2">{item.title}</span></Button> : null;
+          })}</div>{!accountSummary?.favorites.length && <p className="text-muted-foreground py-6 text-sm">No favorites yet.</p>}</TabsContent>
+          <TabsContent value="reviews"><h2 className="text-lg font-bold">My Reviews</h2><p className="text-sm text-muted-foreground mt-2">{number(accountSummary?.reviews)} product reviews</p><Button variant="outline" onClick={() => navigate('/orders')} className="mt-4">View my orders <ChevronRight className="h-4 w-4 ml-2" /></Button></TabsContent>
+          <TabsList className="mt-5 grid grid-cols-4 w-full bg-secondary/50 h-11">
+            <TabsTrigger value="personal" className="text-xs gap-1"><User className="h-3 w-3" />Personal</TabsTrigger><TabsTrigger value="wallet" className="text-xs gap-1"><Wallet className="h-3 w-3" />Wallet</TabsTrigger><TabsTrigger value="status" className="text-xs gap-1"><Radio className="h-3 w-3" />Status</TabsTrigger><TabsTrigger value="seller" className="text-xs gap-1"><Store className="h-3 w-3" />Seller</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="personal">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="border-primary/10 bg-gradient-to-br from-background to-pink-soft/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    Personal Information
-                  </CardTitle>
-                  <CardDescription>
-                    Update your personal details and contact information ✨
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name" className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-primary" />
-                        Full Name
-                      </Label>
-                      <Input
-                        id="full_name"
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        placeholder="Your beautiful name 💕"
-                        className="border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-primary" />
-                        Phone Number
-                      </Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+1 234 567 8900"
-                        className="border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio" className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-primary" />
-                      Bio
-                    </Label>
-                    <Textarea
-                      id="bio"
-                      value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                      placeholder="Tell us a bit about yourself... 🌟"
-                      rows={3}
-                      className="border-primary/20 focus:border-primary resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="website" className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-primary" />
-                      Website
-                    </Label>
-                    <Input
-                      id="website"
-                      value={formData.website}
-                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                      placeholder="https://yourwebsite.com"
-                      className="border-primary/20 focus:border-primary"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="country" className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        Country
-                      </Label>
-                      <Input
-                        id="country"
-                        value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                        placeholder="United States"
-                        className="border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="New York"
-                        className="border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="123 Main St"
-                        className="border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={isSaving} 
-                    className="w-full md:w-auto bg-gradient-to-r from-primary to-pink-vibrant hover:opacity-90 gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    {isSaving ? 'Saving...' : 'Save Changes ✨'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="wallet">
-            <WalletCard />
-          </TabsContent>
-
-          <TabsContent value="status">
-            <StatusTabContent />
-          </TabsContent>
-
-          <TabsContent value="seller">
-            {renderSellerContent()}
-          </TabsContent>
         </Tabs>
-      </div>
+        <Button variant="outline" className="mt-4 w-full gap-2" onClick={() => navigate('/rewards')}><Gift className="h-4 w-4 text-primary" />My Rewards<ChevronRight className="h-4 w-4 ml-auto" /></Button>
+      </main>
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto max-w-lg"><DialogHeader><DialogTitle>Edit profile</DialogTitle></DialogHeader>
+          <div className="grid gap-4">
+            {(['full_name', 'phone', 'bio', 'website', 'country', 'city', 'address'] as const).map(key => <div key={key} className="space-y-2"><Label htmlFor={key}>{({ full_name: 'Full Name', phone: 'Phone Number', bio: 'Bio', website: 'Website', country: 'Country', city: 'City', address: 'Address' })[key]}</Label>{key === 'bio' ? <Textarea id={key} value={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.value })} /> : <Input id={key} value={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.value })} />}</div>)}
+            <Button variant="outline" disabled={uploadingBackground} onClick={() => backgroundInputRef.current?.click()} className="gap-2"><Image className="h-4 w-4" />{uploadingBackground ? 'Uploading…' : 'Change Cover'}</Button>
+            <input ref={backgroundInputRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'background')} />
+            <Button onClick={handleSave} disabled={isSaving} className="gap-2"><Save className="h-4 w-4" />{isSaving ? 'Saving…' : 'Save Changes'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
