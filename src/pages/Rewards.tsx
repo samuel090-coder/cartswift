@@ -14,20 +14,23 @@ export default function Rewards() {
   const { user, loading: authLoading } = useAuth();
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMystery, setHasMystery] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate('/auth'); return; }
     (async () => {
-      const { data } = await supabase
-        .from('reward_claims')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const [{ data }, { data: ms }] = await Promise.all([
+        supabase.from('reward_claims').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('reward_mystery_state').select('user_id').eq('user_id', user.id).maybeSingle(),
+      ]);
       setClaims(data || []);
+      setHasMystery(!!ms);
       setLoading(false);
     })();
   }, [user, authLoading, navigate]);
+
+  const openBoxes = () => window.dispatchEvent(new Event('open-reward-popup'));
 
   const statusBadge = (s: string) => {
     if (s === 'paid') return <Badge className="bg-emerald-500 text-white"><CheckCircle2 className="mr-1 h-3 w-3" />Paid</Badge>;
@@ -44,13 +47,27 @@ export default function Rewards() {
         <h1 className="mb-1 text-2xl font-bold">My Rewards</h1>
         <p className="mb-6 text-sm text-muted-foreground">Manage the exclusive rewards unlocked on your account.</p>
 
+        {!loading && (hasMystery || claims.length === 0) && (
+          <div className="mb-4 rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-card p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                <Gift className="h-6 w-6 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold">Your mystery reward is waiting</h3>
+                <p className="text-xs text-muted-foreground">Open your gift boxes and pick your free reward.</p>
+              </div>
+            </div>
+            <Button className="mt-4 w-full" onClick={openBoxes}>Open my reward boxes</Button>
+          </div>
+        )}
+
         {loading ? (
           <div className="py-16 text-center text-muted-foreground">Loading…</div>
         ) : claims.length === 0 ? (
           <div className="rounded-2xl border bg-card p-8 text-center">
-            <Gift className="mx-auto mb-3 h-10 w-10 text-primary/60" />
-            <p className="mb-3">No rewards yet. Keep exploring — you may unlock one soon.</p>
-            <Button onClick={() => navigate('/')}>Back to shop</Button>
+            <p className="mb-3 text-sm text-muted-foreground">No claimed rewards yet.</p>
+            <Button variant="outline" onClick={() => navigate('/')}>Back to shop</Button>
           </div>
         ) : (
           <div className="space-y-3">

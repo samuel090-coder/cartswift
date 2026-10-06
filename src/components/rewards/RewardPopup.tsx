@@ -92,6 +92,19 @@ export default function RewardPopup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, location.pathname]);
 
+  // Allow the rewards page to reopen the user's saved mystery boxes on demand.
+  useEffect(() => {
+    const handler = () => {
+      if (!user) return;
+      setOpen(true);
+      setPhase('loading');
+      loadBoxes('initial');
+    };
+    window.addEventListener('open-reward-popup', handler);
+    return () => window.removeEventListener('open-reward-popup', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const fireCelebration = () => {
     const end = Date.now() + 2500;
     const colors = ['#d4af37', '#a855f7', '#f472b6', '#22d3ee', '#fde047'];
