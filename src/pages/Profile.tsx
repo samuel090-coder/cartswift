@@ -17,6 +17,7 @@ import {
   Loader2, Image, Sparkles, Heart, MapPin, Globe, Phone, Mail, Wallet, Plus, Users, Radio, Crown
 } from 'lucide-react';
 import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import ApprovedSellerDashboard from '@/components/seller/ApprovedSellerDashboard';
 import { motion } from 'framer-motion';
@@ -41,15 +42,16 @@ const Profile = () => {
     enabled: !!user,
     queryFn: async () => {
       const sessionId = getSessionId();
-      const [orders, reviews, wallet, favorites] = await Promise.all([
+      const [orders, reviews, wallet, favorites, followers] = await Promise.all([
         sessionClient.from('orders').select('id', { count: 'exact', head: true }).eq('session_id', sessionId),
         sessionClient.from('reviews').select('id', { count: 'exact', head: true }).eq('session_id', sessionId),
         supabase.from('wallets').select('balance, bonus_balance').eq('user_id', user?.id).maybeSingle(),
         sessionClient.from('wishlists').select('id, items(id, title, images, price)').eq('session_id', sessionId),
+        supabase.from('user_followers').select('id', { count: 'exact', head: true }).eq('following_id', user?.id),
       ]);
       return { orders: orders.error ? null : orders.count, reviews: reviews.error ? null : reviews.count,
         balance: wallet.error ? null : (wallet.data?.balance || 0) + (wallet.data?.bonus_balance || 0),
-        favorites: favorites.data || [] };
+        favorites: favorites.data || [], followers: followers.error ? null : followers.count };
     },
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -276,7 +278,7 @@ const Profile = () => {
     { label: 'Total Orders', value: number(accountSummary?.orders), icon: ShoppingBag, tone: 'rose', action: () => navigate('/orders') },
     { label: 'Wallet Balance', value: accountSummary?.balance == null ? '—' : '$' + accountSummary.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: Wallet, tone: 'green', action: () => setTab('wallet') },
     { label: 'Reviews', value: number(accountSummary?.reviews), icon: Star, tone: 'gold', action: () => setTab('reviews') },
-    { label: 'Followers', value: number(profile?.followers_count || 0), icon: Users, tone: 'violet', action: () => navigate(`/user/${user?.id}`) },
+    { label: 'Followers', value: number(accountSummary?.followers), icon: Users, tone: 'violet', action: () => navigate(`/user/${user?.id}`) },
   ];
   const shortcuts = [
     { label: 'My Orders', icon: ShoppingBag, tone: 'rose', action: () => navigate('/orders') },
@@ -366,6 +368,7 @@ const Profile = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <BottomNavigation />
     </div>
   );
 };
