@@ -281,6 +281,30 @@
 ::-webkit-scrollbar-thumb:hover { background: hsl(230 15% 35%); }
 
 /* ===== Branded skeleton shimmer ===== */
+.profile-page {
+  --background: 225 30% 5%;
+  --card: 225 28% 7%;
+  --border: 222 22% 16%;
+  --muted-foreground: 219 24% 72%;
+  --profile-panel: linear-gradient(120deg, hsl(var(--card)), hsl(var(--background)));
+  --profile-vip: linear-gradient(115deg, hsl(var(--primary) / .22), hsl(var(--neon-violet) / .12), hsl(var(--background)));
+  background-image: linear-gradient(150deg, hsl(var(--primary) / .06), transparent 28%);
+}
+.profile-stat-strip, .profile-shortcut, .profile-information { background: var(--profile-panel); }
+.profile-vip { background: var(--profile-vip); }
+.profile-icon { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; }
+.profile-tone-rose, .profile-icon-rose { color: hsl(var(--neon-rose)); }
+.profile-tone-green, .profile-icon-green { color: hsl(var(--neon-emerald)); }
+.profile-tone-gold, .profile-icon-gold { color: hsl(var(--neon-amber)); }
+.profile-tone-violet, .profile-icon-violet { color: hsl(var(--neon-violet)); }
+.profile-icon-blue { color: hsl(var(--neon-blue)); }
+.profile-icon-rose { background: hsl(var(--primary) / .16); }
+.profile-icon-green { background: hsl(var(--neon-emerald) / .15); }
+.profile-icon-gold { background: hsl(var(--neon-amber) / .18); }
+.profile-icon-violet { background: hsl(var(--neon-violet) / .18); }
+.profile-icon-blue { background: hsl(var(--neon-blue) / .17); }
+.profile-shortcut .profile-icon { border: 3px solid currentColor; box-shadow: var(--shadow-soft); }
+
 .brand-shimmer::after {
   content: ""; position: absolute; inset: 0; transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.18), transparent);
