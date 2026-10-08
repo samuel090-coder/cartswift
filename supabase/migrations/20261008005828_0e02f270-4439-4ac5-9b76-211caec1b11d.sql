@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.assign_profile_username() FROM anon, authenticated, public;

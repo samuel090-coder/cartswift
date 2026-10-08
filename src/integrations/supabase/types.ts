@@ -1813,6 +1813,7 @@ export type Database = {
           total_sales: number | null
           total_status_earnings: number | null
           updated_at: string | null
+          username: string
           website: string | null
         }
         Insert: {
@@ -1842,6 +1843,7 @@ export type Database = {
           total_sales?: number | null
           total_status_earnings?: number | null
           updated_at?: string | null
+          username: string
           website?: string | null
         }
         Update: {
@@ -1871,6 +1873,7 @@ export type Database = {
           total_sales?: number | null
           total_status_earnings?: number | null
           updated_at?: string | null
+          username?: string
           website?: string | null
         }
         Relationships: []
