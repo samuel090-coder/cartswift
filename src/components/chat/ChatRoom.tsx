@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Circle } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, MoreVertical } from 'lucide-react';
+import SellerShowcase from './SellerShowcase';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,7 +46,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     queryKey: ['other-user-presence', otherUserId],
     refetchInterval: 15000,
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('last_seen').eq('id', otherUserId).single();
+      const { data } = await supabase.from('profiles').select('last_seen, seller_verified').eq('id', otherUserId).single();
       return data;
     },
   });
@@ -89,7 +90,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     queryKey: ['tagged-items', taggedItemIds],
     enabled: taggedItemIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from('items').select('id, title, images, price, currency').in('id', taggedItemIds);
+      const { data } = await supabase.from('items').select('id, title, images, price, currency, is_available').in('id', taggedItemIds);
       return data || [];
     },
   });
@@ -98,8 +99,15 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     queryKey: ['tagged-seller-products', taggedSellerIds],
     enabled: taggedSellerIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from('seller_products').select('id, title, images, price, currency').in('id', taggedSellerIds);
-      return data || [];
+      const { data } = await supabase.from('seller_products').select('id, title, images, price, currency, stock_quantity, seller_id').in('id', taggedSellerIds);
+      const sellerIds = [...new Set((data || []).map(p => p.seller_id))];
+      const { data: sellers } = sellerIds.length
+        ? await supabase.from('profiles').select('id, store_name, full_name, seller_verified').in('id', sellerIds)
+        : { data: [] as any[] };
+      return (data || []).map(p => {
+        const s = sellers?.find(x => x.id === p.seller_id);
+        return { ...p, seller_name: s?.store_name || s?.full_name || 'Seller', seller_verified: !!s?.seller_verified };
+      });
     },
   });
 
@@ -217,11 +225,11 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   const getTaggedProduct = (msg: any) => {
     if (msg.tagged_product_id) {
       const item = taggedItems?.find(i => i.id === msg.tagged_product_id);
-      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency, source: 'item' as const };
+      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency, source: 'item' as const, sellerName: 'CartSwift Official', sellerVerified: true, available: (item as any).is_available !== false };
     }
     if (msg.tagged_seller_product_id) {
       const sp = taggedSellerProducts?.find(p => p.id === msg.tagged_seller_product_id);
-      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency, source: 'seller_product' as const };
+      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency, source: 'seller_product' as const, sellerName: sp.seller_name, sellerVerified: sp.seller_verified, available: sp.stock_quantity > 0 };
     }
     return null;
   };
@@ -231,38 +239,35 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-border bg-card">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-8 w-8">
+      <div className="chat-header flex items-center gap-2.5 px-2 py-2 border-b border-border/60">
+        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-9 w-9" aria-label="Back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Avatar 
-          className="h-9 w-9 border border-primary/30 cursor-pointer" 
-          onClick={() => navigate(`/profile/${otherUserId}`)}
-        >
-          <AvatarImage src={conversation.other_user?.avatar_url || undefined} />
-          <AvatarFallback className="bg-primary/20 text-primary text-xs">
-            {displayName[0]}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <p 
-            className="text-sm font-semibold text-foreground cursor-pointer hover:underline"
-            onClick={() => navigate(`/profile/${otherUserId}`)}
-          >
-            {displayName}
+        <button onClick={() => navigate(`/profile/${otherUserId}`)} className="relative shrink-0 rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/30">
+          <Avatar className="h-10 w-10 border-2 border-background">
+            <AvatarImage src={conversation.other_user?.avatar_url || undefined} />
+            <AvatarFallback className="bg-primary/20 text-primary text-sm">{displayName[0]}</AvatarFallback>
+          </Avatar>
+          {isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-neon-emerald border-2 border-background" />}
+        </button>
+        <button onClick={() => navigate(`/profile/${otherUserId}`)} className="flex-1 min-w-0 text-left">
+          <p className="flex items-center gap-1 text-sm font-semibold text-foreground">
+            <span className="truncate">{displayName}</span>
+            {(otherProfile as any)?.seller_verified && <BadgeCheck className="h-4 w-4 shrink-0 text-neon-blue" aria-label="Verified" />}
           </p>
-          {isOnline ? (
-            <p className="text-[10px] text-emerald-500 flex items-center gap-1">
-              <Circle className="h-2 w-2 fill-current" /> Online
-            </p>
-          ) : (
-            <p className="text-[10px] text-muted-foreground">{lastSeenText}</p>
-          )}
-        </div>
+          <p className={`truncate text-[11px] ${isOnline ? 'text-neon-emerald' : 'text-muted-foreground'}`}>
+            {isOnline ? 'Online' : lastSeenText}
+          </p>
+        </button>
+        <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" aria-label="View profile" onClick={() => navigate(`/profile/${otherUserId}`)}>
+          <MoreVertical className="h-5 w-5" />
+        </Button>
       </div>
 
+      <SellerShowcase sellerId={otherUserId} />
+
       {/* Messages */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 chat-surface">
         <div className="space-y-2 p-3 pb-4">
           {(() => {
             // Find index of my latest message for read-receipt display
