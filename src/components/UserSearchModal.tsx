@@ -34,7 +34,7 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
       
       if (searchQuery.trim()) {
         const q = searchQuery.trim();
-        query = query.or(`full_name.ilike.%${q}%,store_name.ilike.%${q}%,email.ilike.%${q}%`);
+        query = query.or(`full_name.ilike.%${q}%,store_name.ilike.%${q}%,email.ilike.%${q}%,username.ilike.%${q}%,phone.ilike.%${q}%`);
       }
       
       const { data, error } = await query
@@ -161,7 +161,7 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or store..."
+            placeholder="Search by name, username, email or phone..."
             className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
             autoFocus
           />
