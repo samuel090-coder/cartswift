@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Pause, Download, FileText, ShoppingBag, ExternalLink, CreditCard, Check, CheckCheck } from 'lucide-react';
+import { Play, Pause, Download, FileText, ShoppingCart, Eye, Check, CheckCheck, BadgeCheck, Tag } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { formatChatPrice } from './chatFormat';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -13,7 +15,7 @@ interface ChatBubbleProps {
   fileSize?: number | null;
   mimeType?: string | null;
   voiceDuration?: number | null;
-  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string; source?: string } | null;
+  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string; source?: string; sellerName?: string; sellerVerified?: boolean; available?: boolean } | null;
   isMine: boolean;
   isAutoReply: boolean;
   timestamp: string;
@@ -27,6 +29,7 @@ const ChatBubble = ({
   isRead, showReadReceipt,
 }: ChatBubbleProps) => {
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewMedia, setViewMedia] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,21 +56,30 @@ const ChatBubble = ({
     }
   };
 
-  const handleBuyProduct = () => {
+  const postUrl = taggedProduct
+    ? taggedProduct.source === 'seller_product' ? `/share/${taggedProduct.id}?type=seller` : `/share/${taggedProduct.id}`
+    : '';
+
+  const handleViewPost = () => { if (postUrl) navigate(postUrl); };
+
+  const handleBuyProduct = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!taggedProduct) return;
-    // Open product detail page first so buyer can review before purchasing
-    if (taggedProduct.source === 'seller_product') {
-      navigate(`/share/${taggedProduct.id}?type=seller`);
+    if (taggedProduct.source === 'item' && taggedProduct.price != null) {
+      addToCart({ id: taggedProduct.id, title: taggedProduct.title, price: taggedProduct.price, image: taggedProduct.image || '', currency: taggedProduct.currency || 'USD' });
+      navigate('/checkout');
     } else {
-      navigate(`/share/${taggedProduct.id}`);
+      navigate(postUrl);
     }
   };
 
-  const bubbleClass = isMine
+  const bubbleClass = taggedProduct
+    ? `chat-tagged-shell text-foreground ${isMine ? 'rounded-br-sm' : 'rounded-bl-sm'}`
+    : isMine
     ? 'bg-primary text-primary-foreground rounded-br-sm'
     : 'bg-secondary text-foreground rounded-bl-sm';
 
-  const timeClass = isMine ? 'text-primary-foreground/60' : 'text-muted-foreground';
+  const timeClass = isMine && !taggedProduct ? 'text-primary-foreground/60' : 'text-muted-foreground';
 
   return (
     <motion.div
@@ -75,32 +87,42 @@ const ChatBubble = ({
       animate={{ opacity: 1, y: 0 }}
       className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
     >
-      <div className={`max-w-[80%] rounded-2xl overflow-hidden ${bubbleClass}`}>
-        {/* Tagged Product Card with Buy Button */}
+      <div className={`${taggedProduct ? 'w-[85%] max-w-sm' : 'max-w-[80%]'} rounded-2xl overflow-hidden ${bubbleClass}`}>
+        {/* Tagged post preview — data always comes from the referenced product */}
         {taggedProduct && (
-          <div className={`p-2 border-b ${isMine ? 'border-primary-foreground/20' : 'border-border'}`}>
-            <div className="flex items-center gap-2">
-              {taggedProduct.image && (
-                <img src={taggedProduct.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">{taggedProduct.title}</p>
-                {taggedProduct.price != null && (
-                  <p className="text-sm font-bold">
-                    {getCurrencySymbol(taggedProduct.currency || 'USD')}{taggedProduct.price.toFixed(2)}
+          <div role="button" tabIndex={0} onClick={handleViewPost} onKeyDown={(e) => e.key === 'Enter' && handleViewPost()}
+            className="chat-tagged-card m-1.5 rounded-xl p-2 text-left cursor-pointer">
+            <div className="mb-1.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-primary">
+              <Tag className="h-3 w-3" /> Shared product
+            </div>
+            <div className="flex gap-2.5">
+              {taggedProduct.image ? (
+                <img src={taggedProduct.image} alt={taggedProduct.title} loading="lazy" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+              ) : <div className="h-20 w-20 shrink-0 rounded-lg bg-secondary" />}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-semibold text-foreground">{taggedProduct.title}</p>
+                {taggedProduct.sellerName && (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <span className="truncate">{taggedProduct.sellerName}</span>
+                    {taggedProduct.sellerVerified && <BadgeCheck className="h-3 w-3 shrink-0 text-neon-blue" />}
                   </p>
                 )}
+                {taggedProduct.price != null && (
+                  <p className="mt-1 text-base font-bold text-primary">{formatChatPrice(taggedProduct.price, taggedProduct.currency || 'USD')}</p>
+                )}
+                {taggedProduct.available === false && <p className="text-[10px] font-semibold text-destructive">Out of stock</p>}
               </div>
-              <ShoppingBag className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </div>
-            <Button
-              size="sm"
-              onClick={handleBuyProduct}
-              className={`w-full mt-2 h-7 text-xs gap-1 ${isMine ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
-            >
-              <CreditCard className="h-3 w-3" />
-              Buy Now
-            </Button>
+            <div className="mt-2 flex gap-1.5">
+              <Button size="sm" onClick={handleBuyProduct} disabled={taggedProduct.available === false}
+                className="h-9 flex-1 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+                <ShoppingCart className="h-4 w-4" /> Buy Now
+              </Button>
+              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleViewPost(); }}
+                className="h-9 gap-1 border-border bg-transparent text-foreground">
+                <Eye className="h-3.5 w-3.5" /> View
+              </Button>
+            </div>
           </div>
         )}
 
@@ -186,9 +208,9 @@ const ChatBubble = ({
           </span>
           {isMine && showReadReceipt && (
             isRead ? (
-              <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Read" />
+              <CheckCheck className="h-3.5 w-3.5 text-neon-blue" aria-label="Read" />
             ) : (
-              <Check className="h-3.5 w-3.5 text-white/60" aria-label="Sent" />
+              <Check className="h-3.5 w-3.5 opacity-60" aria-label="Sent" />
             )
           )}
         </div>

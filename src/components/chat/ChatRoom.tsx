@@ -90,7 +90,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     queryKey: ['tagged-items', taggedItemIds],
     enabled: taggedItemIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from('items').select('id, title, images, price, currency, is_available').in('id', taggedItemIds);
+      const { data } = await supabase.from('items').select('id, title, images, price, currency').in('id', taggedItemIds);
       return data || [];
     },
   });
@@ -225,7 +225,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
   const getTaggedProduct = (msg: any) => {
     if (msg.tagged_product_id) {
       const item = taggedItems?.find(i => i.id === msg.tagged_product_id);
-      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency, source: 'item' as const, sellerName: 'CartSwift Official', sellerVerified: true, available: (item as any).is_available !== false };
+      if (item) return { id: item.id, title: item.title, image: item.images?.[0], price: item.price, currency: item.currency, source: 'item' as const, sellerName: 'CartSwift Official', sellerVerified: true, available: true };
     }
     if (msg.tagged_seller_product_id) {
       const sp = taggedSellerProducts?.find(p => p.id === msg.tagged_seller_product_id);
