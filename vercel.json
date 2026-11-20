@@ -4,6 +4,9 @@
   "installCommand": "npm install",
   "git": { "deploymentEnabled": true },
   "github": { "silent": true, "autoJobCancelation": true },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -34,5 +37,4 @@
       ]
     }
   ]
-        }
-        
+}
