@@ -229,7 +229,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
     }
     if (msg.tagged_seller_product_id) {
       const sp = taggedSellerProducts?.find(p => p.id === msg.tagged_seller_product_id);
-      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency, source: 'seller_product' as const, sellerName: sp.seller_name, sellerVerified: sp.seller_verified, available: sp.stock_quantity > 0 };
+      if (sp) return { id: sp.id, title: sp.title, image: sp.images?.[0], price: sp.price, currency: sp.currency, source: 'seller_product' as const, sellerId: sp.seller_id, sellerName: sp.seller_name, sellerVerified: sp.seller_verified, available: sp.stock_quantity > 0 };
     }
     return null;
   };
@@ -291,6 +291,7 @@ const ChatRoom = ({ conversation, onBack }: ChatRoomProps) => {
                 timestamp={msg.created_at}
                 isRead={!!(msg as any).is_read}
                 showReadReceipt={idx === lastMineIdx}
+                referralMessageId={msg.id}
               />
             ));
           })()}

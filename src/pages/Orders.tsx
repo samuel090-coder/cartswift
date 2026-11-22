@@ -28,6 +28,11 @@ const Orders = () => {
               item_type,
               file_url,
               images
+            ),
+            seller_products (
+              id,
+              title,
+              images
             )
           )
         `)
@@ -130,9 +135,9 @@ const Orders = () => {
                       {allItems.map((orderItem: any) => (
                         <div key={orderItem.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                           <div>
-                            <p className="text-white font-medium">{orderItem.items?.title}</p>
+                            <p className="text-white font-medium">{orderItem.items?.title || orderItem.seller_product_title || orderItem.seller_products?.title || 'Seller product'}</p>
                             <p className="text-white/60 text-sm">
-                              Type: {orderItem.items?.item_type?.toUpperCase()}
+                              Type: {orderItem.items?.item_type?.toUpperCase() || 'SELLER PRODUCT'}
                             </p>
                           </div>
                           <Badge variant="secondary">

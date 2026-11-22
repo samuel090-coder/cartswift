@@ -26,7 +26,9 @@ interface OrderWithDetails extends Order {
     id: string;
     quantity: number;
     price_at_time: number;
-    items: { title: string; price: number };
+    items: { title: string; price: number } | null;
+    seller_products: { title: string; price: number } | null;
+    seller_product_title: string | null;
   }>;
   payment_proofs: PaymentProof[];
   gift_card_payments: GiftCardPayment[];
@@ -57,7 +59,8 @@ const OrderManagement = () => {
           *,
           order_items (
             *,
-            items (title, price)
+            items (title, price),
+            seller_products (title, price)
           ),
           payment_proofs (*),
           gift_card_payments (*),
@@ -328,7 +331,7 @@ const OrderManagement = () => {
               {order.order_items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                   <div>
-                    <p className="font-medium">{item.items.title}</p>
+                    <p className="font-medium">{item.items?.title || item.seller_product_title || item.seller_products?.title || 'Seller product'}</p>
                     <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                   </div>
                   <p className="font-semibold">${(Number(item.price_at_time) * item.quantity).toFixed(2)}</p>

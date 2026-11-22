@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,10 @@ const Checkout = () => {
     postalCode: '',
     deliveryInstructions: '',
   });
+
+  useEffect(() => {
+    if (items.length === 0 && step === 'details') navigate('/cart');
+  }, [items.length, step, navigate]);
 
   const getSessionId = () => {
     let sessionId = localStorage.getItem('cartswift-session');
@@ -102,12 +106,53 @@ const Checkout = () => {
       const { error: itemsError } = await supabase.from('order_items').insert(
         items.map((item) => ({
           order_id: createdOrder.id,
-          item_id: item.id,
+          item_id: item.productType === 'seller_product' ? null : item.id,
+          seller_product_id: item.productType === 'seller_product' ? item.id : null,
+          seller_product_title: item.productType === 'seller_product' ? item.title : null,
+          seller_product_image: item.productType === 'seller_product' ? item.image : null,
+          seller_product_currency: item.productType === 'seller_product' ? item.currency : null,
+          seller_id: item.productType === 'seller_product' ? item.sellerId || null : null,
+          chat_referral_message_id: item.productType === 'seller_product' ? item.referralMessageId || null : null,
           quantity: item.quantity,
           price_at_time: item.price,
         }))
       );
       if (itemsError) throw new Error(`Failed to add items to order: ${itemsError.message}`);
+
+      const sellerOrderRows = items
+        .filter((item) => item.productType === 'seller_product')
+        .map((item) => {
+          if (!item.sellerId) throw new Error(`Seller details are missing for ${item.title}. Please remove it and add it again.`);
+          return {
+            seller_product_id: item.id,
+            seller_id: item.sellerId,
+            buyer_session_id: sessionId,
+            buyer_email: formData.email || null,
+            quantity: item.quantity,
+            price_at_purchase: item.price,
+            commission_amount: 0,
+            seller_earnings: 0,
+            status: 'pending',
+            shipping_address: {
+              full_name: formData.fullName,
+              phone_number: formData.phoneNumber,
+              address_line1: formData.addressLine1,
+              address_line2: formData.addressLine2 || null,
+              city: formData.city,
+              state: formData.state,
+              postal_code: formData.postalCode,
+              country: 'US',
+              delivery_instructions: formData.deliveryInstructions || null,
+            },
+            checkout_order_id: createdOrder.id,
+            referral_message_id: item.referralMessageId || null,
+          };
+        });
+
+      if (sellerOrderRows.length > 0) {
+        const { error: sellerOrdersError } = await supabase.from('seller_orders').insert(sellerOrderRows);
+        if (sellerOrdersError) throw new Error(`Failed to add seller products to order: ${sellerOrdersError.message}`);
+      }
 
       setOrder(createdOrder);
       setStep('payment');
@@ -180,10 +225,7 @@ const Checkout = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  if (items.length === 0 && step === 'details') {
-    navigate('/cart');
-    return null;
-  }
+  if (items.length === 0 && step === 'details') return null;
 
   const orderCurrency = items[0]?.currency || 'USD';
 

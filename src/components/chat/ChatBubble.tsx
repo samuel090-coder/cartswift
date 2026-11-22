@@ -15,8 +15,9 @@ interface ChatBubbleProps {
   fileSize?: number | null;
   mimeType?: string | null;
   voiceDuration?: number | null;
-  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string; source?: string; sellerName?: string; sellerVerified?: boolean; available?: boolean } | null;
+  taggedProduct?: { id: string; title: string; image?: string; price?: number; currency?: string; source?: string; sellerId?: string; sellerName?: string; sellerVerified?: boolean; available?: boolean } | null;
   isMine: boolean;
+  referralMessageId?: string;
   isAutoReply: boolean;
   timestamp: string;
   isRead?: boolean;
@@ -26,7 +27,7 @@ interface ChatBubbleProps {
 const ChatBubble = ({
   content, messageType, fileUrl, fileName, fileSize, mimeType,
   voiceDuration, taggedProduct, isMine, isAutoReply, timestamp,
-  isRead, showReadReceipt,
+  isRead, showReadReceipt, referralMessageId,
 }: ChatBubbleProps) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -57,7 +58,7 @@ const ChatBubble = ({
   };
 
   const postUrl = taggedProduct
-    ? taggedProduct.source === 'seller_product' ? `/share/${taggedProduct.id}?type=seller` : `/share/${taggedProduct.id}`
+    ? taggedProduct.source === 'seller_product' ? `/seller-profile/${taggedProduct.sellerId || ''}` : `/share/${taggedProduct.id}`
     : '';
 
   const handleViewPost = () => { if (postUrl) navigate(postUrl); };
@@ -65,8 +66,21 @@ const ChatBubble = ({
   const handleBuyProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!taggedProduct) return;
-    if (taggedProduct.source === 'item' && taggedProduct.price != null) {
-      addToCart({ id: taggedProduct.id, title: taggedProduct.title, price: taggedProduct.price, image: taggedProduct.image || '', currency: taggedProduct.currency || 'USD' });
+    if (taggedProduct.price != null) {
+      if (taggedProduct.source === 'seller_product') {
+        addToCart({
+          id: taggedProduct.id,
+          title: taggedProduct.title,
+          price: taggedProduct.price,
+          image: taggedProduct.image || '',
+          currency: taggedProduct.currency || 'USD',
+          productType: 'seller_product',
+          sellerId: taggedProduct.sellerId,
+          referralMessageId,
+        });
+      } else {
+        addToCart({ id: taggedProduct.id, title: taggedProduct.title, price: taggedProduct.price, image: taggedProduct.image || '', currency: taggedProduct.currency || 'USD' });
+      }
       navigate('/checkout');
     } else {
       navigate(postUrl);

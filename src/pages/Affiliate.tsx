@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Copy, DollarSign, Users, TrendingUp, Link as LinkIcon, Share2 } from 'lucide-react';
 import Header from '@/components/Header';
 import { motion } from 'framer-motion';
+import ChatReferralEarnings from '@/components/ChatReferralEarnings';
 
 const Affiliate = () => {
   const navigate = useNavigate();
@@ -107,6 +108,8 @@ const Affiliate = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
+
+          <ChatReferralEarnings />
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -289,6 +292,9 @@ const Affiliate = () => {
             )}
           </CardContent>
         </Card>
+        <div className="mt-8">
+          <ChatReferralEarnings />
+        </div>
       </div>
     </div>
   );

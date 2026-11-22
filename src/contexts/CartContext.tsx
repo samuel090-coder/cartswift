@@ -8,11 +8,14 @@ export interface CartItem {
   image: string;
   quantity: number;
   currency: string;
+  productType?: 'item' | 'seller_product';
+  sellerId?: string;
+  referralMessageId?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToCart: (item: Omit<CartItem, 'quantity' | 'productType'> & { productType?: CartItem['productType'] }) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -49,10 +52,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (newItem: Omit<CartItem, 'quantity'>) => {
     setItems(prev => {
-      const existingItem = prev.find(item => item.id === newItem.id);
+      const existingItem = prev.find(item => item.id === newItem.id && item.productType === newItem.productType);
       if (existingItem) {
         return prev.map(item =>
-          item.id === newItem.id
+          item.id === newItem.id && item.productType === newItem.productType
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );

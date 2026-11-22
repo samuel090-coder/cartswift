@@ -13,6 +13,7 @@ interface TaggedProduct {
   image?: string;
   price?: number;
   currency?: string;
+  sellerId?: string;
   source: 'item' | 'seller_product';
 }
 
@@ -32,7 +33,7 @@ const ProductTagger = ({ onSelect, onClose }: ProductTaggerProps) => {
       // Search admin items
       const { data: items } = await supabase
         .from('items')
-        .select('id, title, images, price, currency')
+        .select('id, title, images, price, currency, seller_id')
         .ilike('title', `%${search}%`)
         .limit(10);
 
@@ -52,6 +53,7 @@ const ProductTagger = ({ onSelect, onClose }: ProductTaggerProps) => {
       sp?.forEach(p => results.push({
         id: p.id, title: p.title,
         image: p.images?.[0], price: p.price, currency: p.currency,
+        sellerId: p.seller_id,
         source: 'seller_product',
       }));
 

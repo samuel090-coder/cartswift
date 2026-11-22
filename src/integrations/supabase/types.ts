@@ -507,6 +507,67 @@ export type Database = {
           },
         ]
       }
+      chat_product_commissions: {
+        Row: {
+          commission_earned: number
+          commission_rate: number
+          created_at: string
+          id: string
+          order_amount: number
+          referral_message_id: string | null
+          referrer_id: string
+          seller_order_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_earned: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          order_amount: number
+          referral_message_id?: string | null
+          referrer_id: string
+          seller_order_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_earned?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          order_amount?: number
+          referral_message_id?: string | null
+          referrer_id?: string
+          seller_order_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_product_commissions_referral_message_id_fkey"
+            columns: ["referral_message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_product_commissions_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_product_commissions_seller_order_id_fkey"
+            columns: ["seller_order_id"]
+            isOneToOne: true
+            referencedRelation: "seller_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_sessions: {
         Row: {
           closed_at: string | null
@@ -1435,30 +1496,55 @@ export type Database = {
       }
       order_items: {
         Row: {
+          chat_referral_message_id: string | null
           created_at: string
           id: string
-          item_id: string
+          item_id: string | null
           order_id: string
           price_at_time: number
           quantity: number
+          seller_id: string | null
+          seller_product_currency: string | null
+          seller_product_id: string | null
+          seller_product_image: string | null
+          seller_product_title: string | null
         }
         Insert: {
+          chat_referral_message_id?: string | null
           created_at?: string
           id?: string
-          item_id: string
+          item_id?: string | null
           order_id: string
           price_at_time: number
           quantity?: number
+          seller_id?: string | null
+          seller_product_currency?: string | null
+          seller_product_id?: string | null
+          seller_product_image?: string | null
+          seller_product_title?: string | null
         }
         Update: {
+          chat_referral_message_id?: string | null
           created_at?: string
           id?: string
-          item_id?: string
+          item_id?: string | null
           order_id?: string
           price_at_time?: number
           quantity?: number
+          seller_id?: string | null
+          seller_product_currency?: string | null
+          seller_product_id?: string | null
+          seller_product_image?: string | null
+          seller_product_title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_chat_referral_message_id_fkey"
+            columns: ["chat_referral_message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_item_id_fkey"
             columns: ["item_id"]
@@ -1471,6 +1557,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_seller_product_id_fkey"
+            columns: ["seller_product_id"]
+            isOneToOne: false
+            referencedRelation: "seller_products"
             referencedColumns: ["id"]
           },
         ]
@@ -2291,11 +2384,13 @@ export type Database = {
         Row: {
           buyer_email: string | null
           buyer_session_id: string
+          checkout_order_id: string | null
           commission_amount: number
           created_at: string
           id: string
           price_at_purchase: number
           quantity: number
+          referral_message_id: string | null
           seller_earnings: number
           seller_id: string
           seller_product_id: string
@@ -2306,11 +2401,13 @@ export type Database = {
         Insert: {
           buyer_email?: string | null
           buyer_session_id: string
+          checkout_order_id?: string | null
           commission_amount: number
           created_at?: string
           id?: string
           price_at_purchase: number
           quantity?: number
+          referral_message_id?: string | null
           seller_earnings: number
           seller_id: string
           seller_product_id: string
@@ -2321,11 +2418,13 @@ export type Database = {
         Update: {
           buyer_email?: string | null
           buyer_session_id?: string
+          checkout_order_id?: string | null
           commission_amount?: number
           created_at?: string
           id?: string
           price_at_purchase?: number
           quantity?: number
+          referral_message_id?: string | null
           seller_earnings?: number
           seller_id?: string
           seller_product_id?: string
@@ -2334,6 +2433,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seller_orders_checkout_order_id_fkey"
+            columns: ["checkout_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_orders_referral_message_id_fkey"
+            columns: ["referral_message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seller_orders_seller_product_id_fkey"
             columns: ["seller_product_id"]
