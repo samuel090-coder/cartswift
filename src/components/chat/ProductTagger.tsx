@@ -33,7 +33,7 @@ const ProductTagger = ({ onSelect, onClose }: ProductTaggerProps) => {
       // Search admin items
       const { data: items } = await supabase
         .from('items')
-        .select('id, title, images, price, currency, seller_id')
+        .select('id, title, images, price, currency')
         .ilike('title', `%${search}%`)
         .limit(10);
 
@@ -46,7 +46,9 @@ const ProductTagger = ({ onSelect, onClose }: ProductTaggerProps) => {
       // Search seller products
       const { data: sp } = await supabase
         .from('seller_products')
-        .select('id, title, images, price, currency')
+        .select('id, title, images, price, currency, seller_id, stock_quantity')
+        .eq('is_approved', true)
+        .gt('stock_quantity', 0)
         .ilike('title', `%${search}%`)
         .limit(10);
 

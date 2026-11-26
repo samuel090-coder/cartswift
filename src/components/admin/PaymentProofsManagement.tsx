@@ -15,6 +15,9 @@ type OrderItem = {
   id: string;
   quantity: number;
   price_at_time: number;
+  seller_product_title: string | null;
+  seller_product_image: string | null;
+  seller_products?: { title: string; images: string[] | null } | null;
   items: {
     title: string;
     images: string[] | null;
@@ -276,12 +279,18 @@ const PaymentProofsManagement = () => {
               id,
               quantity,
               price_at_time,
+              seller_product_title,
+              seller_product_image,
               items (
                 title,
                 images,
                 item_type,
                 file_url,
                 admin_download_link
+              ),
+              seller_products (
+                title,
+                images
               )
             )
           )
@@ -460,7 +469,7 @@ const PaymentProofsManagement = () => {
     let hasDigitalItems = false;
     
     if (order.order_items && order.order_items.length > 0) {
-      productNames = order.order_items.map(item => item.items?.title || 'Unknown Product').join(', ');
+      productNames = order.order_items.map(item => item.items?.title || item.seller_product_title || item.seller_products?.title || 'Unknown Product').join(', ');
       
       // Check for APK/file items and get their download URLs
       order.order_items.forEach(item => {
@@ -701,15 +710,15 @@ const PaymentProofsManagement = () => {
                 <div className="space-y-3">
                   {order.order_items.map((item, index) => (
                     <div key={item.id || index} className="flex items-center gap-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                      {item.items?.images && item.items.images[0] && (
+                      {(item.items?.images?.[0] || item.seller_product_image || item.seller_products?.images?.[0]) && (
                         <img 
-                          src={item.items.images[0]} 
-                          alt={item.items?.title || 'Product'} 
+                          src={item.items?.images?.[0] || item.seller_product_image || item.seller_products?.images?.[0] || ''}
+                          alt={item.items?.title || item.seller_product_title || item.seller_products?.title || 'Product'}
                           className="w-16 h-16 rounded-lg object-cover border border-slate-600"
                         />
                       )}
                       <div className="flex-1">
-                        <p className="font-medium text-white">{item.items?.title || 'Unknown Product'}</p>
+                        <p className="font-medium text-white">{item.items?.title || item.seller_product_title || item.seller_products?.title || 'Unknown Product'}</p>
                         <p className="text-sm text-slate-400">Quantity: {item.quantity}</p>
                       </div>
                       <p className="font-semibold text-emerald-400">

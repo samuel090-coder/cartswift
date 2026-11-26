@@ -44,7 +44,7 @@ const ChatReferralEarnings = () => {
           </div>
           <div className="min-w-0">
             <CardTitle className="text-lg">Chat product earnings</CardTitle>
-            <CardDescription>Earn {CHAT_REFERRAL_RATE * 100}% when a customer buys a seller product you shared in chat.</CardDescription>
+            <CardDescription>Earn up to {CHAT_REFERRAL_RATE * 100}% from CartSwift’s fee when a customer buys a seller product you shared in chat. Seller payout stays unchanged.</CardDescription>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 pt-2">
